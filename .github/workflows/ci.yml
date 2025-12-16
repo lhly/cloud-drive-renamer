@@ -73,15 +73,15 @@ jobs:
         run: npm ci
 
       # ------------------------------------------
-      # 步骤 4: 运行快速测试（无覆盖率，更快）
+      # 步骤 4: 运行完整 CI 流程（质量检查 + 构建）
       # ------------------------------------------
-      - name: 🧪 Run fast tests
-        run: npm run test:ci
+      - name: 🚀 Run CI pipeline
+        run: npm run ci
         continue-on-error: false
-        timeout-minutes: 3
+        timeout-minutes: 5
 
       # ------------------------------------------
-      # 步骤 5: 上传测试覆盖率
+      # 步骤 5: 上传测试覆盖率报告
       # ------------------------------------------
       - name: 📊 Upload coverage reports
         uses: actions/upload-artifact@v4
@@ -92,40 +92,40 @@ jobs:
           retention-days: 7
 
       # ------------------------------------------
-      # 步骤 6: TypeScript 类型检查
+      # 步骤 6: 验证构建产物
       # ------------------------------------------
-      - name: 🔍 Run type checking
-        run: npm run typecheck
-
-      # ------------------------------------------
-      # 步骤 7: ESLint 代码检查
-      # ------------------------------------------
-      - name: 🎨 Run linting
-        run: npm run lint
-
-      # ------------------------------------------
-      # 步骤 8: 构建验证
-      # ------------------------------------------
-      - name: 🏗️ Build extension
-        run: npm run build
-
-      # ------------------------------------------
-      # 步骤 9: 验证构建产物
-      # ------------------------------------------
-      - name: ✅ Verify build
+      - name: ✅ Verify build artifacts
         run: |
           echo "📋 Verifying build artifacts..."
 
           # 检查关键文件
-          test -f dist/manifest.json || exit 1
-          test -f dist/icons/icon16.png || exit 1
-          test -f dist/icons/icon48.png || exit 1
-          test -f dist/icons/icon128.png || exit 1
+          required_files=(
+            "dist/manifest.json"
+            "dist/icons/icon16.png"
+            "dist/icons/icon48.png"
+            "dist/icons/icon128.png"
+          )
 
-          echo "✅ Build verification passed"
+          all_ok=true
+          for file in "${required_files[@]}"; do
+            if test -f "$file"; then
+              echo "✅ $file exists"
+            else
+              echo "❌ $file NOT FOUND"
+              all_ok=false
+            fi
+          done
+
+          if [ "$all_ok" = true ]; then
+            echo "✅ Build verification passed"
+            exit 0
+          else
+            echo "❌ Build verification FAILED"
+            exit 1
+          fi
 
       # ------------------------------------------
-      # 步骤 10: 总结
+      # 步骤 7: CI 总结
       # ------------------------------------------
       - name: 📣 CI Summary
         if: success()
@@ -133,7 +133,11 @@ jobs:
           echo "## ✅ CI Checks Completed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "All quality checks passed successfully:" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Tests passed with coverage" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Type checking passed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Linting passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Code linting (ESLint)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Type checking (TypeScript)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Unit tests with coverage" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Build succeeded and verified" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Performance" >> $GITHUB_STEP_SUMMARY
+          echo "- Single command execution (no redundant checks)" >> $GITHUB_STEP_SUMMARY
+          echo "- Optimized CI pipeline" >> $GITHUB_STEP_SUMMARY

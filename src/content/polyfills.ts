@@ -25,6 +25,7 @@ if (typeof customElements === 'undefined' || customElements === null) {
   // 注意：这是正常的，loader会异步加载必要的polyfill
   // 实际的API可用性检查应该在使用时进行（见index.ts的openRenameDialog）
 } else {
+  // Polyfill 已加载，可以直接使用 customElements
 }
 
 export {};
