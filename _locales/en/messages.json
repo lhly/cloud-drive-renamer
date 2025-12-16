@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "CloudDrive Renamer",
+    "description": "Extension name (English)"
+  },
+  "extDescription": {
+    "message": "Powerful batch renaming tool for Quark Drive (Aliyun Drive and Baidu Cloud Drive support coming soon)",
+    "description": "Extension description (English)"
+  }
+}

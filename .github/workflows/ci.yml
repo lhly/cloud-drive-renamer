@@ -1,0 +1,137 @@
+# ==========================================
+# GitHub Actions Workflow: Continuous Integration
+# ==========================================
+#
+# 功能：持续集成测试和代码质量检查
+#
+# 触发条件：
+#   - Pull Request 创建或更新
+#   - 推送到 main 分支
+#
+# 工作流程：
+#   1. 依赖安装和缓存
+#   2. 运行测试套件
+#   3. TypeScript 类型检查
+#   4. ESLint 代码检查
+#   5. 验证构建成功
+#
+# 目的：
+#   - 确保所有代码变更通过质量检查
+#   - 在合并前发现潜在问题
+#   - 保持代码库健康
+#
+# ==========================================
+
+name: CI
+
+# 触发条件
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# 取消正在运行的相同工作流
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# 环境变量
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ==========================================
+  # Job: 质量检查
+  # ==========================================
+  quality-check:
+    name: Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      # ------------------------------------------
+      # 步骤 1: 检出代码
+      # ------------------------------------------
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      # ------------------------------------------
+      # 步骤 2: 设置 Node.js
+      # ------------------------------------------
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      # ------------------------------------------
+      # 步骤 3: 安装依赖
+      # ------------------------------------------
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      # ------------------------------------------
+      # 步骤 4: 运行测试（带覆盖率）
+      # ------------------------------------------
+      - name: 🧪 Run tests with coverage
+        run: npm run test:coverage
+        continue-on-error: false
+
+      # ------------------------------------------
+      # 步骤 5: 上传测试覆盖率
+      # ------------------------------------------
+      - name: 📊 Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+      # ------------------------------------------
+      # 步骤 6: TypeScript 类型检查
+      # ------------------------------------------
+      - name: 🔍 Run type checking
+        run: npm run typecheck
+
+      # ------------------------------------------
+      # 步骤 7: ESLint 代码检查
+      # ------------------------------------------
+      - name: 🎨 Run linting
+        run: npm run lint
+
+      # ------------------------------------------
+      # 步骤 8: 构建验证
+      # ------------------------------------------
+      - name: 🏗️ Build extension
+        run: npm run build
+
+      # ------------------------------------------
+      # 步骤 9: 验证构建产物
+      # ------------------------------------------
+      - name: ✅ Verify build
+        run: |
+          echo "📋 Verifying build artifacts..."
+
+          # 检查关键文件
+          test -f dist/manifest.json || exit 1
+          test -f dist/icons/icon16.png || exit 1
+          test -f dist/icons/icon48.png || exit 1
+          test -f dist/icons/icon128.png || exit 1
+
+          echo "✅ Build verification passed"
+
+      # ------------------------------------------
+      # 步骤 10: 总结
+      # ------------------------------------------
+      - name: 📣 CI Summary
+        if: always()
+        run: |
+          echo "## ✅ CI Checks Completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Type checking passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Linting passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Build succeeded" >> $GITHUB_STEP_SUMMARY

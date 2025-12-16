@@ -1,0 +1,62 @@
+{
+  "name": "cloud-drive-renamer",
+  "version": "0.1.0",
+  "description": "批量重命名工具，支持夸克网盘（阿里云盘和百度网盘开发中）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "sync:version": "node scripts/sync-version.js",
+    "prebuild": "npm run sync:version",
+    "predev": "npm run sync:version",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json}\"",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "typecheck": "tsc --noEmit",
+    "resize:screenshots": "node scripts/resize-screenshots.js screenshot",
+    "resize:screenshots-small": "node scripts/resize-screenshots.js screenshot-small",
+    "resize:logo": "node scripts/resize-screenshots.js logo",
+    "resize:promo-small": "node scripts/resize-screenshots.js small-promo",
+    "resize:promo-large": "node scripts/resize-screenshots.js large-promo",
+    "resize:all": "npm run resize:screenshots && npm run resize:logo && npm run resize:promo-small && npm run resize:promo-large",
+    "verify:release": "node scripts/verify-release.js",
+    "release:check": "npm run verify:release"
+  },
+  "keywords": [
+    "chrome-extension",
+    "rename",
+    "cloud-drive",
+    "quark",
+    "aliyun",
+    "baidu"
+  ],
+  "author": "CloudDrive Renamer Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.3.0",
+    "@playwright/test": "^1.57.0",
+    "@types/chrome": "^0.0.260",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@vitest/coverage-v8": "^1.6.1",
+    "eslint": "^8.57.1",
+    "jsdom": "^27.3.0",
+    "prettier": "^3.7.4",
+    "sharp": "^0.34.5",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21",
+    "vitest": "^1.6.1"
+  },
+  "dependencies": {
+    "@lit-labs/virtualizer": "^2.1.1",
+    "@webcomponents/webcomponentsjs": "^2.8.0",
+    "lit": "^3.3.1"
+  }
+}

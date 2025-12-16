@@ -1,0 +1,258 @@
+# ==========================================
+# GitHub Actions Workflow: Release Automation
+# ==========================================
+#
+# 功能：自动化 Chrome 扩展发布流程
+#
+# 触发条件：
+#   - 推送格式为 v*.*.* 的 Git 标签（如 v0.1.0, v1.2.3）
+#
+# 工作流程：
+#   1. 环境准备：检出代码，设置 Node.js 环境
+#   2. 依赖安装：使用 npm ci 安装锁定版本的依赖
+#   3. 质量检查：运行测试、类型检查、代码检查
+#   4. 构建打包：编译扩展并创建 ZIP 发布包
+#   5. 发布分发：创建 GitHub Release 并附加发布文件
+#
+# 输出产物：
+#   - dist/ 目录：完整的扩展构建产物
+#   - cloud-drive-renamer-{version}.zip：可直接安装的扩展包
+#
+# 使用方式：
+#   git tag v0.1.0
+#   git push origin v0.1.0
+#
+# ==========================================
+
+name: Release
+
+# 触发条件：推送 v 开头的标签
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+# 工作流权限配置
+permissions:
+  contents: write  # 允许创建 Release 和上传资产
+
+# 环境变量
+env:
+  NODE_VERSION: '20'  # Node.js LTS 版本
+  ARTIFACT_NAME: 'chrome-extension-dist'  # 构建产物名称
+
+jobs:
+  # ==========================================
+  # Job 1: 构建和测试
+  # ==========================================
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # ------------------------------------------
+      # 步骤 1: 环境准备
+      # ------------------------------------------
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整 Git 历史（用于生成变更日志）
+
+      # ------------------------------------------
+      # 步骤 2: 设置 Node.js 环境
+      # ------------------------------------------
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'  # 启用 npm 缓存加速
+
+      # ------------------------------------------
+      # 步骤 3: 安装依赖
+      # ------------------------------------------
+      - name: 📦 Install dependencies
+        run: npm ci  # 使用 ci 而非 install 确保可重现性
+
+      # ------------------------------------------
+      # 步骤 4: 运行测试套件
+      # ------------------------------------------
+      - name: 🧪 Run tests
+        run: npm run test
+        continue-on-error: false  # 测试失败则中止流程
+
+      # ------------------------------------------
+      # 步骤 5: TypeScript 类型检查
+      # ------------------------------------------
+      - name: 🔍 Run type checking
+        run: npm run typecheck
+
+      # ------------------------------------------
+      # 步骤 6: ESLint 代码检查
+      # ------------------------------------------
+      - name: 🎨 Run linting
+        run: npm run lint
+
+      # ------------------------------------------
+      # 步骤 7: 构建扩展
+      # ------------------------------------------
+      - name: 🏗️ Build extension
+        run: npm run build
+
+      # ------------------------------------------
+      # 步骤 8: 验证构建产物
+      # ------------------------------------------
+      - name: ✅ Verify build artifacts
+        run: |
+          echo "📋 Checking required files..."
+
+          # 必需文件清单
+          required_files=(
+            "dist/manifest.json"
+            "dist/icons/icon16.png"
+            "dist/icons/icon48.png"
+            "dist/icons/icon128.png"
+          )
+
+          # 验证文件存在
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Error: Missing required file: $file"
+              exit 1
+            fi
+            echo "✓ $file"
+          done
+
+          echo ""
+          echo "📊 Build statistics:"
+          echo "Total files: $(find dist -type f | wc -l)"
+          echo "Total size: $(du -sh dist | cut -f1)"
+          echo ""
+          echo "✅ All required files present"
+
+      # ------------------------------------------
+      # 步骤 9: 上传构建产物（供后续 Job 使用）
+      # ------------------------------------------
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: dist/
+          retention-days: 7  # 保留 7 天
+
+  # ==========================================
+  # Job 2: 创建 Release
+  # ==========================================
+  create-release:
+    name: Create GitHub Release
+    needs: build-and-test  # 依赖 build-and-test 成功完成
+    runs-on: ubuntu-latest
+
+    steps:
+      # ------------------------------------------
+      # 步骤 1: 检出代码
+      # ------------------------------------------
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ------------------------------------------
+      # 步骤 2: 下载构建产物
+      # ------------------------------------------
+      - name: 📥 Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: dist/
+
+      # ------------------------------------------
+      # 步骤 3: 提取版本号
+      # ------------------------------------------
+      - name: 🏷️ Extract version from tag
+        id: version
+        run: |
+          # 从 Git 标签提取版本号（去除 v 前缀）
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "📦 Version: ${VERSION}"
+
+      # ------------------------------------------
+      # 步骤 4: 创建 ZIP 发布包
+      # ------------------------------------------
+      - name: 📦 Create release ZIP
+        run: |
+          cd dist
+          zip -r ../cloud-drive-renamer-${{ steps.version.outputs.version }}.zip .
+          cd ..
+
+          echo "📊 ZIP file details:"
+          ls -lh cloud-drive-renamer-${{ steps.version.outputs.version }}.zip
+
+      # ------------------------------------------
+      # 步骤 5: 生成变更日志
+      # ------------------------------------------
+      - name: 📝 Generate changelog
+        id: changelog
+        run: |
+          echo "## 🎉 What's Changed" > CHANGELOG.txt
+          echo "" >> CHANGELOG.txt
+
+          # 获取上一个标签
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "🆕 Initial release" >> CHANGELOG.txt
+          else
+            echo "📋 Changes since ${PREV_TAG}:" >> CHANGELOG.txt
+            echo "" >> CHANGELOG.txt
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" >> CHANGELOG.txt
+          fi
+
+          echo "" >> CHANGELOG.txt
+          echo "" >> CHANGELOG.txt
+          echo "## 📥 Installation" >> CHANGELOG.txt
+          echo "" >> CHANGELOG.txt
+          echo "1. Download \`cloud-drive-renamer-${{ steps.version.outputs.version }}.zip\`" >> CHANGELOG.txt
+          echo "2. Extract the ZIP file" >> CHANGELOG.txt
+          echo "3. Open Chrome and navigate to \`chrome://extensions/\`" >> CHANGELOG.txt
+          echo "4. Enable \"Developer mode\"" >> CHANGELOG.txt
+          echo "5. Click \"Load unpacked\" and select the extracted folder" >> CHANGELOG.txt
+          echo "" >> CHANGELOG.txt
+          echo "## 🔗 Supported Cloud Drives" >> CHANGELOG.txt
+          echo "" >> CHANGELOG.txt
+          echo "- 🌐 Quark (夸克网盘)" >> CHANGELOG.txt
+          echo "- ☁️ Aliyun Drive (阿里云盘)" >> CHANGELOG.txt
+          echo "- 🎯 Baidu Pan (百度网盘)" >> CHANGELOG.txt
+
+          cat CHANGELOG.txt
+
+      # ------------------------------------------
+      # 步骤 6: 创建 GitHub Release
+      # ------------------------------------------
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ steps.version.outputs.version }}
+          body_path: CHANGELOG.txt
+          draft: false  # 设为 true 则创建草稿（需要手动发布）
+          prerelease: false  # 设为 true 则标记为预发布版本
+          files: |
+            cloud-drive-renamer-${{ steps.version.outputs.version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ------------------------------------------
+      # 步骤 7: 输出发布信息
+      # ------------------------------------------
+      - name: 📣 Release summary
+        run: |
+          echo "✅ Release created successfully!"
+          echo ""
+          echo "📦 Version: v${{ steps.version.outputs.version }}"
+          echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}"
+          echo "📥 Download: cloud-drive-renamer-${{ steps.version.outputs.version }}.zip"
+          echo ""
+          echo "🎉 Next steps:"
+          echo "1. Verify the release on GitHub"
+          echo "2. Download and test the extension locally"
+          echo "3. (Optional) Upload to Chrome Web Store manually"

@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "云盘批量重命名工具",
+    "description": "扩展名称（简体中文）"
+  },
+  "extDescription": {
+    "message": "强大的批量重命名工具，支持夸克网盘文件批量重命名（阿里云盘和百度网盘开发中）",
+    "description": "扩展描述（简体中文）"
+  }
+}
