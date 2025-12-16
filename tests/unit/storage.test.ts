@@ -75,7 +75,7 @@ describe('StorageManager', () => {
 
       expect(mockChromeStorage.set).toHaveBeenCalledWith({ [key]: value });
       expect(console.error).toHaveBeenCalledWith(
-        'Failed to save to chrome.storage:',
+        '[CDR] Failed to save to chrome.storage:',
         expect.any(Error)
       );
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(key, JSON.stringify(value));
@@ -133,7 +133,7 @@ describe('StorageManager', () => {
 
       expect(mockChromeStorage.get).toHaveBeenCalledWith(key);
       expect(console.error).toHaveBeenCalledWith(
-        'Failed to read from chrome.storage:',
+        '[CDR] Failed to read from chrome.storage:',
         expect.any(Error)
       );
       expect(mockLocalStorage.getItem).toHaveBeenCalledWith(key);
@@ -191,7 +191,7 @@ describe('StorageManager', () => {
 
       expect(mockChromeStorage.remove).toHaveBeenCalledWith(key);
       expect(console.error).toHaveBeenCalledWith(
-        'Failed to remove from chrome.storage:',
+        '[CDR] Failed to remove from chrome.storage:',
         expect.any(Error)
       );
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(key);
@@ -213,7 +213,7 @@ describe('StorageManager', () => {
 
       expect(mockChromeStorage.clear).toHaveBeenCalled();
       expect(console.error).toHaveBeenCalledWith(
-        'Failed to clear chrome.storage:',
+        '[CDR] Failed to clear chrome.storage:',
         expect.any(Error)
       );
       expect(mockLocalStorage.clear).toHaveBeenCalled();
@@ -257,7 +257,7 @@ describe('StorageManager', () => {
       const keys = await storageManager.getAllKeys();
 
       expect(console.error).toHaveBeenCalledWith(
-        'Failed to get keys from chrome.storage:',
+        '[CDR] Failed to get keys from chrome.storage:',
         expect.any(Error)
       );
       expect(keys).toEqual(['local-key1', 'local-key2']);

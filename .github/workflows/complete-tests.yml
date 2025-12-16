@@ -1,0 +1,71 @@
+# ==========================================
+# GitHub Actions Workflow: Complete Test Suite
+# ==========================================
+#
+# 功能：运行完整的测试套件（包括性能测试）
+#
+# 触发条件：
+#   - 手动触发
+#   - 每周定时运行
+#   - Release 标签
+#
+# 时长：约 5-10 分钟
+#
+# ==========================================
+
+name: Complete Tests
+
+# 触发条件
+on:
+  # 手动触发
+  workflow_dispatch:
+
+  # 每周一早上运行
+  schedule:
+    - cron: '0 0 * * 1'
+
+  # Release 标签触发
+  push:
+    tags:
+      - 'v*.*.*'
+
+# 环境变量
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  complete-tests:
+    name: Complete Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      # 运行所有单元和集成测试
+      - name: 🧪 Run unit and integration tests
+        run: npm run test:ci
+        continue-on-error: false
+
+      # 运行性能测试
+      - name: 📊 Run performance tests
+        run: npm run test:performance
+        continue-on-error: false
+
+      # 可选：运行 E2E 测试
+      # - name: 🎭 Run E2E tests
+      #   run: npm run test:e2e
+      #   continue-on-error: false
+
+      - name: ✅ All tests completed
+        run: echo "✅ Complete test suite passed!"
