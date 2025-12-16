@@ -127,11 +127,12 @@ jobs:
       # 步骤 10: 总结
       # ------------------------------------------
       - name: 📣 CI Summary
-        if: always()
+        if: success()
         run: |
           echo "## ✅ CI Checks Completed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Tests passed" >> $GITHUB_STEP_SUMMARY
+          echo "All quality checks passed successfully:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Tests passed with coverage" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Type checking passed" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Linting passed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Build succeeded" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Build succeeded and verified" >> $GITHUB_STEP_SUMMARY

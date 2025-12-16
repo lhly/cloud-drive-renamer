@@ -25,7 +25,6 @@ npm-debug.log*
 .env.local
 
 # Test coverage
-tests/
 coverage/
 .nyc_output/
 
