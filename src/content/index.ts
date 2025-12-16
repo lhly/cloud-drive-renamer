@@ -715,6 +715,7 @@ export function onExecute(context?: {
   perf?: { injectTime: number; loadTime: number };
 }) {
   if (context?.perf) {
+    // Performance metrics 可选，暂不处理
   }
   init();
 }

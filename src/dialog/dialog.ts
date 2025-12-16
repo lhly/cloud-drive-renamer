@@ -125,11 +125,12 @@ function setupCommunication(dialogElement: any) {
  */
 function handleParentMessage(message: Message, dialogElement: any) {
   switch (message.type) {
-    case 'DIALOG_OPEN':
+    case 'DIALOG_OPEN': {
       const openMsg = message as DialogOpenMessage;
       dialogElement.files = openMsg.payload.files;
       dialogElement.open = true;
       break;
+    }
 
     default:
   }
