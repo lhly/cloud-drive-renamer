@@ -15,8 +15,8 @@ export default defineConfig({
       '**/dist/**',
       '**/e2e/**', // E2E 测试由 Playwright 处理
       '**/performance/**', // 性能测试不在常规 CI 中运行
-      // 暂时排除有问题的 quark-adapter 测试
-      // '**/quark-adapter.test.ts', // 修复后可以移除这行
+      // 暂时排除 quark-adapter 测试（需要 mock Chrome 扩展环境）
+      '**/quark-adapter.test.ts', // Chrome 扩展消息通信需要特殊 mock 环境
     ],
 
     // 启用并行测试（加速执行）
