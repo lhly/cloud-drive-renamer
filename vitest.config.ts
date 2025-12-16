@@ -7,8 +7,7 @@ export default defineConfig({
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
-      '**/e2e/**',
-      '**/*.spec.ts',
+      '**/e2e/**', // E2E 测试由 Playwright 处理
     ],
     coverage: {
       provider: 'v8',
