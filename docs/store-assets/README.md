@@ -7,10 +7,11 @@
 ## 📁 目录结构
 
 ```
-store-assets/
+docs/store-assets/
 ├── README.md                        # 本文件
 ├── chrome-web-store-listing.md      # Chrome商店列表信息
 ├── edge-addons-listing.md           # Edge商店列表信息
+├── edge-supplemental-info.md        # Edge补充信息（搜索关键词等）
 ├── PRIVACY_POLICY.md                # 隐私政策（中英文）
 ├── SUBMISSION_GUIDE.md              # 详细提交指南
 └── CHECKLIST.md                     # 快速检查清单
@@ -49,6 +50,7 @@ store-assets/
 - 简短描述（150字符以内）
 - 完整描述（中英文版本）
 - 分类和标签
+- **搜索关键词**（新增）
 - 截图说明文字
 - 权限和数据使用说明
 - 隐私政策信息
@@ -58,7 +60,27 @@ store-assets/
 **如何使用**:
 1. 打开Microsoft Partner Center
 2. 从此文件复制相应内容到商店列表表单
-3. 为每种语言创建单独的列表
+3. 特别注意填写搜索关键词（Properties部分）
+4. 为每种语言创建单独的列表
+
+### 2.1 edge-supplemental-info.md
+
+**用途**: Edge Add-ons特定字段的详细说明和最佳实践
+
+**包含内容**:
+- 搜索关键词详细说明和策略
+- 分类选择建议
+- 市场和可用性设置
+- 描述优化建议
+- 截图优化指南
+- Edge特定注意事项
+- 与Chrome的差异对比
+- 提交表单快速参考
+
+**如何使用**:
+- 填写搜索关键词时参考第1节
+- 优化描述和截图时参考相应章节
+- 作为Edge提交的完整指南
 
 ### 3. PRIVACY_POLICY.md
 
@@ -79,6 +101,10 @@ store-assets/
 3. 在商店提交表单中填写隐私政策URL
 
 **推荐URL格式**:
+```
+https://github.com/lhly/cloud-drive-renamer/blob/main/docs/store-assets/PRIVACY_POLICY.md
+```
+或者复制到项目根目录:
 ```
 https://github.com/lhly/cloud-drive-renamer/blob/main/PRIVACY_POLICY.md
 ```
@@ -176,12 +202,16 @@ cd ..
 ### 发布隐私政策
 
 ```bash
-# 复制隐私政策到项目根目录
-cp store-assets/PRIVACY_POLICY.md ./PRIVACY_POLICY.md
-
-# 提交到Git
-git add PRIVACY_POLICY.md
+# 隐私政策已在docs/store-assets/目录下
+# 直接提交到Git
+git add docs/store-assets/PRIVACY_POLICY.md
 git commit -m "docs: add privacy policy for store submission"
+git push origin main
+
+# 或者如果需要在项目根目录也放一份
+cp docs/store-assets/PRIVACY_POLICY.md ./PRIVACY_POLICY.md
+git add PRIVACY_POLICY.md
+git commit -m "docs: add privacy policy to project root"
 git push origin main
 ```
 
@@ -189,12 +219,15 @@ git push origin main
 
 1. **Chrome Web Store**:
    - 打开 [开发者控制台](https://chrome.google.com/webstore/devconsole/)
-   - 参考 `SUBMISSION_GUIDE.md` 中的Chrome章节
+   - 参考 `chrome-web-store-listing.md` 获取完整内容
+   - 参考 `SUBMISSION_GUIDE.md` 中的Chrome章节了解流程
    - 使用 `CHECKLIST.md` 确保所有项完成
 
 2. **Microsoft Edge Add-ons**:
    - 打开 [Partner Center](https://partner.microsoft.com/dashboard)
-   - 参考 `SUBMISSION_GUIDE.md` 中的Edge章节
+   - 参考 `edge-addons-listing.md` 获取完整内容
+   - **重要**: 参考 `edge-supplemental-info.md` 填写搜索关键词
+   - 参考 `SUBMISSION_GUIDE.md` 中的Edge章节了解流程
    - 使用 `CHECKLIST.md` 确保所有项完成
 
 ---
@@ -242,7 +275,7 @@ git push origin main
 
 - **项目主页**: https://github.com/lhly/cloud-drive-renamer
 - **问题反馈**: https://github.com/lhly/cloud-drive-renamer/issues
-- **隐私政策URL**: https://github.com/lhly/cloud-drive-renamer/blob/main/PRIVACY_POLICY.md
+- **隐私政策URL**: https://github.com/lhly/cloud-drive-renamer/blob/main/docs/store-assets/PRIVACY_POLICY.md
 
 ---
 
@@ -303,7 +336,11 @@ npm run sync:version
 
 ## 📝 更新记录
 
-- **2025-12-16**: 初始版本创建，包含所有必需的商店资料
+- **2025-12-16**:
+  - 初始版本创建，包含所有必需的商店资料
+  - 添加Edge搜索关键词说明
+  - 创建edge-supplemental-info.md补充文档
+  - 更新文档路径为docs/store-assets/
 
 ---
 
