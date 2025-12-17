@@ -186,8 +186,21 @@ window.__QUARK_PAGE_SCRIPT_READY__ = {
 
 // === PRIMARY: Set DOM-based flag for cross-world communication ===
 // This is the reliable method that works across MAIN and ISOLATED worlds
-document.body.dataset.quarkPageScriptReady = 'true';
-document.body.dataset.quarkPageScriptTimestamp = flagTimestamp.toString();
+// Defensive null check: document.body may be null at document_start
+if (document.body) {
+  // Fast path: body already exists (common case after DOMContentLoaded)
+  document.body.dataset.quarkPageScriptReady = 'true';
+  document.body.dataset.quarkPageScriptTimestamp = flagTimestamp.toString();
+} else {
+  // Fallback: defer to DOMContentLoaded when body is not ready yet
+  // This ensures we don't lose the DOM dataset signal even at document_start
+  document.addEventListener('DOMContentLoaded', () => {
+    const deferredTimestamp = Date.now();
+    document.body.dataset.quarkPageScriptReady = 'true';
+    document.body.dataset.quarkPageScriptTimestamp = deferredTimestamp.toString();
+  }, { once: true });
+}
 
 // Send postMessage event for real-time notification
+// Note: This is sent immediately regardless of body readiness for lowest latency
 window.postMessage({ type: 'QUARK_PAGE_SCRIPT_READY' }, '*');
