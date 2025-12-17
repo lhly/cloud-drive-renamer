@@ -18,7 +18,8 @@ export default defineConfig({
     },
     outDir: 'dist',
     emptyOutDir: true,
-    sourcemap: true,
+    // 仅在开发环境生成 source maps，生产环境禁用以减小包体积
+    sourcemap: process.env.NODE_ENV === 'development',
     // 确保将node_modules中的依赖正确打包
     commonjsOptions: {
       include: [/node_modules/],
