@@ -151,6 +151,32 @@ Project Homepage: https://github.com/lhly/cloud-drive-renamer
 ### 主要分类
 - **Category**: Productivity (生产力工具)
 
+### 搜索关键词 (Search Terms)
+
+Edge Add-ons允许添加搜索关键词以提高扩展的可发现性。
+
+**推荐关键词（英文）**：
+```
+rename, batch rename, file rename, cloud drive, cloud storage, quark drive, file management, bulk rename, batch operations, productivity
+```
+
+**推荐关键词（中文）**：
+```
+重命名, 批量重命名, 文件重命名, 云盘, 网盘, 夸克网盘, 文件管理, 批量操作, 效率工具
+```
+
+**关键词策略说明**：
+- 核心功能词：rename, batch rename, file rename（重命名、批量重命名）
+- 平台相关：cloud drive, quark drive（云盘、夸克网盘）
+- 使用场景：file management, productivity（文件管理、效率）
+- 操作类型：batch operations, bulk operations（批量操作）
+
+**注意事项**：
+- Edge限制关键词数量，建议选择5-10个最相关的
+- 避免使用与功能无关的热门词汇
+- 不要重复扩展名称中已有的词
+- 关键词应该反映用户可能的搜索习惯
+
 ### 补充标签
 - File Management
 - Cloud Storage

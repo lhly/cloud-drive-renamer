@@ -24,10 +24,8 @@ on:
   schedule:
     - cron: '0 0 * * 1'
 
-  # Release 标签触发
-  push:
-    tags:
-      - 'v*.*.*'
+  # 注意：tag 推送时只触发 release.yml
+  # 本工作流专用于定时运行和手动触发
 
 # 环境变量
 env:
