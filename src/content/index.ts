@@ -7,6 +7,8 @@ import { RuleFactory } from '../rules/rule-factory';
 import { QuarkAdapter } from '../adapters/quark/quark';
 import { storage } from '../utils/storage';
 import { PlatformUsageStats, STORAGE_KEYS } from '../types/stats';
+import { I18nService } from '../utils/i18n';
+import type { LanguageChangeMessage } from '../types/i18n';
 
 /**
  * Content Script
@@ -152,6 +154,11 @@ async function injectUI(platform: PlatformName) {
   cleanupOldInstances();
 
   try {
+    // ✅ 修复：在创建任何UI组件前，先初始化语言
+    // 这确保 I18nService.currentLanguage 从 storage 加载正确的值
+    const currentLang = await I18nService.getCurrentLanguage();
+    logger.info(`[I18n] Content script initialized with language: ${currentLang}`);
+
     // 创建悬浮按钮
     floatingButton = new FloatingButton({
       onClick: handleFloatingButtonClick,
@@ -180,6 +187,9 @@ async function injectUI(platform: PlatformName) {
 
     // 监听存储变化
     setupStorageListener(platform);
+
+    // 监听语言变更（同步 popup 的语言切换）
+    setupLanguageChangeListener();
 
     logger.info('Floating button UI injected successfully');
   } catch (error) {
@@ -237,6 +247,27 @@ function setupStorageListener(platform: PlatformName): void {
           floatingButton?.show();
         }
       }
+    }
+  });
+}
+
+/**
+ * 设置语言变更监听器
+ * 同步 popup 的语言切换到 content script 上下文
+ */
+function setupLanguageChangeListener(): void {
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === 'LANGUAGE_CHANGED') {
+      const newLanguage = (message as LanguageChangeMessage).language;
+
+      // 核心修复：只更新本地状态，不调用 setLanguage()（避免触发通知循环）
+      // 直接更新静态变量，避免再次触发 notifyLanguageChange()
+      (I18nService as any).currentLanguage = newLanguage;
+
+      // 通知 FloatingButton 更新 UI
+      floatingButton?.updateLanguage();
+
+      logger.info(`Language synced successfully to: ${newLanguage}`);
     }
   });
 }

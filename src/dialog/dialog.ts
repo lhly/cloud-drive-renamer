@@ -17,6 +17,7 @@ import {
   MessageBuilder,
   DialogOpenMessage,
 } from '../types/message';
+import { I18nService } from '../utils/i18n';
 
 // 动态导入 Lit Web Components
 import { RenameDialog } from '../content/components/rename-dialog';
@@ -27,6 +28,10 @@ import { RenamePreview } from '../content/components/rename-preview';
  */
 async function init() {
   try {
+    // 初始化 iframe 上下文的 I18nService
+    // 从 chrome.storage.local 读取用户设置的语言
+    const currentLang = await I18nService.getCurrentLanguage();
+    logger.info('[Dialog] I18nService initialized with language:', currentLang);
 
     // 检查 customElements API 是否可用
     if (typeof customElements === 'undefined') {
@@ -56,6 +61,11 @@ async function init() {
 
     // 设置通信处理器
     setupCommunication(dialogElement);
+
+    // ✅ 设置storage监听器来同步语言变化
+    // Dialog iframe需要监听storage变化来更新I18nService.currentLanguage
+    // 这样Dialog组件的storage监听器才能读取到正确的语言
+    setupLanguageStorageListener();
 
     // 通知父页面已准备就绪
     sendReadyMessage();
@@ -180,6 +190,36 @@ function sendReadyMessage() {
 
 
   sendMessage(MessageBuilder.createDialogReady(nonce));
+}
+
+/**
+ * 设置storage监听器来同步语言变化
+ *
+ * Dialog iframe需要监听chrome.storage变化来更新I18nService.currentLanguage
+ * 这样Dialog组件的storage监听器才能读取到正确的语言
+ *
+ * 关键设计：
+ * 1. 只更新内存变量currentLanguage，不调用setLanguage()（避免循环）
+ * 2. Dialog组件（rename-dialog, progress-dialog）已有storage监听器
+ * 3. 它们的storage监听器会触发requestUpdate()，重新渲染UI
+ *
+ * 更新流程：
+ * Popup: setLanguage() → storage.set() → storage change事件
+ *   → Dialog iframe: 更新currentLanguage（本函数）
+ *   → Dialog组件: storageChangeListener触发 → requestUpdate() → 重渲染
+ */
+function setupLanguageStorageListener(): void {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes['language']) {
+      const newLanguage = changes['language'].newValue;
+      logger.info(`[Dialog] Storage language changed to: ${newLanguage}`);
+
+      // 只更新内存变量，不调用setLanguage()（避免触发通知循环）
+      (I18nService as any).currentLanguage = newLanguage;
+
+      logger.info(`[Dialog] I18nService.currentLanguage synced to: ${newLanguage}`);
+    }
+  });
 }
 
 // 页面加载完成后初始化

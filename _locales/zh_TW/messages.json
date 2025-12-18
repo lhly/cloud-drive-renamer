@@ -1,10 +1,448 @@
 {
   "extName": {
     "message": "雲端硬碟批次重新命名工具",
-    "description": "擴充功能名稱（繁體中文）"
+    "description": "擴充功能名稱"
   },
   "extDescription": {
     "message": "強大的批次重新命名工具，支援夸克網盤檔案批次重新命名（阿里雲盤和百度雲端硬碟開發中）",
-    "description": "擴充功能描述（繁體中文）"
+    "description": "擴充功能描述"
+  },
+
+  "rename_dialog_title": {
+    "message": "批次重新命名",
+    "description": "Rename dialog title"
+  },
+  "rename_dialog_file_count": {
+    "message": "個檔案",
+    "description": "File count suffix in dialog title"
+  },
+  "rename_dialog_close": {
+    "message": "×",
+    "description": "Close button symbol"
+  },
+
+  "rule_selector_title": {
+    "message": "選擇重新命名規則",
+    "description": "Rule selector section title"
+  },
+  "rule_config_title": {
+    "message": "設定參數",
+    "description": "Rule configuration section title"
+  },
+  "preview_section_title": {
+    "message": "預覽（前3個檔案）",
+    "description": "Preview section title"
+  },
+
+  "rule_replace": {
+    "message": "字串替換",
+    "description": "Replace rule name"
+  },
+  "rule_replace_desc": {
+    "message": "替換檔案名稱中的字元",
+    "description": "Replace rule description"
+  },
+  "rule_prefix": {
+    "message": "新增前綴",
+    "description": "Prefix rule name"
+  },
+  "rule_prefix_desc": {
+    "message": "在檔案名稱前新增文字",
+    "description": "Prefix rule description"
+  },
+  "rule_suffix": {
+    "message": "新增後綴",
+    "description": "Suffix rule name"
+  },
+  "rule_suffix_desc": {
+    "message": "在副檔名前新增文字",
+    "description": "Suffix rule description"
+  },
+  "rule_numbering": {
+    "message": "新增編號",
+    "description": "Numbering rule name"
+  },
+  "rule_numbering_desc": {
+    "message": "新增順序編號",
+    "description": "Numbering rule description"
+  },
+  "rule_sanitize": {
+    "message": "清理檔案名稱",
+    "description": "Sanitize rule name"
+  },
+  "rule_sanitize_desc": {
+    "message": "移除非法字元",
+    "description": "Sanitize rule description"
+  },
+
+  "param_search_text": {
+    "message": "搜尋文字",
+    "description": "Search text label"
+  },
+  "param_search_placeholder": {
+    "message": "要替換的文字",
+    "description": "Search text placeholder"
+  },
+  "param_replace_with": {
+    "message": "替換為",
+    "description": "Replace with label"
+  },
+  "param_replace_placeholder": {
+    "message": "新的文字",
+    "description": "Replace placeholder"
+  },
+  "param_case_sensitive": {
+    "message": "區分大小寫",
+    "description": "Case sensitive option"
+  },
+  "param_replace_all": {
+    "message": "替換所有符合項目",
+    "description": "Replace all matches option"
+  },
+
+  "param_prefix_text": {
+    "message": "前綴文字",
+    "description": "Prefix text label"
+  },
+  "param_prefix_placeholder": {
+    "message": "要新增的前綴",
+    "description": "Prefix placeholder"
+  },
+  "param_suffix_text": {
+    "message": "後綴文字",
+    "description": "Suffix text label"
+  },
+  "param_suffix_placeholder": {
+    "message": "要新增的後綴",
+    "description": "Suffix placeholder"
+  },
+  "param_separator": {
+    "message": "分隔符號（選填）",
+    "description": "Separator label"
+  },
+  "param_separator_placeholder": {
+    "message": "例如: - 或 _",
+    "description": "Separator placeholder"
+  },
+  "param_separator_hint_prefix": {
+    "message": "在前綴和原檔案名稱之間插入的分隔符號",
+    "description": "Separator hint for prefix"
+  },
+  "param_separator_hint_suffix": {
+    "message": "在原檔案名稱和後綴之間插入的分隔符號",
+    "description": "Separator hint for suffix"
+  },
+
+  "param_start_number": {
+    "message": "起始編號",
+    "description": "Start number label"
+  },
+  "param_digits": {
+    "message": "編號位數",
+    "description": "Number of digits label"
+  },
+  "param_digits_hint": {
+    "message": "例如: 3位數 → 001, 002, 003",
+    "description": "Digits hint"
+  },
+  "param_position": {
+    "message": "位置",
+    "description": "Position label"
+  },
+  "param_position_prefix": {
+    "message": "前綴（檔案名稱前）",
+    "description": "Prefix position option"
+  },
+  "param_position_suffix": {
+    "message": "後綴（副檔名前）",
+    "description": "Suffix position option"
+  },
+  "param_format_template": {
+    "message": "格式化範本",
+    "description": "Format template label"
+  },
+  "param_format_hint": {
+    "message": "使用 {num} 表示編號位置",
+    "description": "Format template hint"
+  },
+
+  "param_remove_illegal": {
+    "message": "移除非法字元",
+    "description": "Remove illegal characters option"
+  },
+  "param_remove_illegal_hint": {
+    "message": "自動移除 / \\ : * ? \" < > |  等字元",
+    "description": "Remove illegal characters hint"
+  },
+  "param_remove_chars": {
+    "message": "額外移除的字元（選填）",
+    "description": "Additional characters to remove label"
+  },
+  "param_remove_chars_placeholder": {
+    "message": "例如: [](){}",
+    "description": "Additional characters placeholder"
+  },
+  "param_remove_chars_hint": {
+    "message": "輸入要額外移除的字元",
+    "description": "Additional characters hint"
+  },
+
+  "button_cancel": {
+    "message": "取消",
+    "description": "Cancel button"
+  },
+  "button_execute": {
+    "message": "執行重新命名",
+    "description": "Execute rename button"
+  },
+
+  "progress_dialog_title": {
+    "message": "批次重新命名中...",
+    "description": "Progress dialog title"
+  },
+  "progress_current_file": {
+    "message": "正在處理:",
+    "description": "Current file label"
+  },
+  "progress_completed": {
+    "message": "已完成",
+    "description": "Completed label"
+  },
+  "progress_success": {
+    "message": "成功",
+    "description": "Success label"
+  },
+  "progress_failed": {
+    "message": "失敗",
+    "description": "Failed label"
+  },
+  "progress_eta": {
+    "message": "預計剩餘時間:",
+    "description": "Estimated time label"
+  },
+  "progress_calculating": {
+    "message": "計算中...",
+    "description": "Calculating message"
+  },
+  "progress_button_pause": {
+    "message": "暫停",
+    "description": "Pause button"
+  },
+  "progress_button_resume": {
+    "message": "繼續",
+    "description": "Resume button"
+  },
+  "progress_button_cancel": {
+    "message": "取消",
+    "description": "Cancel button in progress dialog"
+  },
+  "progress_cancel_confirm": {
+    "message": "確定要取消批次重新命名嗎?",
+    "description": "Cancel confirmation message"
+  },
+  "progress_cancel_stats": {
+    "message": "已完成: {success}\\n失敗: {failed}\\n剩餘: {remaining}",
+    "description": "Cancel confirmation stats"
+  },
+
+  "preview_empty": {
+    "message": "暫無檔案可預覽",
+    "description": "Empty preview message"
+  },
+  "preview_loading": {
+    "message": "產生預覽中...",
+    "description": "Loading preview message"
+  },
+  "preview_summary_total": {
+    "message": "總計:",
+    "description": "Total files label"
+  },
+  "preview_summary_changed": {
+    "message": "將變更:",
+    "description": "Files to change label"
+  },
+  "preview_summary_unchanged": {
+    "message": "無變化:",
+    "description": "Unchanged files label"
+  },
+  "preview_summary_conflict": {
+    "message": "衝突:",
+    "description": "Conflict files label"
+  },
+  "preview_badge_conflict": {
+    "message": "衝突",
+    "description": "Conflict badge"
+  },
+  "preview_badge_no_change": {
+    "message": "無變化",
+    "description": "No change badge"
+  },
+
+  "floating_button_tooltip": {
+    "message": "批次重新命名",
+    "description": "Floating button tooltip"
+  },
+  "floating_button_tooltip_activate": {
+    "message": "勾選檔案以啟用",
+    "description": "Floating button activation hint"
+  },
+  "floating_button_alt": {
+    "message": "批次重新命名",
+    "description": "Floating button icon alt text"
+  },
+
+  "popup_title": {
+    "message": "CloudDrive Renamer",
+    "description": "Popup title"
+  },
+  "popup_platform_label": {
+    "message": "目前平台",
+    "description": "Current platform label"
+  },
+  "popup_platform_none": {
+    "message": "未偵測到平台",
+    "description": "No platform detected"
+  },
+  "popup_platform_unsupported": {
+    "message": "不支援的平台",
+    "description": "Unsupported platform"
+  },
+  "popup_toggle_label": {
+    "message": "顯示懸浮按鈕",
+    "description": "Floating button toggle label"
+  },
+  "popup_toggle_hint_supported": {
+    "message": "功能已啟用",
+    "description": "Feature enabled hint"
+  },
+  "popup_toggle_hint_unsupported": {
+    "message": "目前頁面不支援此功能",
+    "description": "Feature unsupported hint"
+  },
+  "popup_toggle_hint_available": {
+    "message": "僅在支援的網盤平台可用",
+    "description": "Feature availability hint"
+  },
+  "popup_stats_success": {
+    "message": "成功次數",
+    "description": "Success count label"
+  },
+  "popup_stats_failed": {
+    "message": "失敗次數",
+    "description": "Failed count label"
+  },
+  "popup_reset_button": {
+    "message": "重設統計資料",
+    "description": "Reset stats button"
+  },
+  "popup_reset_confirm": {
+    "message": "確定要重設 {platform} 的統計資料嗎？",
+    "description": "Reset confirmation message"
+  },
+  "popup_reset_failed": {
+    "message": "重設失敗，請重試",
+    "description": "Reset failed message"
+  },
+  "popup_link_help": {
+    "message": "使用說明",
+    "description": "Help link"
+  },
+  "popup_link_feedback": {
+    "message": "問題回報",
+    "description": "Feedback link"
+  },
+
+  "error_unknown": {
+    "message": "未知錯誤",
+    "description": "Unknown error"
+  },
+  "error_network": {
+    "message": "網路錯誤",
+    "description": "Network error"
+  },
+  "error_api_success": {
+    "message": "成功",
+    "description": "API success message"
+  },
+  "error_api_unauthorized": {
+    "message": "未登入或驗證失敗",
+    "description": "Unauthorized error"
+  },
+  "error_api_forbidden": {
+    "message": "無權限存取",
+    "description": "Forbidden error"
+  },
+  "error_api_not_found": {
+    "message": "檔案不存在",
+    "description": "Not found error"
+  },
+  "error_api_conflict": {
+    "message": "檔案名稱衝突",
+    "description": "Conflict error"
+  },
+  "error_api_rate_limit": {
+    "message": "請求過於頻繁",
+    "description": "Rate limit error"
+  },
+  "error_api_server": {
+    "message": "伺服器內部錯誤",
+    "description": "Server error"
+  },
+  "error_api_invalid_param": {
+    "message": "參數錯誤",
+    "description": "Invalid parameter error"
+  },
+  "error_api_invalid_filename": {
+    "message": "檔案名稱非法",
+    "description": "Invalid filename error"
+  },
+  "error_api_file_exists": {
+    "message": "檔案已存在",
+    "description": "File exists error"
+  },
+
+  "time_seconds": {
+    "message": "秒",
+    "description": "Seconds unit"
+  },
+  "time_minutes": {
+    "message": "分鐘",
+    "description": "Minutes unit"
+  },
+  "time_hours": {
+    "message": "小時",
+    "description": "Hours unit"
+  },
+
+  "platform_quark": {
+    "message": "夸克網盤",
+    "description": "Quark Drive platform name"
+  },
+  "platform_aliyun": {
+    "message": "阿里雲盤",
+    "description": "Aliyun Drive platform name"
+  },
+  "platform_baidu": {
+    "message": "百度雲端硬碟",
+    "description": "Baidu Cloud Drive platform name"
+  },
+
+  "popup_language_label": {
+    "message": "語言 / Language",
+    "description": "Language selector label in popup"
+  },
+  "toast_language_changed": {
+    "message": "語言已更改為$1",
+    "description": "Toast message when language is changed",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "English"
+      }
+    }
+  },
+  "toast_language_change_failed": {
+    "message": "語言切換失敗,請重試",
+    "description": "Toast message when language change fails"
   }
 }

@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { ProgressEvent } from '../../types/core';
 import { formatTime } from '../../utils/helpers';
+import { I18nService } from '../../utils/i18n';
 
 /**
  * 进度对话框组件
@@ -45,6 +46,34 @@ export class ProgressDialog extends LitElement {
   /** 是否已暂停 */
   @state()
   private isPaused: boolean = false;
+
+  /**
+   * Storage 变化监听器引用（用于清理）
+   * 监听 storage 变化比监听消息更可靠，避免竞态条件
+   */
+  private storageChangeListener = (changes: Record<string, chrome.storage.StorageChange>, areaName: string) => {
+    if (areaName === 'local' && changes['language']) {
+      // Storage 变化意味着 language 已经持久化
+      // 全局监听器会更新 I18nService.currentLanguage
+      // 这里只需触发重渲染
+      this.requestUpdate();
+    }
+  };
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    // ✅ 修复：改用 storage 监听器替代消息监听器
+    // 这避免了与全局监听器的竞态条件
+    chrome.storage.onChanged.addListener(this.storageChangeListener);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+
+    // Clean up storage change listener to prevent memory leaks
+    chrome.storage.onChanged.removeListener(this.storageChangeListener);
+  }
 
   static styles = css`
     :host {
@@ -276,7 +305,7 @@ export class ProgressDialog extends LitElement {
       <div class="dialog">
         <div class="header">
           <div class="spinner"></div>
-          <h2>批量重命名中...</h2>
+          <h2>${I18nService.t('progress_dialog_title')}</h2>
         </div>
 
         <div class="progress-bar-container">
@@ -289,25 +318,25 @@ export class ProgressDialog extends LitElement {
         </div>
 
         <div class="current-file">
-          <strong>正在处理:</strong>${this.progress.currentFile}
+          <strong>${I18nService.t('progress_current_file')}</strong>${this.progress.currentFile}
         </div>
 
         <div class="stats">
           <div class="stat-item">
-            <div class="stat-label">已完成</div>
+            <div class="stat-label">${I18nService.t('progress_completed')}</div>
             <div class="stat-value">${this.progress.completed}</div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">成功</div>
+            <div class="stat-label">${I18nService.t('progress_success')}</div>
             <div class="stat-value success">${this.progress.success}</div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">失败</div>
+            <div class="stat-label">${I18nService.t('progress_failed')}</div>
             <div class="stat-value failed">${this.progress.failed}</div>
           </div>
         </div>
 
-        <div class="eta"><strong>预计剩余时间:</strong> ${eta}</div>
+        <div class="eta"><strong>${I18nService.t('progress_eta')}</strong> ${eta}</div>
 
         <div class="actions">
           ${this.pausable
@@ -316,13 +345,13 @@ export class ProgressDialog extends LitElement {
                   class="btn-pause ${this.isPaused ? 'paused' : ''}"
                   @click=${this.handlePause}
                 >
-                  ${this.isPaused ? '继续' : '暂停'}
+                  ${this.isPaused ? I18nService.t('progress_button_resume') : I18nService.t('progress_button_pause')}
                 </button>
               `
             : ''}
           ${this.cancellable
             ? html`
-                <button class="btn-cancel" @click=${this.handleCancel}>取消</button>
+                <button class="btn-cancel" @click=${this.handleCancel}>${I18nService.t('progress_button_cancel')}</button>
               `
             : ''}
         </div>
@@ -345,7 +374,7 @@ export class ProgressDialog extends LitElement {
    */
   private calculateETA(): string {
     if (this.progress.completed === 0) {
-      return '计算中...';
+      return I18nService.t('progress_calculating');
     }
 
     const elapsed = Date.now() - this.startTime;
@@ -374,12 +403,13 @@ export class ProgressDialog extends LitElement {
    * 处理取消
    */
   private handleCancel() {
-    const confirmed = confirm(
-      `确定要取消批量重命名吗?\n\n` +
-        `已完成: ${this.progress.success}\n` +
-        `失败: ${this.progress.failed}\n` +
-        `剩余: ${this.progress.total - this.progress.completed}`
-    );
+    const confirmMessage = `${I18nService.t('progress_cancel_confirm')}\n\n${I18nService.t('progress_cancel_stats', [
+      String(this.progress.success),
+      String(this.progress.failed),
+      String(this.progress.total - this.progress.completed)
+    ])}`;
+
+    const confirmed = confirm(confirmMessage);
 
     if (confirmed) {
       this.dispatchEvent(new CustomEvent('cancel'));

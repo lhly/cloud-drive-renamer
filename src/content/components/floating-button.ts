@@ -1,4 +1,5 @@
 import { logger } from '../../utils/logger';
+import { I18nService } from '../../utils/i18n';
 
 /**
  * 悬浮按钮组件
@@ -66,6 +67,8 @@ export class FloatingButton {
   private mouseUpHandler: (() => void) | null = null;
   // Tooltip元素
   private tooltip: HTMLDivElement | null = null;
+  // Icon元素（用于动态更新alt属性）
+  private iconImg: HTMLImageElement | null = null;
   // 用于区分点击和拖拽
   private mouseDownTime = 0;
   private mouseDownX = 0;
@@ -323,7 +326,10 @@ export class FloatingButton {
       height: 28px;
       object-fit: contain;
     `;
-    icon.alt = '批量重命名';
+    icon.alt = I18nService.t('floating_button_alt');
+
+    // 保存引用以便后续更新 alt 属性
+    this.iconImg = icon;
 
     // 添加错误处理：如果图标加载失败，使用emoji作为后备
     icon.onerror = () => {
@@ -349,12 +355,12 @@ export class FloatingButton {
         // 根据按钮状态动态设置 tooltip 内容
         if (this.buttonCount > 0) {
           // 有文件选中：显示功能提示
-          this.tooltip.textContent = '批量重命名';
+          this.tooltip.textContent = I18nService.t('floating_button_tooltip');
           button.style.transform = 'scale(1.1)';
           button.style.boxShadow = BUTTON_THEME.shadowHover;
         } else {
           // 未选中文件：显示激活提示
-          this.tooltip.textContent = '勾选文件以激活';
+          this.tooltip.textContent = I18nService.t('floating_button_tooltip_activate');
         }
         this.tooltip.classList.add('visible');
       }
@@ -667,5 +673,26 @@ export class FloatingButton {
     } catch (error) {
       logger.error('Failed to save position:', error instanceof Error ? error : new Error(String(error)));
     }
+  }
+
+  /**
+   * Update tooltip text based on current language and button state
+   * Called when language changes
+   */
+  updateLanguage(): void {
+    if (!this.tooltip) return;
+
+    if (this.buttonCount > 0) {
+      this.tooltip.textContent = I18nService.t('floating_button_tooltip');
+    } else {
+      this.tooltip.textContent = I18nService.t('floating_button_tooltip_activate');
+    }
+
+    // 同时更新 icon 的 alt 属性（无障碍支持）
+    if (this.iconImg) {
+      this.iconImg.alt = I18nService.t('floating_button_alt');
+    }
+
+    logger.info('[FloatingButton] Language updated, tooltip and icon.alt refreshed');
   }
 }
