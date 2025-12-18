@@ -5,19 +5,14 @@ import { PlatformUsageStats, STORAGE_KEYS } from '../types/stats';
 import { APP_VERSION_WITH_PREFIX } from '../shared/version';
 import { I18nService } from '../utils/i18n';
 import { LanguageChangeMessage } from '../types/i18n';
+import { detectPlatformFromUrl } from '../utils/platform-detector';
 
 /**
  * Popup脚本
  */
 
-// 平台URL到平台标识的映射
-// 注意：只包含真正实现了content script和adapter的平台
-const PLATFORM_URL_MAP: Record<string, PlatformName> = {
-  'pan.quark.cn': 'quark',
-  // 未来支持的平台在此添加
-  // 'www.aliyundrive.com': 'aliyun',
-  // 'pan.baidu.com': 'baidu',
-};
+// 注意: 平台检测逻辑已迁移到 src/utils/platform-detector.ts
+// 使用统一的 detectPlatformFromUrl() 函数
 
 /**
  * 获取平台显示名称（动态翻译）
@@ -126,6 +121,7 @@ async function initPopup() {
   }
 
   // 检测平台
+  // 使用统一的检测逻辑 (移除旧的本地实现)
   const platformKey = detectPlatformFromUrl(currentTab.url);
   if (platformKey) {
     // 使用统一的函数获取翻译
@@ -151,15 +147,8 @@ async function initPopup() {
   bindEvents();
 }
 
-// 检测平台
-function detectPlatformFromUrl(url: string): PlatformName | null {
-  for (const [urlPattern, platformKey] of Object.entries(PLATFORM_URL_MAP)) {
-    if (url.includes(urlPattern)) {
-      return platformKey;
-    }
-  }
-  return null;
-}
+// 注意: detectPlatformFromUrl() 已迁移到 src/utils/platform-detector.ts
+// 这里不再需要本地实现
 
 // 更新平台名称显示
 function updatePlatformName(name: string) {

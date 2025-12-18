@@ -9,6 +9,7 @@ import { storage } from '../utils/storage';
 import { PlatformUsageStats, STORAGE_KEYS } from '../types/stats';
 import { I18nService } from '../utils/i18n';
 import type { LanguageChangeMessage } from '../types/i18n';
+import { detectPlatformFromUrl, isQuarkShareLink } from '../utils/platform-detector';
 
 /**
  * Content Script
@@ -33,18 +34,20 @@ let initRetryCount = 0;
 const MAX_INIT_RETRIES = 3;
 
 // 检测当前平台
-function detectPlatform(): PlatformName | null {
+// 使用统一的平台检测工具函数
+export function detectPlatform(): PlatformName | null {
   const url = window.location.href;
+  const pathname = window.location.pathname;
 
-  if (url.includes('pan.quark.cn')) {
-    return 'quark';
-  } else if (url.includes('www.aliyundrive.com')) {
-    return 'aliyun';
-  } else if (url.includes('pan.baidu.com')) {
-    return 'baidu';
+  // 使用统一的检测逻辑
+  const platform = detectPlatformFromUrl(url, pathname);
+
+  // 如果是分享链接,记录日志 (提升日志级别为 warn,因为这是需要用户关注的情况)
+  if (url.includes('pan.quark.cn') && isQuarkShareLink(pathname)) {
+    logger.warn('Quark share link detected, extension disabled for share pages');
   }
 
-  return null;
+  return platform;
 }
 
 // 初始化
