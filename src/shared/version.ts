@@ -10,25 +10,25 @@
  * 1. Edit version in package.json
  * 2. Run: npm run sync:version (or automatically via prebuild/predev)
  *
- * Generated at: 2025-12-17T04:47:58.196Z
+ * Generated at: 2025-12-18T13:53:59.891Z
  */
 
 /**
  * Application version number (e.g., "0.1.0")
  */
-export const APP_VERSION = '0.1.1' as const;
+export const APP_VERSION = '0.2.1' as const;
 
 /**
  * Application version with 'v' prefix (e.g., "v0.1.0")
  * Commonly used for display purposes
  */
-export const APP_VERSION_WITH_PREFIX = 'v0.1.1' as const;
+export const APP_VERSION_WITH_PREFIX = 'v0.2.1' as const;
 
 /**
  * Parse version into components
  */
 export const VERSION_PARTS = {
   major: 0,
-  minor: 1,
+  minor: 2,
   patch: 1,
 } as const;

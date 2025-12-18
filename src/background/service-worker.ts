@@ -50,6 +50,27 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({ success: true });
       break;
 
+    case 'LANGUAGE_CHANGED':
+      // 广播语言变更到所有支持的云盘标签页
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach((tab) => {
+          if (tab.id && tab.url && (
+            tab.url.includes('pan.quark.cn') ||
+            tab.url.includes('www.aliyundrive.com') ||
+            tab.url.includes('pan.baidu.com')
+          )) {
+            chrome.tabs.sendMessage(tab.id, message).catch((error) => {
+              // 忽略未注入 Content Script 的标签页的连接错误
+              if (!error.message?.includes('Could not establish connection')) {
+                logger.warn(`Failed to send language change to tab ${tab.id}:`, error);
+              }
+            });
+          }
+        });
+      });
+      sendResponse({ success: true });
+      break;
+
     default:
       logger.warn('Unknown message type:', message.type);
   }

@@ -5,6 +5,7 @@ import { RuleConfig } from '../../types/rule';
 import { FileItem } from '../../types/platform';
 import { RuleFactory } from '../../rules/rule-factory';
 import { logger } from '../../utils/logger';
+import { I18nService } from '../../utils/i18n';
 
 /**
  * 预览项接口
@@ -57,6 +58,34 @@ export class RenamePreview extends LitElement {
    * 虚拟滚动阈值
    */
   private readonly VIRTUAL_SCROLL_THRESHOLD = 100;
+
+  /**
+   * Storage 变化监听器引用（用于清理）
+   * 监听 storage 变化比监听消息更可靠，避免竞态条件
+   */
+  private storageChangeListener = (changes: Record<string, chrome.storage.StorageChange>, areaName: string) => {
+    if (areaName === 'local' && changes['language']) {
+      // Storage 变化意味着 language 已经持久化
+      // 全局监听器会更新 I18nService.currentLanguage
+      // 这里只需触发重渲染
+      this.requestUpdate();
+    }
+  };
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    // ✅ 修复：改用 storage 监听器替代消息监听器
+    // 这避免了与全局监听器的竞态条件
+    chrome.storage.onChanged.addListener(this.storageChangeListener);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+
+    // Clean up storage change listener to prevent memory leaks
+    chrome.storage.onChanged.removeListener(this.storageChangeListener);
+  }
 
   static styles = css`
     :host {
@@ -208,7 +237,7 @@ export class RenamePreview extends LitElement {
     if (this.files.length === 0) {
       return html`
         <div class="preview-container">
-          <div class="empty-state">暂无文件可预览</div>
+          <div class="empty-state">${I18nService.t('preview_empty')}</div>
         </div>
       `;
     }
@@ -216,7 +245,7 @@ export class RenamePreview extends LitElement {
     if (this.previewData.length === 0) {
       return html`
         <div class="preview-container">
-          <div class="loading">生成预览中...</div>
+          <div class="loading">${I18nService.t('preview_loading')}</div>
         </div>
       `;
     }
@@ -240,21 +269,21 @@ export class RenamePreview extends LitElement {
     return html`
       <div class="summary">
         <div class="summary-item">
-          <span class="summary-label">总计:</span>
+          <span class="summary-label">${I18nService.t('preview_summary_total')}</span>
           <span class="summary-value">${totalFiles}</span>
         </div>
         <div class="summary-item">
-          <span class="summary-label">将改变:</span>
+          <span class="summary-label">${I18nService.t('preview_summary_changed')}</span>
           <span class="summary-value success">${changedFiles}</span>
         </div>
         <div class="summary-item">
-          <span class="summary-label">无变化:</span>
+          <span class="summary-label">${I18nService.t('preview_summary_unchanged')}</span>
           <span class="summary-value warning">${unchangedFiles}</span>
         </div>
         ${conflictFiles > 0
           ? html`
               <div class="summary-item">
-                <span class="summary-label">冲突:</span>
+                <span class="summary-label">${I18nService.t('preview_summary_conflict')}</span>
                 <span class="summary-value error">${conflictFiles}</span>
               </div>
             `
@@ -293,9 +322,9 @@ export class RenamePreview extends LitElement {
         <span class="arrow">→</span>
         <span class="renamed">${this.highlightChanges(item.original, item.renamed)}</span>
         ${item.hasConflict
-          ? html`<span class="conflict-badge">冲突</span>`
+          ? html`<span class="conflict-badge">${I18nService.t('preview_badge_conflict')}</span>`
           : !item.hasChange
-          ? html`<span class="no-change-badge">无变化</span>`
+          ? html`<span class="no-change-badge">${I18nService.t('preview_badge_no_change')}</span>`
           : ''}
       </div>
     `;

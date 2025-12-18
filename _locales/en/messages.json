@@ -1,10 +1,448 @@
 {
   "extName": {
     "message": "CloudDrive Renamer",
-    "description": "Extension name (English)"
+    "description": "Extension name"
   },
   "extDescription": {
     "message": "Powerful batch renaming tool for Quark Drive (Aliyun Drive and Baidu Cloud Drive support coming soon)",
-    "description": "Extension description (English)"
+    "description": "Extension description"
+  },
+
+  "rename_dialog_title": {
+    "message": "Batch Rename",
+    "description": "Rename dialog title"
+  },
+  "rename_dialog_file_count": {
+    "message": "files",
+    "description": "File count suffix in dialog title"
+  },
+  "rename_dialog_close": {
+    "message": "×",
+    "description": "Close button symbol"
+  },
+
+  "rule_selector_title": {
+    "message": "Select Rename Rule",
+    "description": "Rule selector section title"
+  },
+  "rule_config_title": {
+    "message": "Configure Parameters",
+    "description": "Rule configuration section title"
+  },
+  "preview_section_title": {
+    "message": "Preview (First 3 Files)",
+    "description": "Preview section title"
+  },
+
+  "rule_replace": {
+    "message": "Replace Text",
+    "description": "Replace rule name"
+  },
+  "rule_replace_desc": {
+    "message": "Replace characters in filename",
+    "description": "Replace rule description"
+  },
+  "rule_prefix": {
+    "message": "Add Prefix",
+    "description": "Prefix rule name"
+  },
+  "rule_prefix_desc": {
+    "message": "Add text before filename",
+    "description": "Prefix rule description"
+  },
+  "rule_suffix": {
+    "message": "Add Suffix",
+    "description": "Suffix rule name"
+  },
+  "rule_suffix_desc": {
+    "message": "Add text before extension",
+    "description": "Suffix rule description"
+  },
+  "rule_numbering": {
+    "message": "Add Numbering",
+    "description": "Numbering rule name"
+  },
+  "rule_numbering_desc": {
+    "message": "Add sequential numbers",
+    "description": "Numbering rule description"
+  },
+  "rule_sanitize": {
+    "message": "Sanitize Filename",
+    "description": "Sanitize rule name"
+  },
+  "rule_sanitize_desc": {
+    "message": "Remove illegal characters",
+    "description": "Sanitize rule description"
+  },
+
+  "param_search_text": {
+    "message": "Search Text",
+    "description": "Search text label"
+  },
+  "param_search_placeholder": {
+    "message": "Text to replace",
+    "description": "Search text placeholder"
+  },
+  "param_replace_with": {
+    "message": "Replace With",
+    "description": "Replace with label"
+  },
+  "param_replace_placeholder": {
+    "message": "New text",
+    "description": "Replace placeholder"
+  },
+  "param_case_sensitive": {
+    "message": "Case Sensitive",
+    "description": "Case sensitive option"
+  },
+  "param_replace_all": {
+    "message": "Replace All Matches",
+    "description": "Replace all matches option"
+  },
+
+  "param_prefix_text": {
+    "message": "Prefix Text",
+    "description": "Prefix text label"
+  },
+  "param_prefix_placeholder": {
+    "message": "Prefix to add",
+    "description": "Prefix placeholder"
+  },
+  "param_suffix_text": {
+    "message": "Suffix Text",
+    "description": "Suffix text label"
+  },
+  "param_suffix_placeholder": {
+    "message": "Suffix to add",
+    "description": "Suffix placeholder"
+  },
+  "param_separator": {
+    "message": "Separator (Optional)",
+    "description": "Separator label"
+  },
+  "param_separator_placeholder": {
+    "message": "e.g., - or _",
+    "description": "Separator placeholder"
+  },
+  "param_separator_hint_prefix": {
+    "message": "Separator to insert between prefix and original filename",
+    "description": "Separator hint for prefix"
+  },
+  "param_separator_hint_suffix": {
+    "message": "Separator to insert between original filename and suffix",
+    "description": "Separator hint for suffix"
+  },
+
+  "param_start_number": {
+    "message": "Start Number",
+    "description": "Start number label"
+  },
+  "param_digits": {
+    "message": "Number of Digits",
+    "description": "Number of digits label"
+  },
+  "param_digits_hint": {
+    "message": "e.g., 3 digits → 001, 002, 003",
+    "description": "Digits hint"
+  },
+  "param_position": {
+    "message": "Position",
+    "description": "Position label"
+  },
+  "param_position_prefix": {
+    "message": "Prefix (Before Filename)",
+    "description": "Prefix position option"
+  },
+  "param_position_suffix": {
+    "message": "Suffix (Before Extension)",
+    "description": "Suffix position option"
+  },
+  "param_format_template": {
+    "message": "Format Template",
+    "description": "Format template label"
+  },
+  "param_format_hint": {
+    "message": "Use {num} to represent number position",
+    "description": "Format template hint"
+  },
+
+  "param_remove_illegal": {
+    "message": "Remove Illegal Characters",
+    "description": "Remove illegal characters option"
+  },
+  "param_remove_illegal_hint": {
+    "message": "Automatically remove / \\ : * ? \" < > | characters",
+    "description": "Remove illegal characters hint"
+  },
+  "param_remove_chars": {
+    "message": "Additional Characters to Remove (Optional)",
+    "description": "Additional characters to remove label"
+  },
+  "param_remove_chars_placeholder": {
+    "message": "e.g., [](){}",
+    "description": "Additional characters placeholder"
+  },
+  "param_remove_chars_hint": {
+    "message": "Enter additional characters to remove",
+    "description": "Additional characters hint"
+  },
+
+  "button_cancel": {
+    "message": "Cancel",
+    "description": "Cancel button"
+  },
+  "button_execute": {
+    "message": "Execute Rename",
+    "description": "Execute rename button"
+  },
+
+  "progress_dialog_title": {
+    "message": "Batch Renaming...",
+    "description": "Progress dialog title"
+  },
+  "progress_current_file": {
+    "message": "Processing:",
+    "description": "Current file label"
+  },
+  "progress_completed": {
+    "message": "Completed",
+    "description": "Completed label"
+  },
+  "progress_success": {
+    "message": "Success",
+    "description": "Success label"
+  },
+  "progress_failed": {
+    "message": "Failed",
+    "description": "Failed label"
+  },
+  "progress_eta": {
+    "message": "Estimated Time Remaining:",
+    "description": "Estimated time label"
+  },
+  "progress_calculating": {
+    "message": "Calculating...",
+    "description": "Calculating message"
+  },
+  "progress_button_pause": {
+    "message": "Pause",
+    "description": "Pause button"
+  },
+  "progress_button_resume": {
+    "message": "Resume",
+    "description": "Resume button"
+  },
+  "progress_button_cancel": {
+    "message": "Cancel",
+    "description": "Cancel button in progress dialog"
+  },
+  "progress_cancel_confirm": {
+    "message": "Are you sure you want to cancel batch rename?",
+    "description": "Cancel confirmation message"
+  },
+  "progress_cancel_stats": {
+    "message": "Completed: {success}\\nFailed: {failed}\\nRemaining: {remaining}",
+    "description": "Cancel confirmation stats"
+  },
+
+  "preview_empty": {
+    "message": "No files to preview",
+    "description": "Empty preview message"
+  },
+  "preview_loading": {
+    "message": "Generating preview...",
+    "description": "Loading preview message"
+  },
+  "preview_summary_total": {
+    "message": "Total:",
+    "description": "Total files label"
+  },
+  "preview_summary_changed": {
+    "message": "To Change:",
+    "description": "Files to change label"
+  },
+  "preview_summary_unchanged": {
+    "message": "Unchanged:",
+    "description": "Unchanged files label"
+  },
+  "preview_summary_conflict": {
+    "message": "Conflicts:",
+    "description": "Conflict files label"
+  },
+  "preview_badge_conflict": {
+    "message": "Conflict",
+    "description": "Conflict badge"
+  },
+  "preview_badge_no_change": {
+    "message": "No Change",
+    "description": "No change badge"
+  },
+
+  "floating_button_tooltip": {
+    "message": "Batch Rename",
+    "description": "Floating button tooltip"
+  },
+  "floating_button_tooltip_activate": {
+    "message": "Select files to activate",
+    "description": "Floating button activation hint"
+  },
+  "floating_button_alt": {
+    "message": "Batch Rename",
+    "description": "Floating button icon alt text"
+  },
+
+  "popup_title": {
+    "message": "CloudDrive Renamer",
+    "description": "Popup title"
+  },
+  "popup_platform_label": {
+    "message": "Current Platform",
+    "description": "Current platform label"
+  },
+  "popup_platform_none": {
+    "message": "No platform detected",
+    "description": "No platform detected"
+  },
+  "popup_platform_unsupported": {
+    "message": "Unsupported platform",
+    "description": "Unsupported platform"
+  },
+  "popup_toggle_label": {
+    "message": "Show Floating Button",
+    "description": "Floating button toggle label"
+  },
+  "popup_toggle_hint_supported": {
+    "message": "Feature enabled",
+    "description": "Feature enabled hint"
+  },
+  "popup_toggle_hint_unsupported": {
+    "message": "Current page does not support this feature",
+    "description": "Feature unsupported hint"
+  },
+  "popup_toggle_hint_available": {
+    "message": "Only available on supported cloud platforms",
+    "description": "Feature availability hint"
+  },
+  "popup_stats_success": {
+    "message": "Success Count",
+    "description": "Success count label"
+  },
+  "popup_stats_failed": {
+    "message": "Failed Count",
+    "description": "Failed count label"
+  },
+  "popup_reset_button": {
+    "message": "Reset Statistics",
+    "description": "Reset stats button"
+  },
+  "popup_reset_confirm": {
+    "message": "Are you sure you want to reset statistics for {platform}?",
+    "description": "Reset confirmation message"
+  },
+  "popup_reset_failed": {
+    "message": "Reset failed, please try again",
+    "description": "Reset failed message"
+  },
+  "popup_link_help": {
+    "message": "User Guide",
+    "description": "Help link"
+  },
+  "popup_link_feedback": {
+    "message": "Report Issues",
+    "description": "Feedback link"
+  },
+
+  "error_unknown": {
+    "message": "Unknown error",
+    "description": "Unknown error"
+  },
+  "error_network": {
+    "message": "Network error",
+    "description": "Network error"
+  },
+  "error_api_success": {
+    "message": "Success",
+    "description": "API success message"
+  },
+  "error_api_unauthorized": {
+    "message": "Not logged in or authentication failed",
+    "description": "Unauthorized error"
+  },
+  "error_api_forbidden": {
+    "message": "Access forbidden",
+    "description": "Forbidden error"
+  },
+  "error_api_not_found": {
+    "message": "File not found",
+    "description": "Not found error"
+  },
+  "error_api_conflict": {
+    "message": "Filename conflict",
+    "description": "Conflict error"
+  },
+  "error_api_rate_limit": {
+    "message": "Too many requests",
+    "description": "Rate limit error"
+  },
+  "error_api_server": {
+    "message": "Internal server error",
+    "description": "Server error"
+  },
+  "error_api_invalid_param": {
+    "message": "Invalid parameter",
+    "description": "Invalid parameter error"
+  },
+  "error_api_invalid_filename": {
+    "message": "Invalid filename",
+    "description": "Invalid filename error"
+  },
+  "error_api_file_exists": {
+    "message": "File already exists",
+    "description": "File exists error"
+  },
+
+  "time_seconds": {
+    "message": "s",
+    "description": "Seconds unit"
+  },
+  "time_minutes": {
+    "message": "m",
+    "description": "Minutes unit"
+  },
+  "time_hours": {
+    "message": "h",
+    "description": "Hours unit"
+  },
+
+  "platform_quark": {
+    "message": "Quark Drive",
+    "description": "Quark Drive platform name"
+  },
+  "platform_aliyun": {
+    "message": "Aliyun Drive",
+    "description": "Aliyun Drive platform name"
+  },
+  "platform_baidu": {
+    "message": "Baidu Cloud Drive",
+    "description": "Baidu Cloud Drive platform name"
+  },
+
+  "popup_language_label": {
+    "message": "Language",
+    "description": "Language selector label in popup"
+  },
+  "toast_language_changed": {
+    "message": "Language changed to $1",
+    "description": "Toast message when language is changed",
+    "placeholders": {
+      "1": {
+        "content": "$1",
+        "example": "English"
+      }
+    }
+  },
+  "toast_language_change_failed": {
+    "message": "Failed to change language, please try again",
+    "description": "Toast message when language change fails"
   }
 }

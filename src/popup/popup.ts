@@ -3,28 +3,30 @@ import { storage } from '../utils/storage';
 import { PlatformName } from '../types/platform';
 import { PlatformUsageStats, STORAGE_KEYS } from '../types/stats';
 import { APP_VERSION_WITH_PREFIX } from '../shared/version';
+import { I18nService } from '../utils/i18n';
+import { LanguageChangeMessage } from '../types/i18n';
 
 /**
  * Popup脚本
  */
 
-// 平台URL到平台名称的映射
+// 平台URL到平台标识的映射
 // 注意：只包含真正实现了content script和adapter的平台
-const PLATFORM_URL_MAP: Record<string, { name: string; key: PlatformName }> = {
-  'pan.quark.cn': { name: '夸克网盘', key: 'quark' },
+const PLATFORM_URL_MAP: Record<string, PlatformName> = {
+  'pan.quark.cn': 'quark',
   // 未来支持的平台在此添加
-  // 'www.aliyundrive.com': { name: '阿里云盘', key: 'aliyun' },
-  // 'pan.baidu.com': { name: '百度网盘', key: 'baidu' },
+  // 'www.aliyundrive.com': 'aliyun',
+  // 'pan.baidu.com': 'baidu',
 };
 
 /**
- * 获取平台显示名称
+ * 获取平台显示名称（动态翻译）
  * @param platform 平台标识
  * @returns 平台显示名称
  */
 function getPlatformDisplayName(platform: PlatformName): string {
-  const entry = Object.values(PLATFORM_URL_MAP).find(p => p.key === platform);
-  return entry?.name || platform;
+  const translationKey = `platform_${platform}`;
+  return I18nService.t(translationKey);
 }
 
 /**
@@ -37,32 +39,106 @@ function injectVersion() {
   }
 }
 
+/**
+ * Internationalize HTML elements with data-i18n attribute
+ */
+function localizeHTML() {
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.getAttribute('data-i18n');
+    if (key) {
+      el.textContent = I18nService.t(key);
+    }
+  });
+}
+
+/**
+ * Update platform display name based on current tab
+ * Extracts duplicated logic and removes global state mutation
+ */
+async function updatePlatformDisplayName() {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const currentTab = tabs[0];
+    if (currentTab?.url) {
+      const platformKey = detectPlatformFromUrl(currentTab.url);
+      if (platformKey) {
+        // Dynamically get translated name using unified interface
+        const translatedName = getPlatformDisplayName(platformKey);
+        updatePlatformName(translatedName);
+      } else {
+        updatePlatformName(I18nService.t('popup_platform_unsupported'));
+      }
+    }
+  } catch (error) {
+    logger.error('Failed to update platform display name:', error as Error);
+  }
+}
+
+/**
+ * Handle language change messages
+ * Extracted as named function for proper cleanup
+ */
+function handleLanguageChange(message: any) {
+  if ((message as LanguageChangeMessage).type === 'LANGUAGE_CHANGED') {
+    // Update all internationalized text when language changes
+    localizeHTML();
+
+    // Update platform name with new translations
+    updatePlatformDisplayName().catch(error => {
+      logger.error('Failed to update platform name after language change:', error);
+    });
+  }
+}
+
+/**
+ * Setup language change listener with cleanup mechanism
+ */
+function setupLanguageChangeListener() {
+  chrome.runtime.onMessage.addListener(handleLanguageChange);
+
+  // Cleanup listener when popup unloads
+  window.addEventListener('unload', () => {
+    chrome.runtime.onMessage.removeListener(handleLanguageChange);
+  });
+}
+
 // 初始化Popup
 async function initPopup() {
-  // 注入版本号到 footer
+  // 1. First initialize language selector (loads and sets currentLanguage asynchronously)
+  await initLanguageSelector();
+
+  // 2. After language initialization, localize HTML with correct language
+  localizeHTML();
+
+  // 3. Inject version number to footer
   injectVersion();
+
+  // 4. Setup language change listener with cleanup mechanism
+  setupLanguageChangeListener();
 
   // 获取当前标签页
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   const currentTab = tabs[0];
 
   if (!currentTab || !currentTab.url) {
-    updatePlatformName('未检测到平台');
+    updatePlatformName(I18nService.t('popup_platform_none'));
     return;
   }
 
   // 检测平台
-  const platformInfo = detectPlatformFromUrl(currentTab.url);
-  if (platformInfo) {
-    updatePlatformName(platformInfo.name);
+  const platformKey = detectPlatformFromUrl(currentTab.url);
+  if (platformKey) {
+    // 使用统一的函数获取翻译
+    const translatedName = getPlatformDisplayName(platformKey);
+    updatePlatformName(translatedName);
     // 初始化悬浮按钮开关 - 支持的平台
-    await initFloatingButtonToggle(platformInfo.key);
+    await initFloatingButtonToggle(platformKey);
     // 加载统计数据 - 传入平台信息
-    await loadStats(platformInfo.key);
+    await loadStats(platformKey);
     // 初始化重置按钮 - 传入平台信息
-    initResetButton(platformInfo.key);
+    initResetButton(platformKey);
   } else {
-    updatePlatformName('不支持的平台');
+    updatePlatformName(I18nService.t('popup_platform_unsupported'));
     // 初始化悬浮按钮开关 - 非支持的平台
     await initFloatingButtonToggle(null);
     // 加载统计数据 - 无平台
@@ -76,10 +152,10 @@ async function initPopup() {
 }
 
 // 检测平台
-function detectPlatformFromUrl(url: string): { name: string; key: PlatformName } | null {
-  for (const [urlPattern, platformInfo] of Object.entries(PLATFORM_URL_MAP)) {
+function detectPlatformFromUrl(url: string): PlatformName | null {
+  for (const [urlPattern, platformKey] of Object.entries(PLATFORM_URL_MAP)) {
     if (url.includes(urlPattern)) {
-      return platformInfo;
+      return platformKey;
     }
   }
   return null;
@@ -143,7 +219,7 @@ function initResetButton(platform: PlatformName | null) {
   // 绑定点击事件（带防抖保护）
   resetButton.addEventListener('click', async () => {
     const platformName = getPlatformDisplayName(platform);
-    const confirmed = confirm(`确定要重置 ${platformName} 的统计数据吗？`);
+    const confirmed = confirm(I18nService.t('popup_reset_confirm', [platformName]));
 
     if (!confirmed) {
       return;
@@ -163,7 +239,7 @@ function initResetButton(platform: PlatformName | null) {
       logger.info(`Stats reset for platform: ${platform}`);
     } catch (error) {
       logger.error('Failed to reset stats:', error as Error);
-      alert('重置失败，请重试');
+      alert(I18nService.t('popup_reset_failed'));
     } finally {
       // 重新启用按钮
       resetButton.disabled = false;
@@ -197,7 +273,7 @@ async function initFloatingButtonToggle(platform: PlatformName | null) {
     toggleSwitch.checked = isVisible !== false;
 
     // 更新提示文本 - 简化，避免重复
-    toggleHint.textContent = '功能已启用';
+    toggleHint.textContent = I18nService.t('popup_toggle_hint_supported');
     toggleHint.className = 'toggle-hint active';
 
     // 绑定开关事件
@@ -227,9 +303,66 @@ async function initFloatingButtonToggle(platform: PlatformName | null) {
     toggleSwitch.checked = false;
 
     // 更新提示文本
-    toggleHint.textContent = '当前页面不支持此功能';
+    toggleHint.textContent = I18nService.t('popup_toggle_hint_unsupported');
     toggleHint.className = 'toggle-hint inactive';
   }
+}
+
+/**
+ * 显示Toast提示
+ * @param message 提示消息
+ * @param duration 显示时长(毫秒)
+ */
+function showToast(message: string, duration = 2000) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+
+  toast.textContent = message;
+  toast.classList.add('show');
+
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, duration);
+}
+
+/**
+ * 初始化语言选择器
+ */
+async function initLanguageSelector() {
+  const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
+  if (!languageSelect) return;
+
+  // 获取当前语言并设置选中状态
+  const currentLang = await I18nService.getCurrentLanguage();
+  languageSelect.value = currentLang;
+
+  // 监听语言切换
+  languageSelect.addEventListener('change', async (e) => {
+    const newLang = (e.target as HTMLSelectElement).value as 'zh_CN' | 'zh_TW' | 'en';
+
+    try {
+      // 设置新语言
+      await I18nService.setLanguage(newLang);
+
+      // 更新页面所有文本
+      localizeHTML();
+
+      // 显示Toast提示
+      const langName = {
+        'zh_CN': '简体中文',
+        'zh_TW': '繁體中文',
+        'en': 'English'
+      }[newLang];
+
+      showToast(I18nService.t('toast_language_changed', [langName]));
+
+      // 更新平台名称翻译（使用提取的函数，消除重复代码）
+      await updatePlatformDisplayName();
+    } catch (error) {
+      logger.error('Failed to change language:', error as Error);
+      showToast(I18nService.t('toast_language_change_failed'));
+    }
+  });
 }
 
 // 绑定事件

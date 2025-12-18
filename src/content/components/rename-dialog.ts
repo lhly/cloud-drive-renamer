@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { RuleType, RuleConfig } from '../../types/rule';
 import { FileItem } from '../../types/platform';
+import { I18nService } from '../../utils/i18n';
 
 /**
  * 重命名对话框组件
@@ -47,6 +48,34 @@ export class RenameDialog extends LitElement {
     caseSensitive: false,
     global: true,
   };
+
+  /**
+   * Storage 变化监听器引用（用于清理）
+   * 监听 storage 变化比监听消息更可靠，避免竞态条件
+   */
+  private storageChangeListener = (changes: Record<string, chrome.storage.StorageChange>, areaName: string) => {
+    if (areaName === 'local' && changes['language']) {
+      // Storage 变化意味着 language 已经持久化
+      // 全局监听器会更新 I18nService.currentLanguage
+      // 这里只需触发重渲染
+      this.requestUpdate();
+    }
+  };
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    // ✅ 修复：改用 storage 监听器替代消息监听器
+    // 这避免了与全局监听器的竞态条件
+    chrome.storage.onChanged.addListener(this.storageChangeListener);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+
+    // Clean up storage change listener to prevent memory leaks
+    chrome.storage.onChanged.removeListener(this.storageChangeListener);
+  }
 
   static styles = css`
     :host {
@@ -303,9 +332,9 @@ export class RenameDialog extends LitElement {
     return html`
       <div class="dialog-header">
         <div class="dialog-title">
-          批量重命名 (${this.files.length} 个文件)
+          ${I18nService.t('rename_dialog_title')} (${this.files.length} ${I18nService.t('rename_dialog_file_count')})
         </div>
-        <button class="close-button" @click=${this.handleClose}>×</button>
+        <button class="close-button" @click=${this.handleClose}>${I18nService.t('rename_dialog_close')}</button>
       </div>
     `;
   }
@@ -320,16 +349,16 @@ export class RenameDialog extends LitElement {
 
   private renderRuleSelector() {
     const rules: { type: RuleType; label: string; description: string }[] = [
-      { type: 'replace', label: '字符串替换', description: '替换文件名中的字符' },
-      { type: 'prefix', label: '添加前缀', description: '在文件名前添加文本' },
-      { type: 'suffix', label: '添加后缀', description: '在扩展名前添加文本' },
-      { type: 'numbering', label: '添加编号', description: '添加顺序编号' },
-      { type: 'sanitize', label: '清理文件名', description: '移除非法字符' },
+      { type: 'replace', label: I18nService.t('rule_replace'), description: I18nService.t('rule_replace_desc') },
+      { type: 'prefix', label: I18nService.t('rule_prefix'), description: I18nService.t('rule_prefix_desc') },
+      { type: 'suffix', label: I18nService.t('rule_suffix'), description: I18nService.t('rule_suffix_desc') },
+      { type: 'numbering', label: I18nService.t('rule_numbering'), description: I18nService.t('rule_numbering_desc') },
+      { type: 'sanitize', label: I18nService.t('rule_sanitize'), description: I18nService.t('rule_sanitize_desc') },
     ];
 
     return html`
       <div class="rule-selector">
-        <div class="section-title">选择重命名规则</div>
+        <div class="section-title">${I18nService.t('rule_selector_title')}</div>
         <div class="rule-options">
           ${rules.map(
             rule => html`
@@ -356,7 +385,7 @@ export class RenameDialog extends LitElement {
   private renderRuleConfig() {
     return html`
       <div class="rule-config">
-        <div class="section-title">配置参数</div>
+        <div class="section-title">${I18nService.t('rule_config_title')}</div>
         ${this.renderRuleParams()}
       </div>
     `;
@@ -382,24 +411,24 @@ export class RenameDialog extends LitElement {
   private renderReplaceParams() {
     return html`
       <div class="form-group">
-        <label class="form-label">搜索文本</label>
+        <label class="form-label">${I18nService.t('param_search_text')}</label>
         <input
           type="text"
           class="form-input"
           .value=${this.ruleParams.search || ''}
           @input=${(e: Event) => this.updateParam('search', (e.target as HTMLInputElement).value)}
-          placeholder="要替换的文本"
+          placeholder="${I18nService.t('param_search_placeholder')}"
         />
       </div>
 
       <div class="form-group">
-        <label class="form-label">替换为</label>
+        <label class="form-label">${I18nService.t('param_replace_with')}</label>
         <input
           type="text"
           class="form-input"
           .value=${this.ruleParams.replace || ''}
           @input=${(e: Event) => this.updateParam('replace', (e.target as HTMLInputElement).value)}
-          placeholder="新的文本"
+          placeholder="${I18nService.t('param_replace_placeholder')}"
         />
       </div>
 
@@ -410,7 +439,7 @@ export class RenameDialog extends LitElement {
             ?checked=${this.ruleParams.caseSensitive || false}
             @change=${(e: Event) => this.updateParam('caseSensitive', (e.target as HTMLInputElement).checked)}
           />
-          <span>大小写敏感</span>
+          <span>${I18nService.t('param_case_sensitive')}</span>
         </label>
       </div>
 
@@ -421,7 +450,7 @@ export class RenameDialog extends LitElement {
             ?checked=${this.ruleParams.global ?? true}
             @change=${(e: Event) => this.updateParam('global', (e.target as HTMLInputElement).checked)}
           />
-          <span>替换所有匹配项</span>
+          <span>${I18nService.t('param_replace_all')}</span>
         </label>
       </div>
     `;
@@ -430,26 +459,26 @@ export class RenameDialog extends LitElement {
   private renderPrefixParams() {
     return html`
       <div class="form-group">
-        <label class="form-label">前缀文本</label>
+        <label class="form-label">${I18nService.t('param_prefix_text')}</label>
         <input
           type="text"
           class="form-input"
           .value=${this.ruleParams.prefix || ''}
           @input=${(e: Event) => this.updateParam('prefix', (e.target as HTMLInputElement).value)}
-          placeholder="要添加的前缀"
+          placeholder="${I18nService.t('param_prefix_placeholder')}"
         />
       </div>
 
       <div class="form-group">
-        <label class="form-label">分隔符（可选）</label>
+        <label class="form-label">${I18nService.t('param_separator')}</label>
         <input
           type="text"
           class="form-input"
           .value=${this.ruleParams.separator || ''}
           @input=${(e: Event) => this.updateParam('separator', (e.target as HTMLInputElement).value)}
-          placeholder="例如: - 或 _"
+          placeholder="${I18nService.t('param_separator_placeholder')}"
         />
-        <div class="hint-text">在前缀和原文件名之间插入的分隔符</div>
+        <div class="hint-text">${I18nService.t('param_separator_hint_prefix')}</div>
       </div>
     `;
   }
@@ -457,26 +486,26 @@ export class RenameDialog extends LitElement {
   private renderSuffixParams() {
     return html`
       <div class="form-group">
-        <label class="form-label">后缀文本</label>
+        <label class="form-label">${I18nService.t('param_suffix_text')}</label>
         <input
           type="text"
           class="form-input"
           .value=${this.ruleParams.suffix || ''}
           @input=${(e: Event) => this.updateParam('suffix', (e.target as HTMLInputElement).value)}
-          placeholder="要添加的后缀"
+          placeholder="${I18nService.t('param_suffix_placeholder')}"
         />
       </div>
 
       <div class="form-group">
-        <label class="form-label">分隔符（可选）</label>
+        <label class="form-label">${I18nService.t('param_separator')}</label>
         <input
           type="text"
           class="form-input"
           .value=${this.ruleParams.separator || ''}
           @input=${(e: Event) => this.updateParam('separator', (e.target as HTMLInputElement).value)}
-          placeholder="例如: - 或 _"
+          placeholder="${I18nService.t('param_separator_placeholder')}"
         />
-        <div class="hint-text">在原文件名和后缀之间插入的分隔符</div>
+        <div class="hint-text">${I18nService.t('param_separator_hint_suffix')}</div>
       </div>
     `;
   }
@@ -484,7 +513,7 @@ export class RenameDialog extends LitElement {
   private renderNumberingParams() {
     return html`
       <div class="form-group">
-        <label class="form-label">起始编号</label>
+        <label class="form-label">${I18nService.t('param_start_number')}</label>
         <input
           type="number"
           class="form-input"
@@ -495,7 +524,7 @@ export class RenameDialog extends LitElement {
       </div>
 
       <div class="form-group">
-        <label class="form-label">编号位数</label>
+        <label class="form-label">${I18nService.t('param_digits')}</label>
         <input
           type="number"
           class="form-input"
@@ -504,23 +533,23 @@ export class RenameDialog extends LitElement {
           min="1"
           max="10"
         />
-        <div class="hint-text">例如: 3位数 → 001, 002, 003</div>
+        <div class="hint-text">${I18nService.t('param_digits_hint')}</div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">位置</label>
+        <label class="form-label">${I18nService.t('param_position')}</label>
         <select
           class="form-select"
           .value=${this.ruleParams.position || 'prefix'}
           @change=${(e: Event) => this.updateParam('position', (e.target as HTMLSelectElement).value)}
         >
-          <option value="prefix">前缀（文件名前）</option>
-          <option value="suffix">后缀（扩展名前）</option>
+          <option value="prefix">${I18nService.t('param_position_prefix')}</option>
+          <option value="suffix">${I18nService.t('param_position_suffix')}</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label class="form-label">格式化模板</label>
+        <label class="form-label">${I18nService.t('param_format_template')}</label>
         <input
           type="text"
           class="form-input"
@@ -528,11 +557,11 @@ export class RenameDialog extends LitElement {
           @input=${(e: Event) => this.updateParam('format', (e.target as HTMLInputElement).value)}
           placeholder="{num}"
         />
-        <div class="hint-text">使用 {num} 表示编号位置</div>
+        <div class="hint-text">${I18nService.t('param_format_hint')}</div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">分隔符</label>
+        <label class="form-label">${I18nService.t('param_separator')}</label>
         <input
           type="text"
           class="form-input"
@@ -553,21 +582,21 @@ export class RenameDialog extends LitElement {
             ?checked=${this.ruleParams.removeIllegal ?? true}
             @change=${(e: Event) => this.updateParam('removeIllegal', (e.target as HTMLInputElement).checked)}
           />
-          <span>移除非法字符</span>
+          <span>${I18nService.t('param_remove_illegal')}</span>
         </label>
-        <div class="hint-text">自动移除 / \ : * ? " < > |  等字符</div>
+        <div class="hint-text">${I18nService.t('param_remove_illegal_hint')}</div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">额外移除的字符（可选）</label>
+        <label class="form-label">${I18nService.t('param_remove_chars')}</label>
         <input
           type="text"
           class="form-input"
           .value=${this.ruleParams.removeChars || ''}
           @input=${(e: Event) => this.updateParam('removeChars', (e.target as HTMLInputElement).value)}
-          placeholder="例如: [](){}"
+          placeholder="${I18nService.t('param_remove_chars_placeholder')}"
         />
-        <div class="hint-text">输入要额外移除的字符</div>
+        <div class="hint-text">${I18nService.t('param_remove_chars_hint')}</div>
       </div>
     `;
   }
@@ -575,7 +604,7 @@ export class RenameDialog extends LitElement {
   private renderPreview() {
     return html`
       <div class="preview-section">
-        <div class="section-title">预览（前3个文件）</div>
+        <div class="section-title">${I18nService.t('preview_section_title')}</div>
         <rename-preview
           .files=${this.files.slice(0, 3)}
           .rule=${this.getCurrentRuleConfig()}
@@ -588,10 +617,10 @@ export class RenameDialog extends LitElement {
     return html`
       <div class="dialog-footer">
         <button class="button button-default" @click=${this.handleClose}>
-          取消
+          ${I18nService.t('button_cancel')}
         </button>
         <button class="button button-primary" @click=${this.handleConfirm}>
-          执行重命名
+          ${I18nService.t('button_execute')}
         </button>
       </div>
     `;
