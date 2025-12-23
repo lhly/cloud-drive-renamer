@@ -444,5 +444,22 @@
   "toast_language_change_failed": {
     "message": "Failed to change language, please try again",
     "description": "Toast message when language change fails"
+  },
+
+  "error_baidu_session_expired": {
+    "message": "Session expired, please refresh the page and log in again",
+    "description": "Baidu session expired error"
+  },
+  "error_baidu_invalid_token": {
+    "message": "Invalid access token",
+    "description": "Baidu invalid token error"
+  },
+  "error_baidu_quota_exceeded": {
+    "message": "Disk quota exceeded",
+    "description": "Baidu quota exceeded error"
+  },
+  "error_baidu_task_timeout": {
+    "message": "Operation timeout, please retry",
+    "description": "Baidu task timeout error"
   }
 }

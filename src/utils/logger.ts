@@ -29,8 +29,16 @@ class Logger {
 
   /**
    * INFO级别日志 - 仅在开发环境输出
+   *
+   * 特殊规则：以 [DIAG- 开头的诊断日志总是输出（不受开发模式限制）
    */
   info(message: string, ...args: any[]): void {
+    // 诊断日志总是输出，方便生产环境调试
+    if (message.startsWith('[DIAG-')) {
+      console.log(`[CDR] [${LogLevel.INFO}]`, message, ...args);
+      return;
+    }
+
     if (this.isDevelopment) {
       console.log(`[CDR] [${LogLevel.INFO}]`, message, ...args);
     }

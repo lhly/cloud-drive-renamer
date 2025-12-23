@@ -36,6 +36,25 @@
       ],
       "run_at": "document_start",
       "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://pan.baidu.com/*"
+      ],
+      "js": [
+        "src/content/index.ts"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://pan.baidu.com/*"
+      ],
+      "js": [
+        "src/adapters/baidu/page-script.ts"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ],
   "web_accessible_resources": [
