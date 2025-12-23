@@ -5,6 +5,7 @@ import { DialogIframe } from './components/dialog-iframe';
 import { RuleConfig } from '../types/rule';
 import { RuleFactory } from '../rules/rule-factory';
 import { QuarkAdapter } from '../adapters/quark/quark';
+import { BaiduAdapter } from '../adapters/baidu/baidu-adapter';
 import { storage } from '../utils/storage';
 import { PlatformUsageStats, STORAGE_KEYS } from '../types/stats';
 import { I18nService } from '../utils/i18n';
@@ -303,7 +304,14 @@ async function handleDialogConfirm(ruleConfig: RuleConfig, files: FileItem[]) {
 
   try {
     // 1. 创建适配器实例
-    const adapter = new QuarkAdapter();
+    let adapter;
+    if (platform === 'quark') {
+      adapter = new QuarkAdapter();
+    } else if (platform === 'baidu') {
+      adapter = new BaiduAdapter();
+    } else {
+      throw new Error(`不支持的平台: ${platform}`);
+    }
 
     // 2. 创建规则执行器
     const rule = RuleFactory.create(ruleConfig);
@@ -431,7 +439,6 @@ function watchFileSelection(): () => void {
     // 只有数量变化时才更新
     if (selectedCount !== lastSelectedCount) {
       lastSelectedCount = selectedCount;
-
       // 更新悬浮按钮徽章
       floatingButton?.updateBadge(selectedCount);
     }
@@ -441,7 +448,9 @@ function watchFileSelection(): () => void {
     if (debounceTimer !== null) {
       clearTimeout(debounceTimer);
     }
-    debounceTimer = window.setTimeout(updateButton, 100);
+    debounceTimer = window.setTimeout(() => {
+      updateButton();
+    }, 100); // 百度网盘使用change事件监听，恢复标准100ms延迟
   };
 
   // 使用MutationObserver监听DOM变化
@@ -464,12 +473,26 @@ function watchFileSelection(): () => void {
     subtree: true,
   });
 
+  // 针对百度网盘：添加原生change事件监听作为备用方案
+  // 根因：百度网盘的checkbox变化不会触发class属性的mutation
+  // 解决方案：监听原生change事件（诊断确认change事件正常触发）
+  const changeListener = (e: Event) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' &&
+        (target as HTMLInputElement).type === 'checkbox' &&
+        target.closest('tbody')) {
+      debouncedUpdate();
+    }
+  };
+  document.addEventListener('change', changeListener, true); // 使用捕获阶段确保能监听到所有checkbox变化
+
   // 初始更新
   updateButton();
 
   // 返回清理函数
   return () => {
     observer.disconnect();
+    document.removeEventListener('change', changeListener, true);
     if (debounceTimer !== null) {
       clearTimeout(debounceTimer);
       debounceTimer = null;
@@ -505,9 +528,12 @@ const PLATFORM_SELECTORS = {
   },
   baidu: {
     selectedFiles: [
-      '.wp-s-file-item--selected',
-      '.file-item-checked',
-      '[class*="selected"]',
+      // ✅ 正确的选择器 - 基于实际DOM分析 (2025-12-19)
+      // 百度网盘使用 is-checked 类标识选中的checkbox
+      // 限定在 tbody 范围内，避免匹配表头的全选checkbox
+      'tbody label.u-checkbox.is-checked',
+      'tbody .u-checkbox.is-checked',
+      'tbody .u-checkbox__input.is-checked',
     ],
   },
 };
@@ -517,7 +543,6 @@ function getSelectedFilesCount(): number {
   const platform = detectPlatform();
 
   if (!platform) {
-    logger.info('[getSelectedFilesCount] No platform detected, returning 0');
     return 0;
   }
 
@@ -525,20 +550,15 @@ function getSelectedFilesCount(): number {
     PLATFORM_SELECTORS[platform as keyof typeof PLATFORM_SELECTORS]
       ?.selectedFiles || [];
 
-  logger.info(`[getSelectedFilesCount] Trying ${selectors.length} selectors for platform: ${platform}`);
-
   // 尝试每个选择器，返回第一个找到的结果
   for (const selector of selectors) {
     try {
       const elements = document.querySelectorAll(selector);
       if (elements.length > 0) {
-        logger.info(
-          `[getSelectedFilesCount] Found ${elements.length} selected files using selector: ${selector}`
-        );
         return elements.length;
       }
     } catch (error) {
-      logger.warn(`[getSelectedFilesCount] Invalid selector "${selector}":`, error);
+      logger.warn(`Invalid selector "${selector}":`, error);
     }
   }
 
@@ -663,9 +683,16 @@ function getSelectedFiles(): FileItem[] {
       const pathname = (row as Element).getAttribute('pathname') || '';
       const parentId = pathname.split('/').slice(-1)[0] || '';
 
-      // 提取大小与时间（尽力匹配常见列）
-      const sizeEl = (row as Element).querySelector('[class*="size"], .td-file:nth-child(2)');
-      const mtimeEl = (row as Element).querySelector('[class*="time"], [class*="date"], .td-file:nth-child(3)');
+      // 提取大小与时间（优化选择器精确度，避免匹配到操作菜单）
+      // 使用更具体的选择器，限定在表格单元格(td)范围内
+      const sizeEl = (row as Element).querySelector('td[class*="size"], td.td-file:nth-child(2)');
+
+      // 优化时间选择器: 1) 限定在td范围内 2) 优先使用data属性 3) 排除button和a标签
+      // 避免匹配到操作按钮的文本（如"重命名 复制 移动"等）
+      const mtimeEl = (row as Element).querySelector(
+        'td[class*="modify-time"], td[class*="mtime"], td[class*="update-time"], td.td-file:nth-child(3):not(:has(button)):not(:has(a))'
+      );
+
       const sizeText = (sizeEl as HTMLElement)?.textContent?.trim() || '0';
       const mtimeText = (mtimeEl as HTMLElement)?.textContent?.trim() || '';
 
@@ -720,9 +747,22 @@ function parseModificationTime(timeText: string): number {
     return Date.now();
   }
 
-  // 检测是否是文件大小格式（包含 KB, MB, GB, TB 等）
+  // 过滤明显不是时间的内容
+  // 1. 检测是否是文件大小格式（包含 KB, MB, GB, TB 等）
   if (/\d+(\.\d+)?\s*(B|KB|MB|GB|TB|PB)/i.test(timeText)) {
     // 这是文件大小，不是时间，直接返回当前时间（避免警告）
+    return Date.now();
+  }
+
+  // 2. 检测是否是操作菜单文本（包含常见操作关键词）
+  const menuKeywords = /^(重命名|复制|移动|删除|下载|分享|导出|导入|上传|更多|操作|选择|-+|[\u4e00-\u9fa5]{2,}[\s\u4e00-\u9fa5]*)+$/;
+  if (menuKeywords.test(timeText.trim())) {
+    // 这是菜单文本，不是时间，不输出警告
+    return Date.now();
+  }
+
+  // 3. 过滤纯符号或过短的文本
+  if (timeText.length < 4 || /^[-\s]+$/.test(timeText)) {
     return Date.now();
   }
 
@@ -733,7 +773,8 @@ function parseModificationTime(timeText: string): number {
 
     if (isNaN(date.getTime())) {
       // 解析失败，返回当前时间
-      logger.warn(`Failed to parse time: ${timeText}`);
+      // 降级为debug日志，因为已经过滤了大部分非时间文本
+      logger.debug(`Failed to parse time: ${timeText}`);
       return Date.now();
     }
 

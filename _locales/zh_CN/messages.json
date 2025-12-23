@@ -444,5 +444,22 @@
   "toast_language_change_failed": {
     "message": "语言切换失败,请重试",
     "description": "Toast message when language change fails"
+  },
+
+  "error_baidu_session_expired": {
+    "message": "会话已过期，请刷新页面重新登录",
+    "description": "Baidu session expired error"
+  },
+  "error_baidu_invalid_token": {
+    "message": "访问令牌无效",
+    "description": "Baidu invalid token error"
+  },
+  "error_baidu_quota_exceeded": {
+    "message": "磁盘配额不足",
+    "description": "Baidu quota exceeded error"
+  },
+  "error_baidu_task_timeout": {
+    "message": "操作超时，请重试",
+    "description": "Baidu task timeout error"
   }
 }
