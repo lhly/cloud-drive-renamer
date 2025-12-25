@@ -8,7 +8,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green.svg)](https://developer.chrome.com/docs/extensions/)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Add--ons-green.svg)](https://chromewebstore.google.com/detail/kadpaidccbagkojkdghnkpehkmmbobll)
+[![Edge Add-ons](https://img.shields.io/badge/Microsoft%20Edge-Add--ons-blue.svg)](https://microsoftedge.microsoft.com/addons/detail/kdfapbfjaoigjlbhjdnkhkkpnggnhkjp)
 
 </div>
 
@@ -152,6 +153,11 @@
 - **Chrome/Edge 浏览器** >= 110
 
 ### 安装步骤
+
+#### 在线安装
+
+- [Chrome 扩展商店](https://chromewebstore.google.com/detail/kadpaidccbagkojkdghnkpehkmmbobll) - 一键安装并自动保持最新版本
+- [Edge 扩展商店](https://microsoftedge.microsoft.com/addons/detail/kdfapbfjaoigjlbhjdnkhkkpnggnhkjp) - 适用于 Microsoft Edge 浏览器的官方版本
 
 #### 1. 克隆项目
 

@@ -200,6 +200,11 @@ jobs:
           echo "4. Enable \"Developer mode\"" >> CHANGELOG.txt
           echo "5. Click \"Load unpacked\" and select the extracted folder" >> CHANGELOG.txt
           echo "" >> CHANGELOG.txt
+          echo "## 🌐 Browser Stores" >> CHANGELOG.txt
+          echo "" >> CHANGELOG.txt
+          echo "- Chrome Web Store: https://chromewebstore.google.com/detail/kadpaidccbagkojkdghnkpehkmmbobll" >> CHANGELOG.txt
+          echo "- Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/kdfapbfjaoigjlbhjdnkhkkpnggnhkjp" >> CHANGELOG.txt
+          echo "" >> CHANGELOG.txt
           echo "## 🔗 Supported Cloud Drives" >> CHANGELOG.txt
           echo "" >> CHANGELOG.txt
           echo "- 🌐 Quark (夸克网盘)" >> CHANGELOG.txt
