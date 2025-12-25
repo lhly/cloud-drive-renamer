@@ -646,6 +646,23 @@ function isValidFileRow(row: Element, platform?: string): boolean {
   return !!(hasFilename && fileId && !fileId.startsWith('unknown-'));
 }
 
+function isNoiseTitle(title: string): boolean {
+  const normalized = title.trim();
+  if (!normalized) return true;
+
+  // Pure punctuation / ellipsis-like titles are almost certainly UI noise.
+  if (/^[\s._\-—–…·•|/\\()（）[\]【】]+$/.test(normalized)) return true;
+
+  // Common UI labels across platforms (CN + EN).
+  if (/^(选择|操作|更多|下载|分享|删除|上传|移动|复制|重命名|详情|打开|关闭)$/.test(normalized)) return true;
+  if (/^(Select|Actions?|More|Download|Share|Delete|Upload|Move|Copy|Rename|Details|Open|Close)$/i.test(normalized)) return true;
+
+  // Quark-specific UI labels / statuses that sometimes appear inside the name cell.
+  if (/^(上传到当前目录|上传到同级目录|下载中|处理中|转码中|同步中)$/.test(normalized)) return true;
+
+  return false;
+}
+
 /**
  * Quark平台专用的文件提取逻辑
  */
@@ -693,10 +710,14 @@ function getSelectedFilesForQuark(): FileItem[] {
 
       // 提取文件名
       let filename = '';
-      const titleElements = (row as Element).querySelectorAll('[title]');
+      const nameScope =
+        (row as Element).querySelector(
+          '.filename-text, [class*="filename"]:not([class*="wrapper"]), [class*="file-name"]:not([class*="wrapper"]), [class*="file-title"]'
+        ) || (row as Element);
+      const titleElements = nameScope.querySelectorAll('[title]');
       for (const titleEl of Array.from(titleElements)) {
         const title = (titleEl as HTMLElement).getAttribute('title')?.trim();
-        if (title && title.length > 3 && !title.match(/^(选择|操作|更多|下载|分享|删除)$/)) {
+        if (title && !isNoiseTitle(title)) {
           filename = title;
           break;
         }
@@ -727,7 +748,7 @@ function getSelectedFilesForQuark(): FileItem[] {
       }
 
       // 清理文件名中的无关前缀
-      filename = filename.replace(/^(上传到同级目录|下载中|处理中|转码中|同步中)\s*/g, '');
+      filename = filename.replace(/^(上传到当前目录|上传到同级目录|下载中|处理中|转码中|同步中)\s*/g, '');
 
       // 解析扩展名
       const lastDotIndex = filename.lastIndexOf('.');
@@ -1049,7 +1070,7 @@ async function getSelectedFilesFromDOMForAliyun(): Promise<FileItem[]> {
       const titleElements = row.querySelectorAll('[title]');
       for (const titleEl of Array.from(titleElements)) {
         const title = (titleEl as HTMLElement).getAttribute('title')?.trim();
-        if (title && title.length > 3 && !title.match(/^(选择|操作|更多|下载|分享|删除)$/)) {
+        if (title && !isNoiseTitle(title)) {
           filename = title;
           break;
         }
@@ -1079,7 +1100,7 @@ async function getSelectedFilesFromDOMForAliyun(): Promise<FileItem[]> {
       }
 
       // 清理文件名
-      filename = filename.replace(/^(上传到同级目录|下载中|处理中|转码中|同步中)\s*/g, '');
+      filename = filename.replace(/^(上传到当前目录|上传到同级目录|下载中|处理中|转码中|同步中)\s*/g, '');
 
       // 解析扩展名
       const lastDotIndex = filename.lastIndexOf('.');
@@ -1176,10 +1197,14 @@ function getSelectedFilesForBaidu(): FileItem[] {
 
       // 提取文件名
       let filename = '';
-      const titleElements = (row as Element).querySelectorAll('[title]');
+      const nameScope =
+        (row as Element).querySelector(
+          '.filename-text, [class*="filename"]:not([class*="wrapper"]), [class*="file-name"]:not([class*="wrapper"]), [class*="file-title"]'
+        ) || (row as Element);
+      const titleElements = nameScope.querySelectorAll('[title]');
       for (const titleEl of Array.from(titleElements)) {
         const title = (titleEl as HTMLElement).getAttribute('title')?.trim();
-        if (title && title.length > 3 && !title.match(/^(选择|操作|更多|下载|分享|删除)$/)) {
+        if (title && !isNoiseTitle(title)) {
           filename = title;
           break;
         }
@@ -1210,7 +1235,7 @@ function getSelectedFilesForBaidu(): FileItem[] {
       }
 
       // 清理文件名
-      filename = filename.replace(/^(上传到同级目录|下载中|处理中|转码中|同步中)\s*/g, '');
+      filename = filename.replace(/^(上传到当前目录|上传到同级目录|下载中|处理中|转码中|同步中)\s*/g, '');
 
       // 解析扩展名
       const lastDotIndex = filename.lastIndexOf('.');
