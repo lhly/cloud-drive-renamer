@@ -144,10 +144,7 @@ export class QuarkAdapter extends BasePlatformAdapter {
       // 添加可能需要的额外参数
       if (parentId && parentId !== '0') {
         requestBody.pdir_fid = parentId;
-        logger.info(`Adding pdir_fid to request: ${parentId}`);
       }
-
-      logger.info(`Rename request body: ${JSON.stringify(requestBody)}`);
 
       const result: QuarkAPIResponse = await injector.callAPI(
         'POST',

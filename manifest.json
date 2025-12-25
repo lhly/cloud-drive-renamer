@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "default_locale": "zh_CN",
   "name": "__MSG_extName__",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "__MSG_extDescription__",
   "permissions": [
     "storage",
@@ -11,6 +11,8 @@
   "host_permissions": [
     "https://pan.quark.cn/*",
     "https://www.aliyundrive.com/*",
+    "https://www.alipan.com/*",
+    "https://api.aliyundrive.com/*",
     "https://pan.baidu.com/*"
   ],
   "background": {
@@ -29,16 +31,6 @@
     },
     {
       "matches": [
-        "https://pan.quark.cn/*"
-      ],
-      "js": [
-        "src/adapters/quark/page-script.ts"
-      ],
-      "run_at": "document_start",
-      "world": "MAIN"
-    },
-    {
-      "matches": [
         "https://pan.baidu.com/*"
       ],
       "js": [
@@ -48,13 +40,13 @@
     },
     {
       "matches": [
-        "https://pan.baidu.com/*"
+        "https://www.aliyundrive.com/*",
+        "https://www.alipan.com/*"
       ],
       "js": [
-        "src/adapters/baidu/page-script.ts"
+        "src/content/index.ts"
       ],
-      "run_at": "document_start",
-      "world": "MAIN"
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
@@ -65,11 +57,15 @@
         "assets/*",
         "icons/*",
         "*.js",
-        "*.css"
+        "*.css",
+        "src/adapters/aliyun/page-script.js",
+        "src/adapters/baidu/page-script.js",
+        "src/adapters/quark/page-script.js"
       ],
       "matches": [
         "https://pan.quark.cn/*",
         "https://www.aliyundrive.com/*",
+        "https://www.alipan.com/*",
         "https://pan.baidu.com/*"
       ]
     }

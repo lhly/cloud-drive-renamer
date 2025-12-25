@@ -6,11 +6,12 @@ import { RuleConfig } from '../types/rule';
 import { RuleFactory } from '../rules/rule-factory';
 import { QuarkAdapter } from '../adapters/quark/quark';
 import { BaiduAdapter } from '../adapters/baidu/baidu-adapter';
+import { AliyunAdapter } from '../adapters/aliyun/aliyun-adapter';
 import { storage } from '../utils/storage';
 import { PlatformUsageStats, STORAGE_KEYS } from '../types/stats';
 import { I18nService } from '../utils/i18n';
 import type { LanguageChangeMessage } from '../types/i18n';
-import { detectPlatformFromUrl, isQuarkShareLink } from '../utils/platform-detector';
+import { detectPlatformFromUrl, isQuarkShareLink, isAliyunShareLink } from '../utils/platform-detector';
 
 /**
  * Content Script
@@ -23,6 +24,7 @@ import { detectPlatformFromUrl, isQuarkShareLink } from '../utils/platform-detec
  * - 支持按平台控制悬浮按钮显示/隐藏
  */
 
+// 🔍 VERSION IDENTIFIER - 用于诊断代码版本
 // 全局初始化标志位（使用window对象实现跨执行上下文共享）
 const INIT_FLAG = '__cloudDriveRenamerInitialized';
 
@@ -46,6 +48,9 @@ export function detectPlatform(): PlatformName | null {
   // 如果是分享链接,记录日志 (提升日志级别为 warn,因为这是需要用户关注的情况)
   if (url.includes('pan.quark.cn') && isQuarkShareLink(pathname)) {
     logger.warn('Quark share link detected, extension disabled for share pages');
+  }
+  if ((url.includes('www.aliyundrive.com') || url.includes('www.alipan.com')) && isAliyunShareLink(pathname)) {
+    logger.warn('Aliyun share link detected, extension disabled for share pages');
   }
 
   return platform;
@@ -151,11 +156,59 @@ function cleanupOldInstances(): void {
   }
 }
 
+/**
+ * 动态注入 page-script 到 MAIN world
+ *
+ * 背景: @crxjs/vite-plugin 不支持在 manifest.json 中直接配置 world: "MAIN" 的 TypeScript 文件
+ * 解决方案: 在 content script (ISOLATED world) 中动态创建 <script> 标签注入到页面
+ *
+ * @param platform - 平台名称 (aliyun/baidu/quark)
+ */
+async function injectPageScriptToMainWorld(platform: 'aliyun' | 'baidu' | 'quark'): Promise<void> {
+  try {
+    // ✅ 引用编译后的 .js 文件（Vite 会将 TypeScript 编译为 JavaScript）
+    const scriptPath = `src/adapters/${platform}/page-script.js`;
+    const scriptURL = chrome.runtime.getURL(scriptPath);
+
+    // 创建 script 标签并注入到页面 (MAIN world)
+    const script = document.createElement('script');
+    script.src = scriptURL;
+    script.type = 'module'; // 支持 ES6 模块
+
+    // 等待脚本加载完成
+    await new Promise<void>((resolve, reject) => {
+      script.onload = () => {
+        resolve();
+      };
+      script.onerror = () => {
+        reject(new Error(`Failed to load page-script for ${platform}`));
+      };
+
+      // 注入到页面
+      (document.head || document.documentElement).appendChild(script);
+    });
+
+    // 脚本加载后可以移除标签 (代码已执行)
+    script.remove();
+
+    logger.info(`${platform} page-script injected to MAIN world successfully`);
+  } catch (error) {
+    logger.error(`Failed to inject ${platform} page-script:`, error instanceof Error ? error : new Error(String(error)));
+    throw error;
+  }
+}
+
 // 注入UI (新实现 - 使用悬浮按钮)
 async function injectUI(platform: PlatformName) {
 
   // 清理旧实例，确保没有残留的DOM和事件监听器
   cleanupOldInstances();
+
+  // 为所有平台动态注入 page-script 到 MAIN world
+  // 原因: @crxjs/vite-plugin 不支持在 manifest 中直接配置 world: "MAIN" 的 TypeScript 文件
+  if (platform === 'aliyun' || platform === 'baidu' || platform === 'quark') {
+    await injectPageScriptToMainWorld(platform);
+  }
 
   try {
     // ✅ 修复：在创建任何UI组件前，先初始化语言
@@ -229,7 +282,6 @@ function setupStorageListener(platform: PlatformName): void {
   // 监听来自popup的消息
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'FLOATING_BUTTON_VISIBILITY_CHANGED' && message.platform === platform) {
-      logger.info(`Received visibility change message for ${platform}:`, message.visible);
       if (message.visible) {
         floatingButton?.show();
       } else {
@@ -244,7 +296,6 @@ function setupStorageListener(platform: PlatformName): void {
       const storageKey = STORAGE_KEYS.VISIBILITY_PREFIX + platform;
       if (changes[storageKey]) {
         const newValue = changes[storageKey].newValue;
-        logger.info(`Storage changed for ${storageKey}:`, newValue);
         if (newValue === false) {
           floatingButton?.hide();
         } else {
@@ -276,11 +327,10 @@ function setupLanguageChangeListener(): void {
   });
 }
 
-// 处理悬浮按钮点击
-function handleFloatingButtonClick() {
-
-  // 获取选中的文件
-  const selectedFiles = getSelectedFiles();
+// 处理悬浮按钮点击（方案A：改为异步以支持阿里云盘）
+async function handleFloatingButtonClick() {
+  // 获取选中的文件（异步调用以支持阿里云盘）
+  const selectedFiles = await getSelectedFiles();
 
   if (selectedFiles.length === 0) {
     logger.warn('No files selected');
@@ -309,6 +359,8 @@ async function handleDialogConfirm(ruleConfig: RuleConfig, files: FileItem[]) {
       adapter = new QuarkAdapter();
     } else if (platform === 'baidu') {
       adapter = new BaiduAdapter();
+    } else if (platform === 'aliyun') {
+      adapter = new AliyunAdapter();
     } else {
       throw new Error(`不支持的平台: ${platform}`);
     }
@@ -362,11 +414,7 @@ async function handleDialogConfirm(ruleConfig: RuleConfig, files: FileItem[]) {
       await updateUsageStats(platform, successCount, failCount);
     }
 
-    // 5. 显示结果摘要
-    logger.info('='.repeat(50));
-    logger.info('='.repeat(50));
-
-    // 6. 如果有失败的文件，显示详细信息
+    // 5. 如果有失败的文件，显示详细信息
     if (failCount > 0) {
       logger.warn('Failed files:');
       results.filter(r => !r.success).forEach((r, idx) => {
@@ -521,9 +569,18 @@ const PLATFORM_SELECTORS = {
   },
   aliyun: {
     selectedFiles: [
-      '.selected-file',
-      '[data-selected="true"]',
-      '[class*="selected"]',
+      // ✅ 根本修复：只使用精确的选择器，避免过于宽泛的通用选择器 (2025-12-23)
+      // 阿里云盘使用 data-is-selected 属性标识选中的行
+      // 移除了以下宽泛选择器以防止匹配非文件行（如表头全选框）：
+      // - 'input[type="checkbox"]:checked' （会匹配所有选中的checkbox，包括表头）
+      // - '[class*="checkbox"][data-checked="true"]' （过于宽泛）
+      '[data-is-selected="true"]',
+      '[class*="tr--"][data-is-selected="true"]',
+      '.tr--Ogi-3[data-is-selected="true"]',
+      '.tr--97U9T[data-is-selected="true"]',
+      // 只保留带选中状态过滤的特定复选框选择器
+      '.checkbox--GfceW[data-checked="true"]',
+      '.checkbox--P-zHa[data-checked="true"]',
     ],
   },
   baidu: {
@@ -566,31 +623,44 @@ function getSelectedFilesCount(): number {
   return 0;
 }
 
-// 获取选中文件的详细信息（与选择器配置保持一致）
-function getSelectedFiles(): FileItem[] {
-  const platform = detectPlatform();
+/**
+ * 验证行元素是否是有效的文件行（防御层）
+ * @param row - 待验证的行元素
+ * @param platform - 平台名称（可选，用于平台特定验证）
+ * @returns 是否为有效文件行
+ */
+function isValidFileRow(row: Element, platform?: string): boolean {
+  // 必须包含文件名元素
+  const hasFilename = row.querySelector('[title], .filename-text, [class*="filename"]');
 
-  if (!platform) {
-    logger.warn('Cannot get selected files: no platform detected');
-    return [];
+  // 阿里云盘特殊处理：只验证文件名，ID从API缓存获取
+  if (platform === 'aliyun') {
+    return !!hasFilename;
   }
 
-  const selectors =
-    PLATFORM_SELECTORS[platform as keyof typeof PLATFORM_SELECTORS]?.selectedFiles || [];
+  // 其他平台：需要DOM有ID属性
+  const fileId = row.getAttribute('data-row-key') ||
+                 row.getAttribute('data-id') ||
+                 row.getAttribute('data-file-id');
 
-  // 🔧 修复1：使用Map按文件ID去重，而不是按DOM元素去重
+  return !!(hasFilename && fileId && !fileId.startsWith('unknown-'));
+}
+
+/**
+ * Quark平台专用的文件提取逻辑
+ */
+function getSelectedFilesForQuark(): FileItem[] {
+  const selectors = PLATFORM_SELECTORS.quark.selectedFiles;
   const fileMap = new Map<string, FileItem>();
 
-  // 🔧 修复2：优先使用 .ant-table-row-selected，只有找不到时才尝试其他选择器
+  // 优先使用 .ant-table-row-selected，只有找不到时才尝试其他选择器
   const prioritySelector = '.ant-table-row-selected';
   let candidateElements: Element[] = [];
 
-  // 先尝试优先选择器
   const priorityElements = document.querySelectorAll(prioritySelector);
   if (priorityElements.length > 0) {
     candidateElements = Array.from(priorityElements);
   } else {
-    // 降级：使用其他选择器
     const candidateSet = new Set<Element>();
     for (const selector of selectors) {
       try {
@@ -607,88 +677,86 @@ function getSelectedFiles(): FileItem[] {
     return [];
   }
 
-  let index = 0;
-
   candidateElements.forEach((el) => {
     try {
-      // 关联到行元素（尽可能定位到包含数据的容器）
       const row =
         el.closest('tr') ||
         el.closest('[role="row"]') ||
         el.closest('[class*="file-item"],[class*="list-item"],[class*="row"]') ||
         el as Element;
 
-      // 🔧 修复3：更精确的文件名提取逻辑
-      // 策略1：优先使用 title 属性（最可靠）
+      // 验证行有效性（防御层 - Quark平台）
+      if (!isValidFileRow(row, 'quark')) {
+        logger.warn('Skipping invalid file row (no filename or invalid ID)');
+        return;
+      }
+
+      // 提取文件名
       let filename = '';
       const titleElements = (row as Element).querySelectorAll('[title]');
       for (const titleEl of Array.from(titleElements)) {
         const title = (titleEl as HTMLElement).getAttribute('title')?.trim();
-        // 过滤掉空值和明显不是文件名的title（如"选择"、"更多操作"等）
         if (title && title.length > 3 && !title.match(/^(选择|操作|更多|下载|分享|删除)$/)) {
           filename = title;
           break;
         }
       }
 
-      // 策略2：如果没有找到合适的title，尝试更精确的选择器
       if (!filename) {
         const nameEl = (row as Element).querySelector(
           '.filename-text, [class*="filename"]:not([class*="wrapper"]), [class*="file-name"]:not([class*="wrapper"]), [class*="file-title"]'
         );
 
         if (nameEl) {
-          // 🔧 修复4：使用 innerText 而不是 textContent（innerText 更接近用户看到的文本）
-          // 或者只获取最后一个子元素的文本（通常是文件名）
           const children = nameEl.children;
           if (children.length > 0) {
-            // 尝试获取最后一个子元素的文本（文件名通常在最后）
             const lastChild = children[children.length - 1] as HTMLElement;
             filename = lastChild.textContent?.trim() || '';
           }
 
-          // 如果仍然没有，使用整个元素的 textContent 并清理
           if (!filename) {
             filename = nameEl.textContent?.trim() || '';
           }
         }
       }
 
-      // 策略3：如果仍然没有文件名，标记为未知
+      // 如果仍然没有文件名，跳过此元素（防御加固）
       if (!filename) {
-        filename = 'Unknown File';
+        logger.warn('Failed to extract filename, skipping element');
+        return;
       }
 
-      // 🔧 修复5：清理文件名中的无关前缀
-      // 移除常见的状态前缀（如"上传到同级目录"、"下载中"等）
+      // 清理文件名中的无关前缀
       filename = filename.replace(/^(上传到同级目录|下载中|处理中|转码中|同步中)\s*/g, '');
 
       // 解析扩展名
       const lastDotIndex = filename.lastIndexOf('.');
       const ext = lastDotIndex > 0 ? filename.substring(lastDotIndex) : '';
 
-      // 提取ID（多策略）
+      // 提取ID
       const fileId =
         (row as Element).getAttribute('data-row-key') ||
         (row as Element).getAttribute('data-id') ||
         (row as Element).getAttribute('data-file-id') ||
-        `unknown-${index++}`;
+        '';
 
-      // 🔧 修复6：按文件ID去重（避免重复）
-      if (fileMap.has(fileId)) {
-        return; // 跳过重复文件
+      // 再次验证ID有效性
+      if (!fileId || fileId.startsWith('unknown-')) {
+        logger.warn('Invalid file ID, skipping element');
+        return;
       }
 
-      // 父目录ID（尽力而为）
+      // 按文件ID去重
+      if (fileMap.has(fileId)) {
+        return;
+      }
+
+      // 父目录ID
       const pathname = (row as Element).getAttribute('pathname') || '';
       const parentId = pathname.split('/').slice(-1)[0] || '';
 
-      // 提取大小与时间（优化选择器精确度，避免匹配到操作菜单）
-      // 使用更具体的选择器，限定在表格单元格(td)范围内
+      // 提取大小与时间
       const sizeEl = (row as Element).querySelector('td[class*="size"], td.td-file:nth-child(2)');
-
-      // 优化时间选择器: 1) 限定在td范围内 2) 优先使用data属性 3) 排除button和a标签
-      // 避免匹配到操作按钮的文本（如"重命名 复制 移动"等）
       const mtimeEl = (row as Element).querySelector(
         'td[class*="modify-time"], td[class*="mtime"], td[class*="update-time"], td.td-file:nth-child(3):not(:has(button)):not(:has(a))'
       );
@@ -711,8 +779,517 @@ function getSelectedFiles(): FileItem[] {
     }
   });
 
-  const files = Array.from(fileMap.values());
-  return files;
+  return Array.from(fileMap.values());
+}
+
+/**
+ * Aliyun平台专用的文件提取逻辑（方案A：根治方案）
+ *
+ * 策略：直接调用 AliyunAdapter.getSelectedFiles() 获取真实 file_id
+ * 优势：
+ * - 使用真实 file_id，避免文件名歧义
+ * - 简化代码，减少97行DOM解析逻辑
+ * - 与夸克/百度架构一致
+ */
+async function getSelectedFilesForAliyun(): Promise<FileItem[]> {
+  try {
+    // 直接调用 AliyunAdapter.getSelectedFiles()
+    const { AliyunAdapter } = await import('../adapters/aliyun/aliyun-adapter');
+    const adapter = new AliyunAdapter();
+    const files = await adapter.getSelectedFiles(); // ✅ 返回真实 file_id
+
+    logger.info(`Retrieved ${files.length} selected files from AliyunAdapter`);
+    return files;
+  } catch (error) {
+    logger.error('Failed to get selected files for Aliyun platform:', error instanceof Error ? error : new Error(String(error)));
+
+    // 降级：使用DOM解析
+    logger.warn('Falling back to DOM parsing...');
+    return await getSelectedFilesFromDOMForAliyun(); // 添加 await
+  }
+}
+
+/**
+ * Helper function: Build class selector with fallback to tagName
+ * Prevents SyntaxError when classList is empty
+ * @param element - DOM element
+ * @returns Valid CSS selector prefix (either .class1.class2 or tagname)
+ */
+function buildClassSelector(element: Element): string {
+  const classes = Array.from(element.classList);
+  if (classes.length > 0) {
+    return '.' + classes.slice(0, 2).join('.');
+  }
+  return element.tagName.toLowerCase();
+}
+
+/**
+ * 生成唯一的 CSS selector 用于定位元素
+ * @param element - DOM 元素
+ * @returns CSS selector 字符串
+ */
+function getUniqueSelector(element: Element): string {
+  // 优先级1: 使用 data-row-key (阿里云盘的唯一文件ID)
+  const rowKey = element.getAttribute('data-row-key');
+  if (rowKey) {
+    const classSelector = buildClassSelector(element);
+    const selector = `${classSelector}[data-row-key="${rowKey}"]`;
+    return selector;
+  }
+
+  // 优先级2: 使用其他唯一 data 属性
+  const dataId = element.getAttribute('data-id') || element.getAttribute('data-file-id');
+  if (dataId) {
+    const classSelector = buildClassSelector(element);
+    const attrName = element.hasAttribute('data-id') ? 'data-id' : 'data-file-id';
+    const selector = `${classSelector}[${attrName}="${dataId}"]`;
+    return selector;
+  }
+
+  // 优先级3: 结合 data-is-selected + 容器级索引
+  if (element.hasAttribute('data-is-selected')) {
+    const elementClasses = Array.from(element.classList);
+    const tagName = element.tagName.toLowerCase();
+
+    // 向上查找包含多个选中元素的容器
+    let container: Element | null = element.parentElement;
+    let containerLevel = 0;
+    let containerIndex = 1; // 默认使用1，如果找不到容器
+    let foundContainer: Element | null = null;
+
+    while (container && containerLevel < 5) {
+      const selectedInContainer = container.querySelectorAll(`${tagName}[data-is-selected="true"]`);
+
+      if (selectedInContainer.length > 1) {
+        // ✅ 找到包含多个选中元素的容器
+        foundContainer = container;
+        const allSelectedSameTag = Array.from(selectedInContainer);
+        containerIndex = allSelectedSameTag.indexOf(element) + 1;
+        break;
+      }
+
+      container = container.parentElement;
+      containerLevel++;
+    }
+
+    // 构建基于容器的唯一选择器
+    // 策略：使用容器类名 + nth-child来定位包装元素 + 最终元素的类名和属性
+    if (foundContainer && containerIndex > 0) {
+      // 找到容器的第一层子元素(通常是drag-wrapper)
+      let directChild: Element | null = element;
+      while (directChild && directChild.parentElement !== foundContainer) {
+        directChild = directChild.parentElement;
+      }
+
+      if (directChild) {
+        // 获取容器的标识符(优先类名，回退到标签名)
+        const containerClasses = Array.from(foundContainer.classList);
+        const containerIdentifier = containerClasses.length > 0
+          ? containerClasses.slice(0, 2).join('.')
+          : foundContainer.tagName.toLowerCase();
+
+        // 计算direct child在容器中的位置
+        const containerChildren = Array.from(foundContainer.children);
+        const childIndex = containerChildren.indexOf(directChild) + 1;
+
+        // 构建选择器: 容器 > 第N个子元素 后代元素[属性]
+        // 根据containerIdentifier的形式决定是否添加点前缀
+        const containerPrefix = containerClasses.length > 0 ? `.${containerIdentifier}` : containerIdentifier;
+
+        // ✅ FIX: Handle empty element classList
+        const elementPart = elementClasses.length > 0
+          ? `${tagName}.${elementClasses.slice(0, 2).join('.')}[data-is-selected="${element.getAttribute('data-is-selected')}"]`
+          : `${tagName}[data-is-selected="${element.getAttribute('data-is-selected')}"]`;
+
+        const selector = `${containerPrefix} > *:nth-child(${childIndex}) ${elementPart}`;
+
+        // 验证选择器语法有效性
+        try {
+          document.querySelector(selector);
+        } catch (e) {
+          // 回退到fallback策略
+          const fallbackClassSelector = elementClasses.length > 0
+            ? '.' + elementClasses.slice(0, 2).join('.')
+            : tagName;
+          const fallbackSelector = `${fallbackClassSelector}[data-is-selected="${element.getAttribute('data-is-selected')}"]:nth-of-type(1)`;
+          return fallbackSelector;
+        }
+
+        return selector;
+      }
+    }
+
+    // 回退：如果没有找到容器或只有1个元素，使用原来的方式
+    const fallbackClassSelector = elementClasses.length > 0
+      ? '.' + elementClasses.slice(0, 2).join('.')
+      : tagName;
+    const selector = `${fallbackClassSelector}[data-is-selected="${element.getAttribute('data-is-selected')}"]:nth-of-type(1)`;
+    return selector;
+  }
+
+  // 回退: 纯位置索引
+  const classes = Array.from(element.classList);
+  const tagName = element.tagName.toLowerCase();
+
+  // ✅ 关键修复：只计数同标签类型的兄弟元素
+  const siblings = Array.from(element.parentElement?.children || [])
+    .filter(child => child.tagName.toLowerCase() === tagName);
+
+  const index = siblings.indexOf(element) + 1;
+
+  // ✅ FIX: Handle empty classList in fallback path
+  const selector = classes.length > 0
+    ? `.${classes.slice(0, 2).join('.')}:nth-of-type(${index})`
+    : `${tagName}:nth-of-type(${index})`;
+
+  return selector;
+}
+
+/**
+ * 从 React Fiber 树提取文件元数据（通过 page script）
+ *
+ * **重要**: 这个函数运行在 ISOLATED world (content script)
+ * 由于 Chrome 的安全隔离机制，无法直接访问 React Fiber 的非可枚举属性
+ * 因此必须通过 postMessage 请求 MAIN world (page script) 提取数据
+ *
+ * @param element - DOM 元素
+ * @returns 包含 driveId 和 fileId 的对象，如果未找到则返回 null
+ */
+async function extractFileDataFromReactFiber(element: Element): Promise<{ driveId: string; fileId: string } | null> {
+  try {
+    // 生成唯一 selector
+    const selector = getUniqueSelector(element);
+
+    // 验证 selector 可用性和唯一性
+    const testElement = document.querySelector(selector);
+
+    // ✅ 关键验证：确保 selector 唯一标识元素
+    if (testElement !== element) {
+      return null;
+    }
+
+    // 生成唯一 requestId
+    const requestId = `fiber-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+    // 发送请求到 page script (MAIN world)
+    window.postMessage({
+      type: 'EXTRACT_REACT_FIBER_REQUEST',
+      requestId,
+      selector,
+    }, '*');
+
+    // 等待响应（带超时）
+    const TIMEOUT_MS = 5000; // 5秒超时
+
+    const result = await Promise.race([
+      // Promise 1: 等待响应
+      new Promise<{ driveId: string; fileId: string } | null>((resolve) => {
+        const messageHandler = (event: MessageEvent) => {
+          if (event.source !== window) return;
+
+          const message = event.data;
+
+          // 检查是否是我们的响应
+          if (message.type === 'EXTRACT_REACT_FIBER_RESPONSE' && message.requestId === requestId) {
+            window.removeEventListener('message', messageHandler);
+
+            if (message.success && message.data) {
+              resolve(message.data);
+            } else {
+              resolve(null);
+            }
+          }
+        };
+
+        window.addEventListener('message', messageHandler);
+      }),
+
+      // Promise 2: 超时处理
+      new Promise<null>((resolve) => {
+        setTimeout(() => {
+          resolve(null);
+        }, TIMEOUT_MS);
+      })
+    ]);
+
+    return result;
+
+  } catch (error) {
+    logger.error('Exception in extractFileDataFromReactFiber:', error instanceof Error ? error : new Error(String(error)));
+    return null;
+  }
+}
+
+/**
+ * 从DOM解析阿里云盘选中的文件（回退方案）
+ * 改进：优先从 React Fiber 树提取 driveId 和 fileId
+ */
+async function getSelectedFilesFromDOMForAliyun(): Promise<FileItem[]> {
+  const fileMap = new Map<string, FileItem>();
+
+  const selectedRows = document.querySelectorAll('[data-is-selected="true"]');
+
+  if (selectedRows.length === 0) {
+    logger.warn('No selected elements found for Aliyun platform (DOM fallback)');
+    return [];
+  }
+
+  // 使用 for...of 代替 forEach 以支持 await
+  for (const row of Array.from(selectedRows)) {
+    try {
+      // 验证行有效性
+      if (!isValidFileRow(row, 'aliyun')) {
+        continue; // 使用 continue 代替 return
+      }
+
+      // 提取文件名
+      let filename = '';
+
+      // 策略1：优先使用 title 属性
+      const titleElements = row.querySelectorAll('[title]');
+      for (const titleEl of Array.from(titleElements)) {
+        const title = (titleEl as HTMLElement).getAttribute('title')?.trim();
+        if (title && title.length > 3 && !title.match(/^(选择|操作|更多|下载|分享|删除)$/)) {
+          filename = title;
+          break;
+        }
+      }
+
+      // 策略2：尝试更精确的选择器
+      if (!filename) {
+        const nameEl = row.querySelector(
+          '.filename-text, [class*="filename"]:not([class*="wrapper"]), [class*="file-name"]:not([class*="wrapper"]), [class*="file-title"]'
+        );
+
+        if (nameEl) {
+          const children = nameEl.children;
+          if (children.length > 0) {
+            const lastChild = children[children.length - 1] as HTMLElement;
+            filename = lastChild.textContent?.trim() || '';
+          }
+
+          if (!filename) {
+            filename = nameEl.textContent?.trim() || '';
+          }
+        }
+      }
+
+      if (!filename) {
+        continue; // 使用 continue 代替 return
+      }
+
+      // 清理文件名
+      filename = filename.replace(/^(上传到同级目录|下载中|处理中|转码中|同步中)\s*/g, '');
+
+      // 解析扩展名
+      const lastDotIndex = filename.lastIndexOf('.');
+      const ext = lastDotIndex > 0 ? filename.substring(lastDotIndex) : '';
+
+      // ✅ 优先从 React Fiber 树提取真实的 driveId 和 fileId
+      const fiberData = await extractFileDataFromReactFiber(row); // 添加 await
+
+      let fileId: string;
+
+      if (fiberData) {
+        // 成功提取：使用 driveId:fileId 格式编码真实ID
+        fileId = `${fiberData.driveId}:${fiberData.fileId}`;
+      } else {
+        // 回退：使用文件名作为临时ID
+        fileId = filename;
+        logger.warn(`Fiber extraction failed for element, using filename as ID: ${filename}`);
+      }
+
+      if (fileMap.has(fileId)) {
+        continue; // 使用 continue 代替 return
+      }
+
+      // 父目录ID
+      const pathname = row.getAttribute('pathname') || '';
+      const parentId = pathname.split('/').slice(-1)[0] || '';
+
+      // 提取大小与时间
+      const sizeEl = row.querySelector('td[class*="size"], [class*="size"]');
+      const mtimeEl = row.querySelector(
+        'td[class*="modify-time"], td[class*="mtime"], td[class*="update-time"], [class*="modify-time"]'
+      );
+
+      const sizeText = (sizeEl as HTMLElement)?.textContent?.trim() || '0';
+      const mtimeText = (mtimeEl as HTMLElement)?.textContent?.trim() || '';
+
+      const fileItem: FileItem = {
+        id: fileId,
+        name: filename,
+        ext,
+        parentId,
+        size: parseFileSize(sizeText),
+        mtime: parseModificationTime(mtimeText),
+      };
+
+      fileMap.set(fileId, fileItem);
+    } catch (error) {
+      logger.error('Failed to extract file info from DOM:', error instanceof Error ? error : new Error(String(error)));
+    }
+  } // 结束 for...of 循环
+
+  const result = Array.from(fileMap.values());
+
+  logger.info(`Extracted ${fileMap.size} files from DOM (fallback mode)`);
+  return result;
+}
+
+/**
+ * Baidu平台专用的文件提取逻辑
+ */
+function getSelectedFilesForBaidu(): FileItem[] {
+  const selectors = PLATFORM_SELECTORS.baidu.selectedFiles;
+  const fileMap = new Map<string, FileItem>();
+  const candidateSet = new Set<Element>();
+
+  for (const selector of selectors) {
+    try {
+      document.querySelectorAll(selector).forEach((el) => candidateSet.add(el));
+    } catch (error) {
+      logger.warn(`Invalid selector "${selector}" while collecting files:`, error);
+    }
+  }
+
+  const candidateElements = Array.from(candidateSet);
+
+  if (candidateElements.length === 0) {
+    logger.warn('No selected elements found for Baidu platform');
+    return [];
+  }
+
+  candidateElements.forEach((el) => {
+    try {
+      const row =
+        el.closest('tr') ||
+        el.closest('[role="row"]') ||
+        el.closest('[class*="file-item"],[class*="list-item"],[class*="row"]') ||
+        el as Element;
+
+      // 验证行有效性（防御层 - Baidu平台）
+      if (!isValidFileRow(row, 'baidu')) {
+        logger.warn('Skipping invalid file row (no filename or invalid ID)');
+        return;
+      }
+
+      // 提取文件名
+      let filename = '';
+      const titleElements = (row as Element).querySelectorAll('[title]');
+      for (const titleEl of Array.from(titleElements)) {
+        const title = (titleEl as HTMLElement).getAttribute('title')?.trim();
+        if (title && title.length > 3 && !title.match(/^(选择|操作|更多|下载|分享|删除)$/)) {
+          filename = title;
+          break;
+        }
+      }
+
+      if (!filename) {
+        const nameEl = (row as Element).querySelector(
+          '.filename-text, [class*="filename"]:not([class*="wrapper"]), [class*="file-name"]:not([class*="wrapper"]), [class*="file-title"]'
+        );
+
+        if (nameEl) {
+          const children = nameEl.children;
+          if (children.length > 0) {
+            const lastChild = children[children.length - 1] as HTMLElement;
+            filename = lastChild.textContent?.trim() || '';
+          }
+
+          if (!filename) {
+            filename = nameEl.textContent?.trim() || '';
+          }
+        }
+      }
+
+      // 如果仍然没有文件名，跳过此元素（防御加固）
+      if (!filename) {
+        logger.warn('Failed to extract filename, skipping element');
+        return;
+      }
+
+      // 清理文件名
+      filename = filename.replace(/^(上传到同级目录|下载中|处理中|转码中|同步中)\s*/g, '');
+
+      // 解析扩展名
+      const lastDotIndex = filename.lastIndexOf('.');
+      const ext = lastDotIndex > 0 ? filename.substring(lastDotIndex) : '';
+
+      // 提取ID
+      const fileId =
+        (row as Element).getAttribute('data-row-key') ||
+        (row as Element).getAttribute('data-id') ||
+        (row as Element).getAttribute('data-file-id') ||
+        '';
+
+      // 验证ID有效性
+      if (!fileId || fileId.startsWith('unknown-')) {
+        logger.warn('Invalid file ID, skipping element');
+        return;
+      }
+
+      // 按文件ID去重
+      if (fileMap.has(fileId)) {
+        return;
+      }
+
+      // 父目录ID
+      const pathname = (row as Element).getAttribute('pathname') || '';
+      const parentId = pathname.split('/').slice(-1)[0] || '';
+
+      // 提取大小与时间
+      const sizeEl = (row as Element).querySelector('td[class*="size"], td.td-file:nth-child(2)');
+      const mtimeEl = (row as Element).querySelector(
+        'td[class*="modify-time"], td[class*="mtime"], td[class*="update-time"], td.td-file:nth-child(3):not(:has(button)):not(:has(a))'
+      );
+
+      const sizeText = (sizeEl as HTMLElement)?.textContent?.trim() || '0';
+      const mtimeText = (mtimeEl as HTMLElement)?.textContent?.trim() || '';
+
+      const fileItem: FileItem = {
+        id: fileId,
+        name: filename,
+        ext,
+        parentId,
+        size: parseFileSize(sizeText),
+        mtime: parseModificationTime(mtimeText),
+      };
+
+      fileMap.set(fileId, fileItem);
+    } catch (error) {
+      logger.error('Failed to extract file info from selected element:', error instanceof Error ? error : new Error(String(error)));
+    }
+  });
+
+  return Array.from(fileMap.values());
+}
+
+/**
+ * 获取选中文件的详细信息（架构层 - 根据平台分发）
+ *
+ * 修复说明：改为异步函数以支持阿里云盘平台的异步文件获取（方案A）
+ */
+async function getSelectedFiles(): Promise<FileItem[]> {
+  const platform = detectPlatform();
+
+  if (!platform) {
+    logger.warn('Cannot get selected files: no platform detected');
+    return [];
+  }
+
+  // 根据平台调用专用处理函数
+  switch (platform) {
+    case 'quark':
+      return getSelectedFilesForQuark();
+    case 'aliyun':
+      return await getSelectedFilesForAliyun(); // ✅ 异步调用
+    case 'baidu':
+      return getSelectedFilesForBaidu();
+    default:
+      logger.warn(`Unsupported platform: ${platform}`);
+      return [];
+  }
 }
 
 // 解析文件大小字符串为字节数
