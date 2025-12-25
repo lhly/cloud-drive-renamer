@@ -1,6 +1,6 @@
 {
   "extName": "云盘批量重命名工具",
-  "extDescription": "强大的批量重命名工具，支持夸克网盘文件批量重命名（阿里云盘和百度网盘开发中）",
+  "extDescription": "强大的批量重命名工具，支持夸克网盘、阿里云盘、百度网盘文件批量重命名",
   "rename_dialog_title": "批量重命名",
   "rename_dialog_file_count": "个文件",
   "rename_dialog_close": "×",

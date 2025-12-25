@@ -4,7 +4,7 @@
 
 **一款强大的云盘文件批量重命名工具**
 
-支持夸克网盘、阿里云盘(待开发)、百度网盘(待开发)的智能化文件管理
+支持夸克网盘、阿里云盘、百度网盘的智能化文件管理
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
@@ -33,8 +33,8 @@
 ### 🎯 多平台支持
 
 - **夸克网盘** - 完全支持，可立即使用
-- **阿里云盘** - 架构已就绪，扩展中
-- **百度网盘** - 架构已就绪，扩展中
+- **阿里云盘** - 完全支持，可立即使用
+- **百度网盘** - 完全支持，可立即使用
 
 ### 🔧 强大的重命名规则
 

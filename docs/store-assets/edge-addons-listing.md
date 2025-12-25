@@ -7,8 +7,8 @@
 - **英文**: CloudDrive Renamer
 
 ### 简短描述 (不超过150字符)
-- **中文**: 强大的批量重命名工具，支持夸克网盘文件批量重命名（阿里云盘和百度网盘开发中）
-- **英文**: Powerful batch renaming tool for Quark Drive (Aliyun Drive and Baidu Cloud Drive support coming soon)
+- **中文**: 强大的批量重命名工具，支持夸克网盘、阿里云盘、百度网盘文件批量重命名
+- **英文**: Powerful batch renaming tool for Quark Drive, Aliyun Drive, and Baidu Cloud Drive
 
 ### 完整描述
 
@@ -20,8 +20,8 @@
 
 🎯 多平台支持
 • 夸克网盘 - 完全支持，可立即使用
-• 阿里云盘 - 开发中
-• 百度网盘 - 开发中
+• 阿里云盘 - 完全支持，可立即使用
+• 百度网盘 - 完全支持，可立即使用
 
 🔧 五大重命名规则
 1. 替换规则 - 批量替换文件名中的特定文本，支持大小写敏感和全局替换
@@ -87,8 +87,8 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
 
 🎯 Multi-Platform Support
 • Quark Drive - Fully supported and ready to use
-• Aliyun Drive - Under development
-• Baidu Cloud Drive - Under development
+• Aliyun Drive - Fully supported and ready to use
+• Baidu Cloud Drive - Fully supported and ready to use
 
 🔧 Five Powerful Renaming Rules
 1. Replace - Batch replace specific text with case-sensitive and global options

@@ -1,6 +1,6 @@
 {
   "extName": "CloudDrive Renamer",
-  "extDescription": "Powerful batch renaming tool for Quark Drive (Aliyun Drive and Baidu Cloud Drive support coming soon)",
+  "extDescription": "Powerful batch renaming tool for Quark Drive, Aliyun Drive, and Baidu Cloud Drive",
   "rename_dialog_title": "Batch Rename",
   "rename_dialog_file_count": "files",
   "rename_dialog_close": "×",

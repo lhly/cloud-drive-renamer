@@ -70,8 +70,8 @@
 本扩展请求访问以下网站的权限：
 
 - `https://pan.quark.cn/*` - 夸克网盘
-- `https://www.aliyundrive.com/*` - 阿里云盘（计划支持）
-- `https://pan.baidu.com/*` - 百度网盘（计划支持）
+- `https://www.aliyundrive.com/*` - 阿里云盘
+- `https://pan.baidu.com/*` - 百度网盘
 
 **用途**：
 - 在这些网站的页面中注入重命名工具的用户界面
