@@ -1,6 +1,6 @@
 {
   "extName": "雲端硬碟批次重新命名工具",
-  "extDescription": "強大的批次重新命名工具，支援夸克網盤檔案批次重新命名（阿里雲盤和百度雲端硬碟開發中）",
+  "extDescription": "強大的批次重新命名工具，支援夸克網盤、阿里雲盤、百度雲端硬碟檔案批次重新命名",
   "rename_dialog_title": "批次重新命名",
   "rename_dialog_file_count": "個檔案",
   "rename_dialog_close": "×",

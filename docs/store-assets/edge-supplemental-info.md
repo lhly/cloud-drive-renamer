@@ -207,7 +207,7 @@ batch rename, cloud drive, quark drive, file management, bulk operations
 ```
 一款强大的云盘文件批量重命名工具，专为提升文件管理效率而设计。
 
-支持夸克网盘（阿里云盘和百度网盘开发中），提供5种智能重命名规则：替换、前缀、后缀、编号、清理。所有操作在本地完成，不收集任何数据。
+支持夸克网盘、阿里云盘、百度网盘，提供5种智能重命名规则：替换、前缀、后缀、编号、清理。所有操作在本地完成，不收集任何数据。
 ```
 
 **为什么好**：
@@ -225,8 +225,8 @@ batch rename, cloud drive, quark drive, file management, bulk operations
 
 🎯 多平台支持
 • 夸克网盘 - 完全支持
-• 阿里云盘 - 开发中
-• 百度网盘 - 开发中
+• 阿里云盘 - 完全支持
+• 百度网盘 - 完全支持
 
 🔧 五大重命名规则
 1. 替换规则 - 批量替换特定文本
@@ -393,7 +393,7 @@ rename, batch rename, file rename, cloud drive, file management, productivity
 
 #### Short Description（简短描述）
 ```
-强大的批量重命名工具，支持夸克网盘文件批量重命名（阿里云盘和百度网盘开发中）
+强大的批量重命名工具，支持夸克网盘、阿里云盘、百度网盘文件批量重命名
 ```
 
 #### Long Description（详细描述）
