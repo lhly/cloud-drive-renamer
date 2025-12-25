@@ -29,7 +29,16 @@ export class RenameDialog extends LitElement {
    * 选中的文件列表
    */
   @property({ type: Array })
-  files: FileItem[] = [];
+  set files(value: FileItem[]) {
+    const oldValue = this._files;
+    this._files = value;
+
+    this.requestUpdate('files', oldValue);
+  }
+  get files(): FileItem[] {
+    return this._files;
+  }
+  private _files: FileItem[] = [];
 
   /**
    * 当前选中的规则类型

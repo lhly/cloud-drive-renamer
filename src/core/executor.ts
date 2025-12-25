@@ -186,11 +186,13 @@ export class BatchExecutor {
   private prepareTasks(): Task[] {
     const ruleExecutor = RuleFactory.create(this.rule);
 
-    return this.files.map((file, index) => ({
+    const tasks = this.files.map((file, index) => ({
       file,
       newName: ruleExecutor.execute(file.name, index, this.files.length),
       index,
     }));
+
+    return tasks;
   }
 
   /**

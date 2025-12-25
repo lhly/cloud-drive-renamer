@@ -9,9 +9,18 @@ export default defineConfig({
       input: {
         popup: 'src/popup/index.html',
         dialog: 'src/dialog/index.html',
+        // ✅ 添加 page-script 作为显式入口点
+        'page-script-aliyun': 'src/adapters/aliyun/page-script.ts',
+        'page-script-baidu': 'src/adapters/baidu/page-script.ts',
+        'page-script-quark': 'src/adapters/quark/page-script.ts',
       },
       output: {
         entryFileNames: (chunkInfo) => {
+          // ✅ 为 page-script 生成正确的输出路径
+          if (chunkInfo.name.startsWith('page-script-')) {
+            const platform = chunkInfo.name.replace('page-script-', '');
+            return `src/adapters/${platform}/page-script.js`;
+          }
           return '[name].js';
         },
       },
