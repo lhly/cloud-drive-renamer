@@ -1,31 +1,23 @@
 /**
  * Web Components Polyfill
- * 使用智能加载器，仅在需要时加载polyfill
  *
- * webcomponents-loader.js特性：
- * - 自动检测浏览器原生支持（Chrome 67+原生支持Web Components）
- * - 现代浏览器：0KB开销（无需polyfill）
- * - 旧浏览器：按需加载必需的polyfill（15-50KB）
- * - loader本身：仅2-3KB
+ * 注意：不要在这里使用 `@webcomponents/webcomponentsjs/webcomponents-loader.js`
+ * 因为 loader 会通过 `document.querySelector('script[src*=\"webcomponents-loader.js\"]')`
+ * 推断自身的加载路径以拼接 bundles 路径。
  *
- * 相比webcomponents-bundle.js（137KB）：
- * - 现代Chrome：节省99%体积（137KB → 2KB）
- * - 旧浏览器：节省约60%体积（137KB → 50KB）
+ * 在本项目中 polyfill 通过 Vite 动态 import 打包成 chunk（没有对应的 <script src=\"...webcomponents-loader.js\">），
+ * 会导致 script 查询结果为 null，进而触发：
+ * `TypeError: Cannot read properties of null (reading 'src')`
+ *
+ * 这里改为直接加载 `webcomponents-bundle.js`，避免依赖 <script src> 推断路径。
+ * 该文件内部同样会在完成后派发 `WebComponentsReady` 事件。
  */
 
-import '@webcomponents/webcomponentsjs/webcomponents-loader.js';
+import '@webcomponents/webcomponentsjs/webcomponents-bundle.js';
 
-// 等待Web Components Ready事件
-window.addEventListener('WebComponentsReady', () => {
-});
-
-// 检测polyfill加载状态（非阻塞式检测）
+// 检测 polyfill 加载状态（非阻塞式）
 if (typeof customElements === 'undefined' || customElements === null) {
   console.warn('[CDR] Web Components polyfill loading asynchronously...');
-  // 注意：这是正常的，loader会异步加载必要的polyfill
-  // 实际的API可用性检查应该在使用时进行（见index.ts的openRenameDialog）
-} else {
-  // Polyfill 已加载，可以直接使用 customElements
 }
 
 export {};

@@ -119,6 +119,83 @@ export class QuarkAdapter extends BasePlatformAdapter {
   }
 
   /**
+   * Get all files in the current directory via API
+   * This method bypasses DOM parsing and directly fetches from platform API
+   * Used to solve the virtual scrolling file loss issue
+   *
+   * @param parentId Parent directory ID (optional, defaults to current directory)
+   * @returns Complete file list
+   */
+  async getAllFiles(parentId?: string): Promise<FileItem[]> {
+    try {
+      logger.info('[QuarkAdapter] Fetching all files from API');
+
+      const targetParentId = parentId || this.getCurrentFolderId();
+      const allFiles: FileItem[] = [];
+      let page = 1;
+      const pageSize = 100;
+      let hasMore = true;
+
+      // Paginate through all files
+      while (hasMore) {
+        await this.rateLimit();
+
+        const url = new URL(`${this.baseURL}/file/sort`);
+        url.searchParams.set('pr', 'ucpro');
+        url.searchParams.set('fr', 'pc');
+        url.searchParams.set('pdir_fid', targetParentId);
+        url.searchParams.set('_page', page.toString());
+        url.searchParams.set('_size', pageSize.toString());
+        url.searchParams.set('_fetch_total', '1');
+
+        const response = await this.fetchWithTimeout(url.toString(), {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        const result: QuarkAPIResponse<{ list: QuarkFileData[] }> = await response.json();
+
+        if (result.code !== 0 || !result.data?.list) {
+          const errorMsg = getErrorMessage(result.code, result.message);
+          throw new QuarkAPIError(result.code, errorMsg, result);
+        }
+
+        const pageFiles = result.data.list;
+
+        // Filter out folders (only return files)
+        const files = pageFiles
+          .filter(f => f.file && !f.dir)
+          .map((file): FileItem => {
+            const { ext } = parseFileName(file.file_name);
+            return {
+              id: file.fid,
+              name: file.file_name,
+              ext: ext,
+              parentId: file.pdir_fid,
+              size: file.size,
+              mtime: file.updated_at,
+            };
+          });
+
+        allFiles.push(...files);
+
+        // Check if there are more pages
+        hasMore = pageFiles.length === pageSize;
+        page++;
+
+        logger.debug(`[QuarkAdapter] Fetched page ${page - 1} with ${files.length} files`);
+      }
+
+      logger.info(`[QuarkAdapter] Successfully fetched ${allFiles.length} files`);
+      return allFiles;
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to get all files:', errorObj);
+      throw new Error(`获取文件列表失败: ${errorObj.message}`);
+    }
+  }
+
+  /**
    * 重命名文件
    * 调用夸克网盘的重命名 API，支持自动重试
    *
