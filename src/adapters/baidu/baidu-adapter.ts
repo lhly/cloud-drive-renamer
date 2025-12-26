@@ -145,6 +145,89 @@ export class BaiduAdapter extends BasePlatformAdapter {
   }
 
   /**
+   * Get all files in the current directory via API
+   * This method bypasses DOM parsing and directly fetches from platform API
+   * Used to solve the virtual scrolling file loss issue
+   *
+   * @param parentPath Parent directory path (optional, defaults to current directory)
+   * @returns Complete file list
+   */
+  async getAllFiles(parentPath?: string): Promise<FileItem[]> {
+    try {
+      logger.info('[BaiduAdapter] Fetching all files from API');
+
+      const targetPath = parentPath || this.getCurrentPath();
+      const bdstoken = await this.extractBdstoken();
+
+      if (!bdstoken) {
+        throw new Error('无法获取 bdstoken，请确保已登录百度网盘');
+      }
+
+      const allFiles: FileItem[] = [];
+      let page = 1;
+      const pageSize = 100;
+      let hasMore = true;
+
+      // Paginate through all files
+      while (hasMore) {
+        await this.rateLimit();
+
+        const url = new URL(`${this.baseURL}/list`);
+        url.searchParams.set('order', 'name');
+        url.searchParams.set('desc', '0');
+        url.searchParams.set('page', page.toString());
+        url.searchParams.set('num', pageSize.toString());
+        url.searchParams.set('dir', targetPath);
+        url.searchParams.set('bdstoken', bdstoken);
+
+        const response = await this.fetchWithTimeout(url.toString(), {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        const result: BaiduAPIResponse<{ list: BaiduFileListItem[] }> = await response.json();
+
+        if (result.errno !== 0 || !result.data?.list) {
+          const errorMsg = getErrorMessage(result.errno);
+          throw new BaiduAPIError(result.errno, errorMsg, result);
+        }
+
+        const pageFiles = result.data.list;
+
+        // Filter out folders (only return files, isdir === 0)
+        const files = pageFiles
+          .filter(f => f.isdir === 0)
+          .map((file): FileItem => {
+            const { ext } = parseFileName(file.server_filename);
+            return {
+              id: String(file.fs_id),
+              name: file.server_filename,
+              ext: ext,
+              parentId: file.path || targetPath,
+              size: file.size,
+              mtime: file.server_mtime ? file.server_mtime * 1000 : Date.now(),
+            };
+          });
+
+        allFiles.push(...files);
+
+        // Check if there are more pages
+        hasMore = pageFiles.length === pageSize;
+        page++;
+
+        logger.debug(`[BaiduAdapter] Fetched page ${page - 1} with ${files.length} files`);
+      }
+
+      logger.info(`[BaiduAdapter] Successfully fetched ${allFiles.length} files`);
+      return allFiles;
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to get all files:', errorObj);
+      throw new Error(`获取文件列表失败: ${errorObj.message}`);
+    }
+  }
+
+  /**
    * Rename a file via Baidu API with async task tracking
    *
    * @param fileId - fs_id (number as string)

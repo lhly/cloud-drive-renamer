@@ -10,7 +10,7 @@
  * 1. Edit version in package.json
  * 2. Run: npm run sync:version (or automatically via prebuild/predev)
  *
- * Generated at: 2025-12-25T07:54:45.271Z
+ * Generated at: 2025-12-26T07:59:11.768Z
  */
 
 /**

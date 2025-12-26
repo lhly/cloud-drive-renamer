@@ -52,6 +52,17 @@ export interface PlatformAdapter {
   getSelectedFiles(): Promise<FileItem[]>;
 
   /**
+   * 获取当前目录的所有文件（通过API）
+   * 此方法绕过DOM解析，直接从平台API获取完整文件列表
+   * 用于解决虚拟滚动导致的文件丢失问题
+   *
+   * @param parentId 父目录ID（可选，默认当前目录）
+   * @returns 完整的文件列表
+   * @throws {Error} 当API请求失败时
+   */
+  getAllFiles(parentId?: string): Promise<FileItem[]>;
+
+  /**
    * 重命名单个文件
    * @param fileId 文件ID
    * @param newName 新文件名

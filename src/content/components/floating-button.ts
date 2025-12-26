@@ -37,8 +37,6 @@ const BUTTON_THEME = {
 interface FloatingButtonOptions {
   /** 点击事件回调 */
   onClick: () => void;
-  /** 徽章更新回调 */
-  onBadgeUpdate?: (count: number) => void;
 }
 
 interface ButtonPosition {
@@ -55,13 +53,11 @@ const DEFAULT_POSITION: ButtonPosition = {
 export class FloatingButton {
   private container: HTMLDivElement | null = null;
   private button: HTMLDivElement | null = null;
-  private badge: HTMLSpanElement | null = null;
   private options: FloatingButtonOptions;
   private position: ButtonPosition = DEFAULT_POSITION;
   private isDragging = false;
   private dragStartX = 0;
   private dragStartY = 0;
-  private buttonCount = 0;
   // 存储事件监听器引用以便清理
   private mouseMoveHandler: ((e: MouseEvent) => void) | null = null;
   private mouseUpHandler: (() => void) | null = null;
@@ -158,39 +154,24 @@ export class FloatingButton {
       }
       this.container = null;
       this.button = null;
-      this.badge = null;
     }
   }
 
   /**
-   * 更新徽章数量
+   * 更新语言 - 刷新tooltip文本
    */
-  updateBadge(count: number): void {
-    this.buttonCount = count;
+  updateLanguage(): void {
+    if (!this.tooltip) return;
 
-    // 添加 INFO 日志便于调试
+    // 更新tooltip文本
+    this.tooltip.textContent = I18nService.t('floating_button_tooltip');
 
-    if (!this.badge || !this.button) {
-      logger.warn('[FloatingButton] updateBadge: badge or button is null');
-      return;
+    // 同时更新 icon 的 alt 属性（无障碍支持）
+    if (this.iconImg) {
+      this.iconImg.alt = I18nService.t('floating_button_alt');
     }
 
-    if (count > 0) {
-      this.badge.textContent = String(count);
-      this.badge.style.display = 'flex';
-      this.button.style.opacity = '1';
-      this.button.style.cursor = 'move';  // 改为move，强调可拖动
-      logger.info(`[FloatingButton] Button enabled with ${count} files`);
-    } else {
-      this.badge.style.display = 'none';
-      this.button.style.opacity = '0.5';
-      // 🔧 关键优化：不设置pointer-events: none，保持拖动始终可用
-      // 点击限制由事件处理器中的buttonCount检查实现
-      this.button.style.cursor = 'move';  // 置灰状态也可以拖动
-    }
-
-    // 触发回调
-    this.options.onBadgeUpdate?.(count);
+    logger.info('[FloatingButton] Language updated, tooltip and icon.alt refreshed');
   }
 
   /**
@@ -214,10 +195,6 @@ export class FloatingButton {
     this.button = this.createButton();
     container.appendChild(this.button);
 
-    // 创建徽章
-    this.badge = this.createBadge();
-    this.button.appendChild(this.badge);
-
     // 先赋值 this.container，确保 attachEventListeners 可以访问
     this.container = container;
 
@@ -232,12 +209,6 @@ export class FloatingButton {
    */
   private getStyles(): string {
     return `
-      @keyframes badgePop {
-        0% { transform: scale(0); }
-        50% { transform: scale(1.2); }
-        100% { transform: scale(1); }
-      }
-
       @keyframes tooltipFadeIn {
         from {
           opacity: 0;
@@ -305,7 +276,7 @@ export class FloatingButton {
       user-select: none;
       position: relative;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      opacity: 0.5;
+      opacity: 1;
     `;
 
     // 创建图标容器
@@ -350,18 +321,12 @@ export class FloatingButton {
 
     // 鼠标悬停效果
     button.addEventListener('mouseenter', () => {
-      // 🔧 修复：拖动时不显示tooltip和悬停效果
+      // 拖动时不显示tooltip和悬停效果
       if (!this.isDragging && this.tooltip) {
-        // 根据按钮状态动态设置 tooltip 内容
-        if (this.buttonCount > 0) {
-          // 有文件选中：显示功能提示
-          this.tooltip.textContent = I18nService.t('floating_button_tooltip');
-          button.style.transform = 'scale(1.1)';
-          button.style.boxShadow = BUTTON_THEME.shadowHover;
-        } else {
-          // 未选中文件：显示激活提示
-          this.tooltip.textContent = I18nService.t('floating_button_tooltip_activate');
-        }
+        // 显示功能提示
+        this.tooltip.textContent = I18nService.t('floating_button_tooltip');
+        button.style.transform = 'scale(1.1)';
+        button.style.boxShadow = BUTTON_THEME.shadowHover;
         this.tooltip.classList.add('visible');
       }
     });
@@ -391,34 +356,6 @@ export class FloatingButton {
   }
 
   /**
-   * 创建徽章元素
-   */
-  private createBadge(): HTMLSpanElement {
-    const badge = document.createElement('span');
-    badge.className = 'badge';
-    badge.style.cssText = `
-      position: absolute;
-      top: -6px;
-      right: -6px;
-      min-width: 20px;
-      height: 20px;
-      padding: 0 6px;
-      background: #ff4757;
-      color: white;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: bold;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      animation: badgePop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    `;
-
-    return badge;
-  }
-
-  /**
    * 附加事件监听器
    */
   private attachEventListeners(): void {
@@ -438,33 +375,15 @@ export class FloatingButton {
       );
       const holdTime = Date.now() - this.mouseDownTime;
 
-      // 添加 INFO 级别日志
-      logger.info('[FloatingButton] Click event detected:', {
-        moveDistance,
-        holdTime,
-        isDragging: this.isDragging,
-        buttonCount: this.buttonCount,
-        willTriggerOnClick: moveDistance < 5 && holdTime < 300 && !this.isDragging && this.buttonCount > 0,
-        eventPhase: e.eventPhase,
-        isTrusted: e.isTrusted
-      });
-
       // 只有在移动距离很小且按住时间短的情况下才认为是点击
       // 否则认为是拖拽操作
-      if (moveDistance < 5 && holdTime < 300 && !this.isDragging && this.buttonCount > 0) {
+      if (moveDistance < 5 && holdTime < 300 && !this.isDragging) {
         // 立即阻止事件传播,防止被网页脚本干扰
         e.stopPropagation();
         e.preventDefault();
 
         logger.info('[FloatingButton] Triggering onClick callback');
         this.options.onClick();
-      } else {
-        logger.info('[FloatingButton] onClick blocked:', {
-          reason: moveDistance >= 5 ? 'moved too much (dragging)' :
-                  holdTime >= 300 ? 'held too long (dragging)' :
-                  this.isDragging ? 'currently dragging' :
-                  'buttonCount is 0'
-        });
       }
     }, { capture: true }); // ← 在捕获阶段监听
 
@@ -673,26 +592,5 @@ export class FloatingButton {
     } catch (error) {
       logger.error('Failed to save position:', error instanceof Error ? error : new Error(String(error)));
     }
-  }
-
-  /**
-   * Update tooltip text based on current language and button state
-   * Called when language changes
-   */
-  updateLanguage(): void {
-    if (!this.tooltip) return;
-
-    if (this.buttonCount > 0) {
-      this.tooltip.textContent = I18nService.t('floating_button_tooltip');
-    } else {
-      this.tooltip.textContent = I18nService.t('floating_button_tooltip_activate');
-    }
-
-    // 同时更新 icon 的 alt 属性（无障碍支持）
-    if (this.iconImg) {
-      this.iconImg.alt = I18nService.t('floating_button_alt');
-    }
-
-    logger.info('[FloatingButton] Language updated, tooltip and icon.alt refreshed');
   }
 }

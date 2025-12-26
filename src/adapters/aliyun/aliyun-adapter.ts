@@ -199,6 +199,50 @@ export class AliyunAdapter extends BasePlatformAdapter {
   }
 
   /**
+   * Get all files in the current directory via API
+   * This method bypasses DOM parsing and directly fetches from platform API
+   * Used to solve the virtual scrolling file loss issue
+   *
+   * @param parentId Parent directory ID (optional, defaults to current directory)
+   * @returns Complete file list
+   */
+  async getAllFiles(parentId?: string): Promise<FileItem[]> {
+    try {
+      logger.info('[AliyunAdapter] Fetching all files from API');
+
+      // Use provided parentId or extract from URL
+      const targetParentId = parentId || this.getParentIdFromUrl();
+      const driveId = await this.getDriveId();
+
+      // Fetch complete file list from API (with pagination)
+      const allFiles = await this.fetchFileListFromAPI(targetParentId, driveId);
+
+      // Convert to FileItem format
+      const fileItems: FileItem[] = allFiles.map((file) => {
+        const ext = file.type === 'folder'
+          ? ''
+          : parseFileName(file.name).ext;
+
+        return {
+          id: file.file_id,
+          name: file.name,
+          ext: ext,
+          parentId: file.parent_file_id,
+          size: file.size,
+          mtime: new Date(file.updated_at).getTime(),
+        };
+      });
+
+      logger.info(`[AliyunAdapter] Successfully fetched ${fileItems.length} files`);
+      return fileItems;
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to get all files:', errorObj);
+      throw new Error(`获取文件列表失败: ${errorObj.message}`);
+    }
+  }
+
+  /**
    * Extract selected filenames from DOM (simple, reliable approach)
    * Uses data-is-selected attribute to find selected rows
    * @private

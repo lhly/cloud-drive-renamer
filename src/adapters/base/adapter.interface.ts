@@ -32,6 +32,17 @@ export abstract class BasePlatformAdapter implements PlatformAdapter {
   abstract getSelectedFiles(): Promise<FileItem[]>;
 
   /**
+   * 获取当前目录的所有文件（通过API）
+   * 此方法绕过DOM解析，直接从平台API获取完整文件列表
+   * 用于解决虚拟滚动导致的文件丢失问题
+   *
+   * @param parentId 父目录ID（可选，默认当前目录）
+   * @returns 完整的文件列表
+   * @throws {Error} 当API请求失败时
+   */
+  abstract getAllFiles(parentId?: string): Promise<FileItem[]>;
+
+  /**
    * 重命名文件
    * 子类必须实现
    */
