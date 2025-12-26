@@ -182,6 +182,81 @@ describe('QuarkAdapter', () => {
     });
   });
 
+  describe('getAllFiles方法', () => {
+    it('应该返回当前目录下的文件和文件夹', async () => {
+      // Avoid real 800ms rate limiting delay in unit test
+      vi.spyOn(adapter as any, 'rateLimit').mockResolvedValue(undefined);
+
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '',
+          hash: '#/list/folder/12345',
+        },
+        writable: true,
+      });
+
+      mockFetch.mockResolvedValue({
+        json: async () => ({
+          status: 200,
+          code: 0,
+          message: 'success',
+          timestamp: Date.now(),
+          data: {
+            list: [
+              {
+                fid: 'file-1',
+                file_name: 'a.txt',
+                pdir_fid: '12345',
+                size: 10,
+                updated_at: 111,
+                file: true,
+                dir: false,
+              },
+              {
+                fid: 'dir-1',
+                file_name: 'folderA',
+                pdir_fid: '12345',
+                size: 0,
+                updated_at: 222,
+                file: false,
+                dir: true,
+              },
+            ],
+          },
+        }),
+      });
+
+      const files = await adapter.getAllFiles();
+
+      expect(files).toEqual([
+        {
+          id: 'file-1',
+          name: 'a.txt',
+          ext: '.txt',
+          parentId: '12345',
+          size: 10,
+          mtime: 111,
+        },
+        {
+          id: 'dir-1',
+          name: 'folderA',
+          ext: '',
+          parentId: '12345',
+          size: 0,
+          mtime: 222,
+        },
+      ]);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('pdir_fid=12345'),
+        expect.objectContaining({
+          method: 'GET',
+          credentials: 'include',
+        })
+      );
+    });
+  });
+
   describe('renameFile方法', () => {
     beforeEach(() => {
       vi.useFakeTimers();
@@ -682,6 +757,52 @@ describe('QuarkAdapter', () => {
       const files = await adapter.getSelectedFiles();
       expect(files).toHaveLength(1);
       expect(files[0].parentId).toBe('0');
+    });
+
+    it('应该从URL hash中提取folder路径的目录ID', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '',
+          hash: '#/list/folder/12345',
+        },
+        writable: true,
+      });
+
+      document.body.innerHTML = `
+        <table>
+          <tr data-file-id="file-1" data-size="1024" data-mtime="1639584000000">
+            <td class="ant-checkbox-checked"></td>
+            <td class="file-name">test.txt</td>
+          </tr>
+        </table>
+      `;
+
+      const files = await adapter.getSelectedFiles();
+      expect(files).toHaveLength(1);
+      expect(files[0].parentId).toBe('12345');
+    });
+
+    it('应该从URL hash中提取all路径的目录ID并去掉后缀', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: '',
+          hash: '#/list/all/98765-extra-info',
+        },
+        writable: true,
+      });
+
+      document.body.innerHTML = `
+        <table>
+          <tr data-file-id="file-1" data-size="1024" data-mtime="1639584000000">
+            <td class="ant-checkbox-checked"></td>
+            <td class="file-name">test.txt</td>
+          </tr>
+        </table>
+      `;
+
+      const files = await adapter.getSelectedFiles();
+      expect(files).toHaveLength(1);
+      expect(files[0].parentId).toBe('98765');
     });
   });
 

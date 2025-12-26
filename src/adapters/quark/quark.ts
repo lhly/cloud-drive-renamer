@@ -162,20 +162,18 @@ export class QuarkAdapter extends BasePlatformAdapter {
 
         const pageFiles = result.data.list;
 
-        // Filter out folders (only return files)
-        const files = pageFiles
-          .filter(f => f.file && !f.dir)
-          .map((file): FileItem => {
-            const { ext } = parseFileName(file.file_name);
-            return {
-              id: file.fid,
-              name: file.file_name,
-              ext: ext,
-              parentId: file.pdir_fid,
-              size: file.size,
-              mtime: file.updated_at,
-            };
-          });
+        // Include both files and folders (folders have empty extension)
+        const files = pageFiles.map((item): FileItem => {
+          const ext = item.file ? parseFileName(item.file_name).ext : '';
+          return {
+            id: item.fid,
+            name: item.file_name,
+            ext,
+            parentId: item.pdir_fid,
+            size: item.size,
+            mtime: item.updated_at,
+          };
+        });
 
         allFiles.push(...files);
 
@@ -337,10 +335,44 @@ export class QuarkAdapter extends BasePlatformAdapter {
       return dirId;
     }
 
+    // 夸克网盘使用 hash 路由 (例如: #/list/folder/12345 或 #/list/all/12345-xxxx)
+    // 支持嵌套路径: #/list/all/parent-name/child1-name/child2-name
+    const hash = window.location.hash || '';
+    if (hash) {
+      // Remove query string portion in hash (if any)
+      const hashPath = hash.split('?')[0];
+
+      // 🔧 FIX: 提取整个路径，取最后一个 segment（当前目录）
+      // 移除前缀 #/list/folder/ 或 #/list/all/
+      const normalized = hashPath
+        .replace(/^#/, '')
+        .replace(/^\/list\/(?:all|folder)/, '')
+        .replace(/^\/+/, '')
+        .replace(/\/+$/, '');
+
+      if (normalized) {
+        // 分割路径，取最后一个 segment（当前目录）
+        const segments = normalized.split('/').filter(Boolean);
+        if (segments.length > 0) {
+          const lastSegment = segments[segments.length - 1];
+          // 提取 ID（-之前的部分）
+          // 例如: "e1446ca1c77f4061b470c07961369e2d-第一章：机器学习与深度学习理论基础"
+          //   -> "e1446ca1c77f4061b470c07961369e2d"
+          const idMatch = lastSegment.match(/^([a-z0-9]+)/);
+          if (idMatch && idMatch[1]) {
+            return idMatch[1];
+          }
+        }
+      }
+    }
+
     // 尝试从 DOM 中提取
     const dirElement = document.querySelector('[data-dir-id]');
     if (dirElement) {
-      return dirElement.getAttribute('data-dir-id') || '';
+      const domDirId = dirElement.getAttribute('data-dir-id');
+      if (domDirId) {
+        return domDirId;
+      }
     }
 
     // 默认返回根目录标识
