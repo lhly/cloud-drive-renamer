@@ -792,6 +792,7 @@ export class FileSelectorPanel extends LitElement {
             <config-panel
               class="left-panel"
               .selectedCount=${this.selectedFiles.length}
+              .renameCount=${this.previewList.length}
               .conflictCount=${this.conflictIds.size}
               ?disabled=${this.loading}
               ?executing=${this.executing}
@@ -884,7 +885,7 @@ export class FileSelectorPanel extends LitElement {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 10000;
+      z-index: 2147483647;
       animation: fadeIn 0.2s ease;
     }
 
