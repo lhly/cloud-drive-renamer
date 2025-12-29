@@ -1,5 +1,5 @@
 import { BasePlatformAdapter } from '../base/adapter.interface';
-import { PlatformName, FileItem, RenameResult, PlatformConfig } from '../../types/platform';
+import { PlatformName, FileItem, RenameResult, PlatformConfig, PageSyncResult } from '../../types/platform';
 import { parseFileName } from '../../utils/helpers';
 import { BaiduAPIError, getErrorMessage, isRetryableError } from './errors';
 import { getPageScriptInjector } from './page-script-injector';
@@ -305,6 +305,54 @@ export class BaiduAdapter extends BasePlatformAdapter {
   }
 
   /**
+   * Sync page file list after rename so users can see updated names without manual refresh.
+   *
+   * Strategy:
+   * - Always patch visible DOM (best-effort) for immediate feedback
+   * - Observe and patch for a short window (virtualized list)
+   * - Best-effort trigger native list reload (observed calling /api/list)
+   */
+  async syncAfterRename(
+    renames: Array<{ fileId: string; oldName?: string; newName: string }>
+  ): Promise<PageSyncResult> {
+    const renameInfoById = new Map<string, { oldName?: string; newName: string }>();
+    const renameByOldName = new Map<string, string>();
+
+    for (const item of renames) {
+      if (!item?.fileId || !item?.newName) continue;
+      renameInfoById.set(item.fileId, { oldName: item.oldName, newName: item.newName });
+      if (item.oldName) {
+        renameByOldName.set(item.oldName, item.newName);
+      }
+    }
+
+    if (renameInfoById.size === 0) {
+      return { success: true, method: 'none' };
+    }
+
+    const patchedById = this.applyRenameMappingToDomById(renameInfoById);
+    const patchedByOldName = this.applyRenameMappingToDomByOldName(renameByOldName);
+    const patchedCount = patchedById + patchedByOldName;
+
+    this.observeAndPatchRenamedRows(renameInfoById, renameByOldName, 15000);
+
+    const rerender = await this.tryTriggerNativeFileListRerender();
+    if (rerender.triggered) {
+      return { success: true, method: 'ui-refresh', message: rerender.message };
+    }
+
+    if (patchedCount > 0) {
+      return { success: true, method: 'dom-patch', message: `patched ${patchedCount} nodes` };
+    }
+
+    return {
+      success: false,
+      method: 'none',
+      message: 'failed to locate filename nodes on page',
+    };
+  }
+
+  /**
    * Check if filename conflicts with existing files
    *
    * @param fileName - Filename to check
@@ -500,6 +548,435 @@ export class BaiduAdapter extends BasePlatformAdapter {
 
     // Priority 3: Default root directory
     return '/';
+  }
+
+  private async tryTriggerNativeFileListRerender(): Promise<{ triggered: boolean; message: string }> {
+    try {
+      const refreshStrategy = this.tryTriggerFileListRefresh();
+      if (refreshStrategy) {
+        return { triggered: true, message: `triggered refresh (${refreshStrategy})` };
+      }
+
+      const sortToggled = await this.tryTriggerSortToggleRefresh();
+      if (sortToggled) {
+        return { triggered: true, message: 'triggered sort toggle' };
+      }
+
+      const routeNudged = this.tryTriggerRouteNudgeRefresh();
+      if (routeNudged) {
+        return { triggered: true, message: 'triggered route nudge' };
+      }
+
+      return { triggered: false, message: 'no native rerender trigger matched' };
+    } catch (error) {
+      logger.debug('[BaiduAdapter] Failed to trigger native rerender:', error instanceof Error ? error : new Error(String(error)));
+      return { triggered: false, message: 'native rerender trigger failed' };
+    }
+  }
+
+  private getFileListSearchRoot(): ParentNode {
+    const row =
+      (document.querySelector('tr[data-fs-id],tr[data-id]') as HTMLElement | null) ||
+      (document.querySelector('tbody tr') as HTMLElement | null);
+
+    const table = row?.closest('table,[role="table"],[class*="table"],[class*="Table"]') || null;
+    if (table?.parentElement) {
+      return table.parentElement;
+    }
+
+    return document;
+  }
+
+  private dispatchSyntheticClick(el: HTMLElement): void {
+    try {
+      el.dispatchEvent(
+        new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        })
+      );
+    } catch {
+      el.click();
+    }
+  }
+
+  private tryTriggerFileListRefresh(): 'icon' | 'label' | 'text' | null {
+    try {
+      const root = this.getFileListSearchRoot();
+
+      const icon = (root as ParentNode).querySelector?.(
+        '.anticon-reload,.anticon-sync,[data-icon="reload"],[data-icon="sync"],.icon-refresh,.icon-reload,.u-icon-refresh,.u-icon-reload,[class*="refresh"],[class*="reload"]'
+      ) as HTMLElement | null;
+      if (icon) {
+        this.dispatchSyntheticClick(icon);
+        return 'icon';
+      }
+
+      const byLabel = (root as ParentNode).querySelector?.(
+        '[title*="刷新"],[aria-label*="刷新"],[title*="重载"],[aria-label*="重载"],[title*="重新加载"],[aria-label*="重新加载"]'
+      ) as HTMLElement | null;
+      if (byLabel) {
+        this.dispatchSyntheticClick(byLabel);
+        return 'label';
+      }
+
+      const candidates = Array.from(
+        (root as ParentNode).querySelectorAll?.('button,[role="button"],a,span,div') || []
+      ) as HTMLElement[];
+      const textMatch = candidates.find((el) => {
+        // Avoid clicking file rows
+        if (el.closest('tbody')) return false;
+        const text = (el.textContent || '').trim();
+        return text === '刷新' || text === '重载' || text === '重新加载';
+      });
+      if (textMatch) {
+        this.dispatchSyntheticClick(textMatch);
+        return 'text';
+      }
+
+      return null;
+    } catch (error) {
+      logger.debug('[BaiduAdapter] Failed to trigger list refresh:', error instanceof Error ? error : new Error(String(error)));
+      return null;
+    }
+  }
+
+  private async tryTriggerSortToggleRefresh(): Promise<boolean> {
+    try {
+      const root = this.getFileListSearchRoot();
+
+      const headers = Array.from(
+        (root as ParentNode).querySelectorAll?.('thead th,[role="columnheader"]') || []
+      ) as HTMLElement[];
+
+      const pickHeader = (re: RegExp) =>
+        headers.find((h) => re.test((h.textContent || '').trim())) || null;
+
+      const header =
+        pickHeader(/文件名|名称|name/i) ||
+        pickHeader(/修改时间|更新时间|时间|time|modified|updated/i) ||
+        headers[0] ||
+        null;
+
+      if (!header) return false;
+
+      const initial = this.getSortState(header);
+
+      this.dispatchSyntheticClick(header);
+      await this.sleep(250);
+
+      // Attempt to restore sort state (best-effort, bounded)
+      for (let i = 0; i < 3; i++) {
+        if (this.getSortState(header) === initial) break;
+        this.dispatchSyntheticClick(header);
+        await this.sleep(250);
+      }
+
+      return true;
+    } catch (error) {
+      logger.debug('[BaiduAdapter] Failed to toggle sort for refresh:', error instanceof Error ? error : new Error(String(error)));
+      return false;
+    }
+  }
+
+  private tryTriggerRouteNudgeRefresh(): boolean {
+    try {
+      const key = '__cdr_sync';
+      const url = new URL(window.location.href);
+
+      const hash = url.hash || '';
+      const [hashPath, hashQuery = ''] = hash.split('?');
+      const params = new URLSearchParams(hashQuery);
+      const previous = params.get(key);
+      params.set(key, String(Date.now()));
+
+      url.hash = `${hashPath}?${params.toString()}`;
+      history.replaceState(history.state, '', url.toString());
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      window.dispatchEvent(new PopStateEvent('popstate', { state: history.state }));
+
+      window.setTimeout(() => {
+        try {
+          const next = new URL(window.location.href);
+          const nextHash = next.hash || '';
+          const [nextHashPath, nextHashQuery = ''] = nextHash.split('?');
+          const nextParams = new URLSearchParams(nextHashQuery);
+          if (previous === null) {
+            nextParams.delete(key);
+          } else {
+            nextParams.set(key, previous);
+          }
+          next.hash = `${nextHashPath}?${nextParams.toString()}`;
+          history.replaceState(history.state, '', next.toString());
+          window.dispatchEvent(new HashChangeEvent('hashchange'));
+          window.dispatchEvent(new PopStateEvent('popstate', { state: history.state }));
+        } catch {
+          // ignore
+        }
+      }, 500);
+
+      return true;
+    } catch (error) {
+      logger.debug('[BaiduAdapter] Failed to nudge route for refresh:', error instanceof Error ? error : new Error(String(error)));
+      return false;
+    }
+  }
+
+  private getSortState(header: Element): string {
+    const aria = header.getAttribute('aria-sort');
+    if (aria) return aria;
+
+    const data =
+      header.getAttribute('data-sort') ||
+      header.getAttribute('data-order') ||
+      header.getAttribute('data-direction');
+    if (data) return data;
+
+    const cls = (header.getAttribute('class') || '').toLowerCase();
+    if (/(asc|ascending|sort-up|up)/.test(cls)) return 'asc';
+    if (/(desc|descending|sort-down|down)/.test(cls)) return 'desc';
+
+    if (header.querySelector('.u-icon-arrow-up,[class*="arrow-up"],[class*="sort-up"],[class*="asc"]')) {
+      return 'asc';
+    }
+    if (header.querySelector('.u-icon-arrow-down,[class*="arrow-down"],[class*="sort-down"],[class*="desc"]')) {
+      return 'desc';
+    }
+
+    return 'none';
+  }
+
+  private applyRenameMappingToDomById(
+    renameInfoById: Map<string, { oldName?: string; newName: string }>
+  ): number {
+    if (renameInfoById.size === 0) return 0;
+
+    let patched = 0;
+
+    for (const [fileId, info] of renameInfoById.entries()) {
+      const row = this.findRowByFileId(fileId);
+      if (!row) continue;
+      patched += this.patchRowElement(row, info.oldName, info.newName);
+    }
+
+    return patched;
+  }
+
+  private applyRenameMappingToDomByOldName(renameByOldName: Map<string, string>): number {
+    if (renameByOldName.size === 0) return 0;
+
+    let patched = 0;
+    const root = this.getFileListSearchRoot();
+
+    // Patch attributes/text for elements that explicitly reference the old name.
+    for (const [oldName, newName] of renameByOldName.entries()) {
+      const escaped = this.escapeForAttributeSelector(oldName);
+      const candidates = Array.from(
+        (root as ParentNode).querySelectorAll?.(
+          `tbody [title="${escaped}"],tbody [aria-label="${escaped}"]`
+        ) || []
+      ) as HTMLElement[];
+      for (const el of candidates) {
+        if (el.closest('tbody') == null) continue;
+        patched += this.patchNameElement(el, oldName, newName);
+      }
+    }
+
+    // Fallback: patch plain text nodes (virtual scrolling / nested structures)
+    const patchRoot = root instanceof Element ? root : document.body;
+    patched += this.patchExactTextInElement(patchRoot, renameByOldName);
+
+    return patched;
+  }
+
+  private observeAndPatchRenamedRows(
+    renameInfoById: Map<string, { oldName?: string; newName: string }>,
+    renameByOldName: Map<string, string>,
+    timeoutMs: number
+  ): void {
+    try {
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          for (const node of Array.from(mutation.addedNodes)) {
+            if (!(node instanceof Element)) continue;
+            this.patchElementTree(node, renameInfoById, renameByOldName);
+          }
+        }
+      });
+
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      this.patchElementTree(document.body, renameInfoById, renameByOldName);
+
+      window.setTimeout(() => observer.disconnect(), timeoutMs);
+    } catch (error) {
+      logger.debug('[BaiduAdapter] Failed to observe DOM for patching:', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  private patchElementTree(
+    root: Element,
+    renameInfoById: Map<string, { oldName?: string; newName: string }>,
+    renameByOldName: Map<string, string>
+  ): void {
+    const idAttrSelectors = ['[data-fs-id]', '[data-id]'].join(',');
+
+    const nodes: Element[] = [];
+    if (root.matches(idAttrSelectors)) {
+      nodes.push(root);
+    }
+    nodes.push(...Array.from(root.querySelectorAll(idAttrSelectors)));
+
+    for (const node of nodes) {
+      const fileId = node.getAttribute('data-fs-id') || node.getAttribute('data-id');
+      if (!fileId) continue;
+
+      const info = renameInfoById.get(fileId);
+      if (!info) continue;
+
+      const row = node.closest('tr,[role="row"]') || node;
+      this.patchRowElement(row, info.oldName, info.newName);
+    }
+
+    if (renameByOldName.size > 0) {
+      for (const [oldName, newName] of renameByOldName.entries()) {
+        const escaped = this.escapeForAttributeSelector(oldName);
+        const candidates = Array.from(
+          root.querySelectorAll(`[title="${escaped}"],[aria-label="${escaped}"]`)
+        ) as HTMLElement[];
+        for (const el of candidates) {
+          this.patchNameElement(el, oldName, newName);
+        }
+      }
+
+      this.patchExactTextInElement(root, renameByOldName);
+    }
+  }
+
+  private findRowByFileId(fileId: string): Element | null {
+    return document.querySelector(`[data-fs-id="${fileId}"], [data-id="${fileId}"]`);
+  }
+
+  private patchRowElement(row: Element, oldName: string | undefined, newName: string): number {
+    const nameSelector = '.wp-s-pan-list__file-name-title-text, .list-name-text, a[title]';
+    const nameEls = Array.from(row.querySelectorAll(nameSelector)) as HTMLElement[];
+    if (nameEls.length === 0) return 0;
+
+    let patched = 0;
+    for (const el of nameEls) {
+      patched += this.patchNameElement(el, oldName, newName);
+    }
+    return patched;
+  }
+
+  private patchNameElement(el: HTMLElement, oldName: string | undefined, newName: string): number {
+    let changed = false;
+
+    if (oldName) {
+      const title = el.getAttribute('title')?.trim();
+      if (title === oldName) {
+        el.setAttribute('title', newName);
+        changed = true;
+      }
+
+      const aria = el.getAttribute('aria-label')?.trim();
+      if (aria === oldName) {
+        el.setAttribute('aria-label', newName);
+        changed = true;
+      }
+
+      // Prefer updating text nodes without destroying nested structure.
+      changed = this.patchExactTextNodes(el, oldName, newName) > 0 || changed;
+
+      if (!changed && el.childElementCount === 0) {
+        const text = (el.textContent || '').trim();
+        if (text === oldName) {
+          el.textContent = newName;
+          changed = true;
+        }
+      }
+    } else {
+      if (el.childElementCount === 0) {
+        el.textContent = newName;
+        changed = true;
+      }
+
+      if (el.hasAttribute('title')) {
+        el.setAttribute('title', newName);
+        changed = true;
+      }
+      if (el.hasAttribute('aria-label')) {
+        el.setAttribute('aria-label', newName);
+        changed = true;
+      }
+    }
+
+    return changed ? 1 : 0;
+  }
+
+  private patchExactTextNodes(root: Element, oldName: string, newName: string): number {
+    let patched = 0;
+
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const textNode = node as Text;
+      const value = textNode.nodeValue;
+      if (!value) continue;
+
+      if (value === oldName) {
+        textNode.nodeValue = newName;
+        patched++;
+        continue;
+      }
+
+      const trimmed = value.trim();
+      if (trimmed === oldName) {
+        textNode.nodeValue = value.replace(trimmed, newName);
+        patched++;
+      }
+    }
+
+    return patched;
+  }
+
+  private patchExactTextInElement(root: Element, renameByOldName: Map<string, string>): number {
+    if (renameByOldName.size === 0) return 0;
+
+    let patched = 0;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+
+    while ((node = walker.nextNode())) {
+      const textNode = node as Text;
+      const value = textNode.nodeValue;
+      if (!value) continue;
+
+      const direct = renameByOldName.get(value);
+      if (direct) {
+        textNode.nodeValue = direct;
+        patched++;
+        continue;
+      }
+
+      const trimmed = value.trim();
+      if (!trimmed) continue;
+      const replacement = renameByOldName.get(trimmed);
+      if (!replacement) continue;
+
+      textNode.nodeValue = value.replace(trimmed, replacement);
+      patched++;
+    }
+
+    return patched;
+  }
+
+  private escapeForAttributeSelector(value: string): string {
+    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+      return CSS.escape(value);
+    }
+    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   }
 
   /**
