@@ -29,6 +29,12 @@ export class ConfigPanel extends LitElement {
   selectedCount = 0;
 
   /**
+   * Number of files that will actually be renamed (preview items)
+   */
+  @property({ type: Number })
+  renameCount = 0;
+
+  /**
    * Number of conflicts detected
    */
   @property({ type: Number })
@@ -171,7 +177,7 @@ export class ConfigPanel extends LitElement {
    * @private
    */
   private handleExecute(): void {
-    if (this.selectedCount === 0 || this.disabled || this.executing) {
+    if (this.renameCount === 0 || this.disabled || this.executing) {
       return;
     }
 
@@ -184,7 +190,7 @@ export class ConfigPanel extends LitElement {
   }
 
   render() {
-    const canExecute = this.selectedCount > 0 && !this.disabled && !this.executing;
+    const canExecute = this.renameCount > 0 && !this.disabled && !this.executing;
     const hasConflicts = this.conflictCount > 0;
     const showExecutionView = this.executing || this.finished;
 
@@ -216,7 +222,7 @@ export class ConfigPanel extends LitElement {
                   @click=${this.handleExecute}
                 >
                   ${this.executing ? I18nService.t('executing') : I18nService.t('execute_rename')}
-                  ${this.selectedCount > 0 ? ` (${this.selectedCount})` : ''}
+                  ${this.selectedCount > 0 ? ` (${this.renameCount})` : ''}
                 </button>
               `}
         </div>

@@ -87,7 +87,7 @@ export class FloatingButton {
         logger.warn('Shadow DOM not supported, using fallback mount strategy');
         // 降级方案：直接挂载容器
         this.container = this.createContainer();
-        this.container.style.zIndex = '2147483647';
+        this.container.style.zIndex = '2147483646';
         parent.appendChild(this.container);
         await this.loadPosition();
         this.applyPosition();
@@ -104,7 +104,7 @@ export class FloatingButton {
         left: 0;
         width: 100%;
         height: 100%;
-        z-index: 2147483647;
+        z-index: 2147483646;
         pointer-events: none;
       `;
 
