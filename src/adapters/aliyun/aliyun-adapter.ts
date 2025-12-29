@@ -1,5 +1,11 @@
 import { BasePlatformAdapter } from '../base/adapter.interface';
-import { PlatformName, FileItem, RenameResult, PlatformConfig } from '../../types/platform';
+import {
+  PlatformName,
+  FileItem,
+  RenameResult,
+  PlatformConfig,
+  PageSyncResult,
+} from '../../types/platform';
 import { parseFileName } from '../../utils/helpers';
 import { AliyunAPIError, getErrorMessage, isRetryableError } from './errors';
 import { getPageScriptInjector } from './page-script-injector';
@@ -382,6 +388,341 @@ export class AliyunAdapter extends BasePlatformAdapter {
         newName: newName,
       };
     }, `重命名文件 ${fileId}`);
+  }
+
+  /**
+   * Sync page file list after rename so users can see updated names without manual refresh.
+   *
+   * Aliyun Drive has no obvious "refresh" button in some UI variants, but the list can be
+   * reloaded via actions such as sorting (observed calling /adrive/v3/file/list).
+   *
+   * Strategy:
+   * - Always patch visible DOM (best-effort) for immediate feedback
+   * - Observe and patch for a short window (virtualized list)
+   * - Best-effort trigger native list rerender (sort toggle / route nudge)
+   */
+  async syncAfterRename(
+    renames: Array<{ fileId: string; oldName?: string; newName: string }>
+  ): Promise<PageSyncResult> {
+    const renameByOldName = new Map<string, string>();
+
+    for (const item of renames) {
+      if (!item?.oldName || !item?.newName) continue;
+      renameByOldName.set(item.oldName, item.newName);
+    }
+
+    if (renameByOldName.size === 0) {
+      return { success: true, method: 'none' };
+    }
+
+    const patched = this.applyRenameMappingToDomByOldName(renameByOldName);
+    this.observeAndPatchRenamedNodes(renameByOldName, 15000);
+
+    const rerendered = await this.tryTriggerNativeFileListRerender();
+    if (rerendered.triggered) {
+      return { success: true, method: 'ui-refresh', message: rerendered.message };
+    }
+
+    if (patched > 0) {
+      return { success: true, method: 'dom-patch', message: `patched ${patched} nodes` };
+    }
+
+    return {
+      success: false,
+      method: 'none',
+      message: 'failed to locate filename nodes on page',
+    };
+  }
+
+  private async tryTriggerNativeFileListRerender(): Promise<{ triggered: boolean; message: string }> {
+    try {
+      const sortToggled = await this.tryTriggerSortToggleRefresh();
+      if (sortToggled) {
+        return { triggered: true, message: 'triggered sort toggle' };
+      }
+
+      const routeNudged = this.tryTriggerRouteNudgeRefresh();
+      if (routeNudged) {
+        return { triggered: true, message: 'triggered route nudge' };
+      }
+
+      return { triggered: false, message: 'no native rerender trigger matched' };
+    } catch (error) {
+      logger.debug('[AliyunAdapter] Failed to trigger native rerender:', error instanceof Error ? error : new Error(String(error)));
+      return { triggered: false, message: 'native rerender trigger failed' };
+    }
+  }
+
+  private getFileListSearchRoot(): ParentNode {
+    const row =
+      (document.querySelector('[data-is-selected]') as HTMLElement | null) ||
+      (document.querySelector('[data-file-id],[data-fileid],[data-id]') as HTMLElement | null);
+
+    const table = row?.closest('table,[role="table"],[class*="table"],[class*="Table"]') || null;
+    if (table) return table;
+
+    const list = row?.closest('[role="list"],[class*="list"],[class*="List"]') || null;
+    if (list) return list;
+
+    return document;
+  }
+
+  private dispatchSyntheticClick(el: HTMLElement): void {
+    try {
+      el.dispatchEvent(
+        new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        })
+      );
+    } catch {
+      el.click();
+    }
+  }
+
+  private async tryTriggerSortToggleRefresh(): Promise<boolean> {
+    try {
+      const root = this.getFileListSearchRoot();
+      const headers = Array.from(
+        root.querySelectorAll('[role="columnheader"], thead th')
+      ) as HTMLElement[];
+      if (headers.length === 0) return false;
+
+      const pickHeader = (re: RegExp) =>
+        headers.find((h) => re.test((h.textContent || '').trim())) || null;
+
+      // Prefer the "Name" column (least disruptive), fallback to any header.
+      const nameHeader =
+        pickHeader(/名称|文件名|name/i) ||
+        pickHeader(/修改时间|更新时间|时间|time|modified|updated/i) ||
+        headers[0] ||
+        null;
+      if (!nameHeader) return false;
+
+      const initial = this.getSortState(nameHeader);
+      this.dispatchSyntheticClick(nameHeader);
+      await this.delayMs(250);
+
+      // Attempt to restore sort state (best-effort, bounded)
+      for (let i = 0; i < 3; i++) {
+        if (this.getSortState(nameHeader) === initial) break;
+        this.dispatchSyntheticClick(nameHeader);
+        await this.delayMs(250);
+      }
+
+      return true;
+    } catch (error) {
+      logger.debug('[AliyunAdapter] Failed to toggle sort for refresh:', error instanceof Error ? error : new Error(String(error)));
+      return false;
+    }
+  }
+
+  private getSortState(el: Element): string {
+    const aria = el.getAttribute('aria-sort');
+    if (aria) return aria;
+    return 'none';
+  }
+
+  private tryTriggerRouteNudgeRefresh(): boolean {
+    try {
+      const url = new URL(window.location.href);
+      const key = '__cdr_sync';
+      const previous = url.searchParams.get(key);
+      url.searchParams.set(key, String(Date.now()));
+
+      history.replaceState(history.state, '', url.toString());
+      window.dispatchEvent(new PopStateEvent('popstate', { state: history.state }));
+
+      window.setTimeout(() => {
+        try {
+          const next = new URL(window.location.href);
+          if (previous === null) {
+            next.searchParams.delete(key);
+          } else {
+            next.searchParams.set(key, previous);
+          }
+          history.replaceState(history.state, '', next.toString());
+          window.dispatchEvent(new PopStateEvent('popstate', { state: history.state }));
+        } catch {
+          // ignore
+        }
+      }, 500);
+
+      return true;
+    } catch (error) {
+      logger.debug('[AliyunAdapter] Failed to nudge route for refresh:', error instanceof Error ? error : new Error(String(error)));
+      return false;
+    }
+  }
+
+  private applyRenameMappingToDomByOldName(renameByOldName: Map<string, string>): number {
+    if (renameByOldName.size === 0) return 0;
+
+    let patched = 0;
+
+    // Prefer patching within elements that explicitly reference the old name (keeps native DOM structure)
+    for (const [oldName, newName] of renameByOldName.entries()) {
+      const escaped = this.escapeForAttributeSelector(oldName);
+      const candidates = Array.from(
+        document.querySelectorAll(`[title="${escaped}"],[aria-label="${escaped}"]`)
+      );
+
+      for (const el of candidates) {
+        patched += this.patchStructuredNameWithinElement(el, oldName, newName);
+      }
+    }
+
+    // Fallback: patch plain text nodes (works if the whole filename is a single text node)
+    patched += this.patchExactTextInElement(document.body, renameByOldName);
+
+    // Keep tooltip attributes in sync (safe, no DOM structure changes)
+    this.patchAttributesInElement(document.body, renameByOldName, 'title');
+    this.patchAttributesInElement(document.body, renameByOldName, 'aria-label');
+
+    return patched;
+  }
+
+  private observeAndPatchRenamedNodes(renameByOldName: Map<string, string>, timeoutMs: number): void {
+    try {
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          for (const node of Array.from(mutation.addedNodes)) {
+            if (!(node instanceof Element)) continue;
+            this.patchElementTree(node, renameByOldName);
+          }
+        }
+      });
+
+      observer.observe(document.body, { childList: true, subtree: true });
+      this.patchElementTree(document.body, renameByOldName);
+
+      window.setTimeout(() => observer.disconnect(), timeoutMs);
+    } catch (error) {
+      logger.debug('[AliyunAdapter] Failed to observe DOM for patching:', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  private patchElementTree(root: Element, renameByOldName: Map<string, string>): void {
+    if (renameByOldName.size === 0) return;
+
+    for (const [oldName, newName] of renameByOldName.entries()) {
+      const escaped = this.escapeForAttributeSelector(oldName);
+
+      // Include root itself if it matches
+      if (root.getAttribute('title') === oldName || root.getAttribute('aria-label') === oldName) {
+        this.patchStructuredNameWithinElement(root, oldName, newName);
+      }
+
+      const candidates = Array.from(
+        root.querySelectorAll(`[title="${escaped}"],[aria-label="${escaped}"]`)
+      );
+      for (const el of candidates) {
+        this.patchStructuredNameWithinElement(el, oldName, newName);
+      }
+    }
+
+    this.patchExactTextInElement(root, renameByOldName);
+    this.patchAttributesInElement(root, renameByOldName, 'title');
+    this.patchAttributesInElement(root, renameByOldName, 'aria-label');
+  }
+
+  private patchStructuredNameWithinElement(root: Element, oldName: string, newName: string): number {
+    const fullMap = new Map([[oldName, newName]]);
+    let patched = this.patchExactTextInElement(root, fullMap);
+
+    // If the UI renders base name / extension in separate nodes, patch them separately.
+    if (patched === 0) {
+      const oldParts = parseFileName(oldName);
+      const newParts = parseFileName(newName);
+
+      const partsMap = new Map<string, string>();
+      if (oldParts.name && oldParts.name !== newParts.name) {
+        partsMap.set(oldParts.name, newParts.name);
+      }
+      if (oldParts.ext && oldParts.ext !== newParts.ext) {
+        partsMap.set(oldParts.ext, newParts.ext);
+      }
+
+      if (partsMap.size > 0) {
+        patched += this.patchExactTextInElement(root, partsMap);
+      }
+    }
+
+    this.patchAttributesInElement(root, fullMap, 'title');
+    this.patchAttributesInElement(root, fullMap, 'aria-label');
+
+    return patched;
+  }
+
+  private patchExactTextInElement(root: Node, renameByOldName: Map<string, string>): number {
+    if (renameByOldName.size === 0) return 0;
+
+    let patched = 0;
+
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) => {
+        const text = node.nodeValue?.trim();
+        if (!text) return NodeFilter.FILTER_SKIP;
+        return renameByOldName.has(text) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      },
+    });
+
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const oldText = node.nodeValue?.trim();
+      if (!oldText) continue;
+      const next = renameByOldName.get(oldText);
+      if (!next) continue;
+      if (node.nodeValue !== next) {
+        node.nodeValue = next;
+        patched++;
+      }
+
+      const parent = node.parentElement;
+      if (parent) {
+        if (parent.getAttribute('title') === oldText) parent.setAttribute('title', next);
+        if (parent.getAttribute('aria-label') === oldText) parent.setAttribute('aria-label', next);
+      }
+    }
+
+    return patched;
+  }
+
+  private patchAttributesInElement(
+    root: Element,
+    renameByOldName: Map<string, string>,
+    attributeName: 'title' | 'aria-label'
+  ): number {
+    if (renameByOldName.size === 0) return 0;
+
+    let patched = 0;
+    const nodes = Array.from(root.querySelectorAll(`[${attributeName}]`));
+    for (const node of nodes) {
+      const value = node.getAttribute(attributeName);
+      if (!value) continue;
+      const next = renameByOldName.get(value);
+      if (!next) continue;
+
+      if (value !== next) {
+        node.setAttribute(attributeName, next);
+        patched++;
+      }
+    }
+    return patched;
+  }
+
+  private escapeForAttributeSelector(value: string): string {
+    return value
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\f/g, '\\f');
+  }
+
+  private delayMs(ms: number): Promise<void> {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
   }
 
   /**
