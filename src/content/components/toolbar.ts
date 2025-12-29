@@ -49,29 +49,38 @@ export class Toolbar extends LitElement {
   disabled = false;
 
   /**
-   * Handle select all button click
+   * Computed: checkbox state
+   * Returns 'all', 'none', or 'partial'
    * @private
    */
-  private handleSelectAll(): void {
-    this.dispatchEvent(
-      new CustomEvent('select-all', {
-        bubbles: true,
-        composed: true,
-      })
-    );
+  private get checkboxState(): 'all' | 'none' | 'partial' {
+    if (this.selectedCount === 0) return 'none';
+    if (this.selectedCount === this.totalCount) return 'all';
+    return 'partial';
   }
 
   /**
-   * Handle deselect all button click
+   * Handle checkbox click - toggles between select all and deselect all
    * @private
    */
-  private handleDeselectAll(): void {
-    this.dispatchEvent(
-      new CustomEvent('deselect-all', {
-        bubbles: true,
-        composed: true,
-      })
-    );
+  private handleCheckboxClick(): void {
+    if (this.checkboxState === 'all') {
+      // Currently all selected, deselect all
+      this.dispatchEvent(
+        new CustomEvent('deselect-all', {
+          bubbles: true,
+          composed: true,
+        })
+      );
+    } else {
+      // Currently none or partial selected, select all
+      this.dispatchEvent(
+        new CustomEvent('select-all', {
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
   }
 
   /**
@@ -92,32 +101,37 @@ export class Toolbar extends LitElement {
   }
 
   render() {
+    const state = this.checkboxState;
+
     return html`
       <div class="toolbar">
         <div class="toolbar-left">
-          <button
-            class="toolbar-button"
-            @click=${this.handleSelectAll}
-            ?disabled=${this.disabled}
-            title=${I18nService.t('select_all')}
+          <label
+            class="checkbox-label ${this.disabled ? 'disabled' : ''}"
+            title=${state === 'all'
+              ? I18nService.t('deselect_all')
+              : I18nService.t('select_all')}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            <span>${I18nService.t('select_all')}</span>
-          </button>
-
-          <button
-            class="toolbar-button"
-            @click=${this.handleDeselectAll}
-            ?disabled=${this.disabled}
-            title=${I18nService.t('deselect_all')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            </svg>
-            <span>${I18nService.t('deselect_all')}</span>
-          </button>
+            <div
+              class="checkbox ${state}"
+              @click=${this.disabled ? null : this.handleCheckboxClick}
+            >
+              ${state === 'all'
+                ? html`
+                    <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 8L7 12L13 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  `
+                : state === 'partial'
+                ? html`
+                    <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="3" y="7" width="10" height="2" fill="currentColor"/>
+                    </svg>
+                  `
+                : ''}
+            </div>
+            <span class="checkbox-text">${I18nService.t('select_all_checkbox')}</span>
+          </label>
 
           <div class="filter-group">
             <label class="filter-label">${I18nService.t('filter_by_type')}:</label>
@@ -174,40 +188,75 @@ export class Toolbar extends LitElement {
       flex-shrink: 0;
     }
 
-    .toolbar-button {
+    .checkbox-label {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border: 1px solid #d9d9d9;
-      background: #fff;
-      border-radius: 4px;
-      font-size: 14px;
-      color: #262626;
+      gap: 8px;
       cursor: pointer;
+      user-select: none;
       transition: all 0.2s;
-      white-space: nowrap;
     }
 
-    .toolbar-button:hover:not(:disabled) {
-      color: #1890ff;
-      border-color: #1890ff;
-    }
-
-    .toolbar-button:active:not(:disabled) {
-      background: #f5f5f5;
-    }
-
-    .toolbar-button:disabled {
-      color: #bfbfbf;
+    .checkbox-label.disabled {
       cursor: not-allowed;
       opacity: 0.6;
     }
 
-    .toolbar-button svg {
+    .checkbox {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #d9d9d9;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .checkbox-label:not(.disabled):hover .checkbox {
+      border-color: #1890ff;
+    }
+
+    .checkbox.all,
+    .checkbox.partial {
+      border-color: #1890ff;
+      background: #1890ff;
+      color: #fff;
+    }
+
+    .checkbox.none {
+      background: #fff;
+      color: transparent;
+    }
+
+    /* Ensure partial state dash is visible even if SVG fails */
+    .checkbox.partial::before {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 2px;
+      background: currentColor;
+      border-radius: 1px;
+    }
+
+    .checkbox svg {
       width: 16px;
       height: 16px;
-      stroke-width: 2;
+      position: relative;
+      z-index: 1;
+    }
+
+    .checkbox-text {
+      font-size: 14px;
+      color: #262626;
+      white-space: nowrap;
+    }
+
+    .checkbox-label.disabled .checkbox-text {
+      color: #bfbfbf;
     }
 
     .filter-group {

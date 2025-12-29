@@ -16,6 +16,7 @@
   "clear_search": "清除搜索",
   "select_all": "全选",
   "deselect_all": "取消全选",
+  "select_all_checkbox": "全选",
   "filter_by_type": "类型筛选",
   "all_types": "全部类型",
   "type_video": "视频",

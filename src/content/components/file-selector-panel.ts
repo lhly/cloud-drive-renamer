@@ -107,7 +107,9 @@ export class FileSelectorPanel extends LitElement {
    * Computed: selected files
    */
   private get selectedFiles(): FileItem[] {
-    return this.allFiles.filter(f => !this.uncheckList.has(f.id));
+    // IMPORTANT: selection is scoped to the current (filtered) file list.
+    // This keeps UI count/tri-state and execution scope consistent.
+    return this.filteredFiles.filter(f => !this.uncheckList.has(f.id));
   }
 
   /**
@@ -219,6 +221,7 @@ export class FileSelectorPanel extends LitElement {
    */
   private handleSearch(e: CustomEvent): void {
     this.searchQuery = e.detail.query;
+    this.updatePreview();
   }
 
   /**
@@ -226,8 +229,23 @@ export class FileSelectorPanel extends LitElement {
    * @private
    */
   private handleSelectAll(): void {
-    // Clear uncheckList = select all
-    this.uncheckList = new Set();
+    // Select all in current (filtered) list.
+    // Use reverse storage pattern: remove from uncheckList == select.
+    const targets = this.filteredFiles;
+    if (targets.length === 0) return;
+
+    // Fast path: no filter/search -> select all.
+    if (!this.searchQuery && this.typeFilter === 'all') {
+      this.uncheckList = new Set();
+      this.updatePreview();
+      return;
+    }
+
+    const next = new Set(this.uncheckList);
+    for (const file of targets) {
+      next.delete(file.id);
+    }
+    this.uncheckList = next;
     this.updatePreview();
   }
 
@@ -236,8 +254,23 @@ export class FileSelectorPanel extends LitElement {
    * @private
    */
   private handleDeselectAll(): void {
-    // Add all to uncheckList = deselect all
-    this.uncheckList = new Set(this.allFiles.map(f => f.id));
+    // Deselect all in current (filtered) list.
+    // Use reverse storage pattern: add to uncheckList == deselect.
+    const targets = this.filteredFiles;
+    if (targets.length === 0) return;
+
+    // Fast path: no filter/search -> deselect all.
+    if (!this.searchQuery && this.typeFilter === 'all') {
+      this.uncheckList = new Set(this.allFiles.map(f => f.id));
+      this.updatePreview();
+      return;
+    }
+
+    const next = new Set(this.uncheckList);
+    for (const file of targets) {
+      next.add(file.id);
+    }
+    this.uncheckList = next;
     this.updatePreview();
   }
 
@@ -247,6 +280,7 @@ export class FileSelectorPanel extends LitElement {
    */
   private handleTypeFilter(e: CustomEvent): void {
     this.typeFilter = e.detail.type;
+    this.updatePreview();
   }
 
   /**
@@ -283,8 +317,9 @@ export class FileSelectorPanel extends LitElement {
    */
   private updatePreview(): void {
     const nextNameMap = new Map<string, string>();
+    const selectedFiles = this.selectedFiles;
 
-    if (this.selectedFiles.length === 0) {
+    if (selectedFiles.length === 0) {
       this.newNameMap = nextNameMap;
       this.conflictIds = new Set();
       return;
@@ -309,8 +344,8 @@ export class FileSelectorPanel extends LitElement {
 
     try {
       // Apply rule to each selected file
-      this.selectedFiles.forEach((file, index) => {
-        const newName = rule!.execute(file.name, index, this.selectedFiles.length);
+      selectedFiles.forEach((file, index) => {
+        const newName = rule!.execute(file.name, index, selectedFiles.length);
         nextNameMap.set(file.id, newName);
       });
 
@@ -318,7 +353,7 @@ export class FileSelectorPanel extends LitElement {
       this.newNameMap = nextNameMap;
 
       // Detect conflicts
-      this.detectConflicts();
+      this.detectConflicts(selectedFiles);
     } catch (error) {
       const errorObj = error instanceof Error ? error : new Error(String(error));
       logger.error('[FileSelectorPanel] Failed to update preview:', errorObj);
@@ -331,11 +366,11 @@ export class FileSelectorPanel extends LitElement {
    * Detect naming conflicts
    * @private
    */
-  private detectConflicts(): void {
+  private detectConflicts(selectedFiles: FileItem[]): void {
     const nameMap = new Map<string, string>();
     const conflicts = new Set<string>();
 
-    for (const file of this.selectedFiles) {
+    for (const file of selectedFiles) {
       const newName = this.newNameMap.get(file.id);
       if (!newName || newName === file.name) continue;
 
@@ -441,6 +476,12 @@ export class FileSelectorPanel extends LitElement {
       return this.renderError();
     }
 
+    const filteredFiles = this.filteredFiles;
+    const filteredSelectedCount = filteredFiles.reduce(
+      (count, file) => count + (this.uncheckList.has(file.id) ? 0 : 1),
+      0
+    );
+
     return html`
       <div class="panel-overlay" @click=${this.handleClose}>
         <div class="panel-container" @click=${(e: Event) => e.stopPropagation()}>
@@ -467,11 +508,11 @@ export class FileSelectorPanel extends LitElement {
 
             <file-list-panel
               class="center-panel"
-              .files=${this.filteredFiles}
+              .files=${filteredFiles}
               .uncheckList=${this.uncheckList}
               .searchQuery=${this.searchQuery}
               .typeFilter=${this.typeFilter}
-              .selectedCount=${this.selectedFiles.length}
+              .selectedCount=${filteredSelectedCount}
               ?loading=${this.loading}
               ?disabled=${this.executing}
               @search=${this.handleSearch}

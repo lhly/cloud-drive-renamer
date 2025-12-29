@@ -16,6 +16,7 @@
   "clear_search": "Clear search",
   "select_all": "Select All",
   "deselect_all": "Deselect All",
+  "select_all_checkbox": "Select All",
   "filter_by_type": "Filter by Type",
   "all_types": "All Types",
   "type_video": "Video",
