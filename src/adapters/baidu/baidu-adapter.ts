@@ -14,6 +14,8 @@ interface BaiduAPIResponse<T = any> {
   request_id?: number;
   taskid?: number;
   data?: T;
+  // Some endpoints (e.g. /api/list) return `list` at top-level instead of inside `data`.
+  list?: any[];
 }
 
 /**
@@ -187,12 +189,15 @@ export class BaiduAdapter extends BasePlatformAdapter {
 
         const result: BaiduAPIResponse<{ list: BaiduFileListItem[] }> = await response.json();
 
-        if (result.errno !== 0 || !result.data?.list) {
+        if (result.errno !== 0) {
           const errorMsg = getErrorMessage(result.errno);
           throw new BaiduAPIError(result.errno, errorMsg, result);
         }
 
-        const pageFiles = result.data.list;
+        const pageFiles = (result.data?.list ?? result.list) as BaiduFileListItem[] | undefined;
+        if (!Array.isArray(pageFiles)) {
+          throw new Error('无法解析文件列表响应');
+        }
 
         // Filter out folders (only return files, isdir === 0)
         const files = pageFiles
@@ -203,7 +208,7 @@ export class BaiduAdapter extends BasePlatformAdapter {
               id: String(file.fs_id),
               name: file.server_filename,
               ext: ext,
-              parentId: file.path || targetPath,
+              parentId: targetPath,
               size: file.size,
               mtime: file.server_mtime ? file.server_mtime * 1000 : Date.now(),
             };
@@ -332,11 +337,16 @@ export class BaiduAdapter extends BasePlatformAdapter {
 
       const result: BaiduAPIResponse<{ list: BaiduFileListItem[] }> = await response.json();
 
-      if (result.errno === 0 && result.data?.list) {
-        return result.data.list.some(file => file.server_filename === fileName);
+      if (result.errno !== 0) {
+        return false;
       }
 
-      return false;
+      const list = (result.data?.list ?? result.list) as BaiduFileListItem[] | undefined;
+      if (!Array.isArray(list)) {
+        return false;
+      }
+
+      return list.some(file => file.server_filename === fileName);
     } catch (error) {
       logger.error('Failed to check name conflict:', error instanceof Error ? error : new Error(String(error)));
       return true; // Conservative on error
