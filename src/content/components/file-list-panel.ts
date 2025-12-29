@@ -77,6 +77,7 @@ export class FileListPanel extends LitElement {
    * @private
    */
   private handleSearch(e: CustomEvent): void {
+    e.stopPropagation();
     this.dispatchEvent(
       new CustomEvent('search', {
         detail: e.detail,
@@ -90,7 +91,8 @@ export class FileListPanel extends LitElement {
    * Handle select all event
    * @private
    */
-  private handleSelectAll(): void {
+  private handleSelectAll(e: Event): void {
+    e.stopPropagation();
     this.dispatchEvent(
       new CustomEvent('select-all', {
         bubbles: true,
@@ -103,7 +105,8 @@ export class FileListPanel extends LitElement {
    * Handle deselect all event
    * @private
    */
-  private handleDeselectAll(): void {
+  private handleDeselectAll(e: Event): void {
+    e.stopPropagation();
     this.dispatchEvent(
       new CustomEvent('deselect-all', {
         bubbles: true,
@@ -117,6 +120,7 @@ export class FileListPanel extends LitElement {
    * @private
    */
   private handleTypeFilter(e: CustomEvent): void {
+    e.stopPropagation();
     this.dispatchEvent(
       new CustomEvent('type-filter', {
         detail: e.detail,
@@ -131,6 +135,7 @@ export class FileListPanel extends LitElement {
    * @private
    */
   private handleFileToggle(e: CustomEvent): void {
+    e.stopPropagation();
     this.dispatchEvent(
       new CustomEvent('file-toggle', {
         detail: e.detail,

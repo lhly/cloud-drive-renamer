@@ -1,6 +1,6 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { virtualize } from '@lit-labs/virtualizer/virtualize.js';
+import { virtualize, virtualizerRef } from '@lit-labs/virtualizer/virtualize.js';
 import { FileItem } from '../../types/platform';
 
 /**
@@ -21,6 +21,8 @@ import { FileItem } from '../../types/platform';
  */
 @customElement('virtual-file-list')
 export class VirtualFileList extends LitElement {
+  private static readonly VIRTUALIZE_MIN_ITEMS = 200;
+
   /**
    * Array of files to display
    */
@@ -38,6 +40,45 @@ export class VirtualFileList extends LitElement {
    */
   @property({ type: Boolean })
   disabled = false;
+
+  /**
+   * Track if virtualizer has been initialized for current data
+   * @private
+   */
+  private _virtualizerInitialized = false;
+  private _filesKey: string | null = null;
+
+  private shouldVirtualize(): boolean {
+    return this.files.length > VirtualFileList.VIRTUALIZE_MIN_ITEMS;
+  }
+
+  private computeFilesKey(files: FileItem[]): string {
+    const len = files.length;
+    if (len === 0) return '0';
+
+    const sample = [
+      files[0]?.id,
+      files[1]?.id,
+      files[2]?.id,
+      files[len - 3]?.id,
+      files[len - 2]?.id,
+      files[len - 1]?.id,
+    ]
+      .filter(Boolean)
+      .join('|');
+
+    return `${len}:${sample}`;
+  }
+
+  private kickVirtualizer(): void {
+    const host = this.renderRoot.querySelector('.file-list') as HTMLElement | null;
+    if (!host) return;
+
+    const virtualizer = (host as any)[virtualizerRef] as { _hostElementSizeChanged?: () => void } | undefined;
+    if (!virtualizer || typeof virtualizer._hostElementSizeChanged !== 'function') return;
+
+    virtualizer._hostElementSizeChanged();
+  }
 
   /**
    * Handle checkbox toggle
@@ -115,6 +156,44 @@ export class VirtualFileList extends LitElement {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
+  /**
+   * Handle property updates with virtualizer initialization
+   * @private
+   */
+  protected updated(changedProperties: PropertyValues<this>): void {
+    super.updated(changedProperties);
+
+    if (changedProperties.has('files') && this.files.length > 0) {
+      const nextKey = this.computeFilesKey(this.files);
+      if (nextKey !== this._filesKey) {
+        this._filesKey = nextKey;
+        this._virtualizerInitialized = false;
+      }
+
+      if (!this.shouldVirtualize()) {
+        return;
+      }
+
+      // CRITICAL FIX: Safely refresh virtualizer when files change
+      // Only do this once per data load to prevent infinite loops
+      if (!this._virtualizerInitialized) {
+        this._virtualizerInitialized = true;
+
+        // Delay to next frame to ensure layout is stable
+        // Double RAF ensures virtualizer has time to calculate viewport height
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            this.kickVirtualizer();
+          });
+        });
+      }
+    } else if (this.files.length === 0) {
+      // Reset flag when files are cleared
+      this._virtualizerInitialized = false;
+      this._filesKey = null;
+    }
+  }
+
   render() {
     if (this.files.length === 0) {
       return html`
@@ -129,10 +208,13 @@ export class VirtualFileList extends LitElement {
 
     return html`
       <div class="file-list">
-        ${virtualize({
-          items: this.files,
-          renderItem: (file) => this.renderFileItem(file),
-        })}
+        ${this.shouldVirtualize()
+          ? virtualize({
+              items: this.files,
+              keyFunction: (file) => file.id,
+              renderItem: (file) => this.renderFileItem(file),
+            })
+          : this.files.map((file) => this.renderFileItem(file))}
       </div>
     `;
   }
@@ -145,7 +227,10 @@ export class VirtualFileList extends LitElement {
     }
 
     .file-list {
+      height: 100%;
+      min-height: 0;
       padding: 8px;
+      box-sizing: border-box;
     }
 
     .file-item {

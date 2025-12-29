@@ -1,6 +1,6 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { virtualize } from '@lit-labs/virtualizer/virtualize.js';
+import { virtualize, virtualizerRef } from '@lit-labs/virtualizer/virtualize.js';
 import { PreviewItem } from '../../types/file-selector';
 
 /**
@@ -16,11 +16,52 @@ import { PreviewItem } from '../../types/file-selector';
  */
 @customElement('virtual-preview-list')
 export class VirtualPreviewList extends LitElement {
+  private static readonly VIRTUALIZE_MIN_ITEMS = 200;
+
   /**
    * Array of preview items to display
    */
   @property({ type: Array })
   items: PreviewItem[] = [];
+
+  /**
+   * Track if virtualizer has been initialized for current data
+   * @private
+   */
+  private _virtualizerInitialized = false;
+  private _itemsKey: string | null = null;
+
+  private shouldVirtualize(): boolean {
+    return this.items.length > VirtualPreviewList.VIRTUALIZE_MIN_ITEMS;
+  }
+
+  private computeItemsKey(items: PreviewItem[]): string {
+    const len = items.length;
+    if (len === 0) return '0';
+
+    const sample = [
+      items[0]?.file?.id,
+      items[1]?.file?.id,
+      items[2]?.file?.id,
+      items[len - 3]?.file?.id,
+      items[len - 2]?.file?.id,
+      items[len - 1]?.file?.id,
+    ]
+      .filter(Boolean)
+      .join('|');
+
+    return `${len}:${sample}`;
+  }
+
+  private kickVirtualizer(): void {
+    const host = this.renderRoot.querySelector('.preview-list') as HTMLElement | null;
+    if (!host) return;
+
+    const virtualizer = (host as any)[virtualizerRef] as { _hostElementSizeChanged?: () => void } | undefined;
+    if (!virtualizer || typeof virtualizer._hostElementSizeChanged !== 'function') return;
+
+    virtualizer._hostElementSizeChanged();
+  }
 
   /**
    * Render a single preview item
@@ -101,6 +142,44 @@ export class VirtualPreviewList extends LitElement {
     `;
   }
 
+  /**
+   * Handle property updates with virtualizer initialization
+   * @private
+   */
+  protected updated(changedProperties: PropertyValues<this>): void {
+    super.updated(changedProperties);
+
+    if (changedProperties.has('items') && this.items.length > 0) {
+      const nextKey = this.computeItemsKey(this.items);
+      if (nextKey !== this._itemsKey) {
+        this._itemsKey = nextKey;
+        this._virtualizerInitialized = false;
+      }
+
+      if (!this.shouldVirtualize()) {
+        return;
+      }
+
+      // CRITICAL FIX: Safely refresh virtualizer when items change
+      // Only do this once per data load to prevent infinite loops
+      if (!this._virtualizerInitialized) {
+        this._virtualizerInitialized = true;
+
+        // Delay to next frame to ensure layout is stable
+        // Double RAF ensures virtualizer has time to calculate viewport height
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            this.kickVirtualizer();
+          });
+        });
+      }
+    } else if (this.items.length === 0) {
+      // Reset flag when items are cleared
+      this._virtualizerInitialized = false;
+      this._itemsKey = null;
+    }
+  }
+
   render() {
     if (this.items.length === 0) {
       return html`
@@ -116,10 +195,13 @@ export class VirtualPreviewList extends LitElement {
 
     return html`
       <div class="preview-list">
-        ${virtualize({
-          items: this.items,
-          renderItem: (item) => this.renderPreviewItem(item),
-        })}
+        ${this.shouldVirtualize()
+          ? virtualize({
+              items: this.items,
+              keyFunction: (item) => item.file.id,
+              renderItem: (item) => this.renderPreviewItem(item),
+            })
+          : this.items.map((item) => this.renderPreviewItem(item))}
       </div>
     `;
   }
@@ -132,7 +214,10 @@ export class VirtualPreviewList extends LitElement {
     }
 
     .preview-list {
+      height: 100%;
+      min-height: 0;
       padding: 8px;
+      box-sizing: border-box;
     }
 
     .preview-item {
