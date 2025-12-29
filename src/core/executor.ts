@@ -12,6 +12,8 @@ export interface BatchExecutorOptions {
   requestInterval: number;
   /** 是否跳过无需变更的任务（默认不跳过，保持与平台行为一致） */
   skipUnchanged?: boolean;
+  /** 自定义任务列表（可选，用于重试等场景，优先级高于 rule 生成的任务） */
+  tasks?: Task[];
   /** 进度回调 */
   onProgress?: (progress: ProgressEvent) => void;
   /** 完成回调 */
@@ -105,7 +107,10 @@ export class BatchExecutor {
 
     try {
       // 准备所有重命名任务
-      const tasks = this.prepareTasks();
+      const preparedTasks = this.options.tasks ?? this.prepareTasks();
+      const tasks = this.options.skipUnchanged
+        ? preparedTasks.filter((task) => task.newName !== task.file.name)
+        : preparedTasks;
       this.tasks = tasks;
 
       if (tasks.length === 0) {
