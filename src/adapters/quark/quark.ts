@@ -268,11 +268,6 @@ export class QuarkAdapter extends BasePlatformAdapter {
       return { success: true, method: 'none' };
     }
 
-    logger.info('[DIAG-SYNC-QUARK] syncAfterRename start', {
-      renameCount: renameInfoById.size,
-      hasOldName: renameByOldName.size,
-    });
-
     // Always patch visible DOM for immediate feedback
     const patchedById = this.applyRenameMappingToDomById(renameInfoById);
     const patchedByOldName = this.applyRenameMappingToDomByOldName(renameByOldName);
@@ -282,17 +277,6 @@ export class QuarkAdapter extends BasePlatformAdapter {
 
     // Best effort: trigger Quark's own re-render so it can rebuild native filename DOM (icon/wrap/etc.)
     const rerender = await this.tryTriggerNativeFileListRerender(renameInfoById);
-
-    logger.info('[DIAG-SYNC-QUARK] syncAfterRename patch result', {
-      rerender,
-      patchedById,
-      patchedByOldName,
-      patchedCount,
-      dom: {
-        hasDataFileId: document.querySelectorAll('[data-file-id]').length,
-        hasFileNameClass: document.querySelectorAll('.file-name').length,
-      },
-    });
 
     if (rerender.triggered) {
       return { success: true, method: 'ui-refresh', message: rerender.message };

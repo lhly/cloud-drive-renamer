@@ -77,6 +77,12 @@ export class ConfigPanel extends LitElement {
   syncMessage: string | null = null;
 
   /**
+   * Whether sync is supported by the current adapter (optional)
+   */
+  @property({ type: Boolean })
+  syncSupported = false;
+
+  /**
    * Current selected rule type
    */
   @state()
@@ -235,6 +241,7 @@ export class ConfigPanel extends LitElement {
           : this.syncStatus === 'failed'
             ? I18nService.t('sync_failed')
             : '';
+    const showSyncStatus = Boolean(syncText) || Boolean(this.syncMessage);
 
     return html`
       <div class="execution-view">
@@ -270,10 +277,17 @@ export class ConfigPanel extends LitElement {
           </div>
         </div>
 
-        ${this.finished
+        ${this.finished && showSyncStatus
           ? html`
               <div class="sync-status ${this.syncStatus}">
                 ${syncText}${this.syncMessage ? `：${this.syncMessage}` : ''}
+                ${this.syncSupported && this.syncStatus === 'failed'
+                  ? html`
+                      <button class="sync-retry" @click=${this.handleSync}>
+                        ${I18nService.t('sync_retry')}
+                      </button>
+                    `
+                  : ''}
               </div>
             `
           : ''}
@@ -295,13 +309,15 @@ export class ConfigPanel extends LitElement {
       `;
     }
 
+    const failed = this.progress?.failed ?? 0;
+
     return html`
       <div class="execution-actions">
-        <button class="button button-primary" ?disabled=${this.syncStatus === 'syncing'} @click=${this.handleSync}>
-          ${I18nService.t('sync_list')}
+        <button class="button button-primary" ?disabled=${failed <= 0} @click=${this.handleRetry}>
+          ${I18nService.t('retry')}
         </button>
-        <button class="button button-default" @click=${this.handleClose}>
-          ${I18nService.t('close')}
+        <button class="button button-default" @click=${this.handleBack}>
+          ${I18nService.t('back')}
         </button>
       </div>
     `;
@@ -335,9 +351,18 @@ export class ConfigPanel extends LitElement {
     );
   }
 
-  private handleClose(): void {
+  private handleRetry(): void {
     this.dispatchEvent(
-      new CustomEvent('close', {
+      new CustomEvent('retry', {
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private handleBack(): void {
+    this.dispatchEvent(
+      new CustomEvent('back', {
         bubbles: true,
         composed: true,
       })
@@ -747,6 +772,20 @@ export class ConfigPanel extends LitElement {
       color: #0958d9;
       background: #e6f4ff;
       border-color: #91caff;
+    }
+
+    .sync-retry {
+      margin-left: 8px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: #1677ff;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .sync-retry:hover {
+      text-decoration: underline;
     }
 
     .execution-actions {

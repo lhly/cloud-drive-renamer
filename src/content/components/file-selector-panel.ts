@@ -592,7 +592,6 @@ export class FileSelectorPanel extends LitElement {
       const result = await this.adapter.syncAfterRename(renames);
       this.syncStatus = result.success ? 'success' : 'failed';
       this.syncMessage = result.success ? null : result.message || null;
-      logger.info('[DIAG-SYNC] syncAfterRename result', result);
     } catch (error) {
       const errorObj = error instanceof Error ? error : new Error(String(error));
       this.syncStatus = 'failed';
@@ -639,6 +638,95 @@ export class FileSelectorPanel extends LitElement {
 
   private handleSync(): void {
     void this.syncAfterRename();
+  }
+
+  private async handleRetryFailed(): Promise<void> {
+    if (this.executing || !this.executionFinished) {
+      return;
+    }
+
+    const failedIds = new Set(this.executionItems.filter((item) => item.done === false).map((item) => item.file.id));
+    if (failedIds.size === 0) {
+      return;
+    }
+
+    try {
+      this.executing = true;
+      this.executorState = ExecutorState.RUNNING;
+      this.syncStatus = 'idle';
+      this.syncMessage = null;
+
+      // Reset only failed items back to pending
+      this.executionItems = this.executionItems.map((item) => {
+        if (!failedIds.has(item.file.id)) return item;
+        return { ...item, done: undefined, error: undefined };
+      });
+
+      const tasks = this.executionItems
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => failedIds.has(item.file.id))
+        .map(({ item, index }) => ({
+          file: item.file,
+          newName: item.newName,
+          index,
+        }));
+
+      const retryFiles = tasks.map((task) => task.file);
+      if (retryFiles.length === 0) {
+        return;
+      }
+
+      this.progress = {
+        completed: 0,
+        total: retryFiles.length,
+        currentFile: '',
+        success: 0,
+        failed: 0,
+      };
+
+      const executor = new BatchExecutor(retryFiles, this.ruleConfig, this.adapter, {
+        requestInterval: this.adapter.getConfig().requestInterval,
+        tasks,
+        onProgress: (progress) => {
+          this.handleProgress(progress);
+        },
+      });
+      this.executor = executor;
+
+      const results = await executor.execute();
+      this.executionResults = results;
+      this.executorState = executor.getState();
+
+      this.applyExecutionResults(results);
+      this.updateSummaryProgress();
+      void this.syncAfterRename();
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      this.error = errorObj.message;
+      logger.error('[FileSelectorPanel] Retry failed:', errorObj);
+    } finally {
+      this.executing = false;
+    }
+  }
+
+  private handleBack(): void {
+    this.resetExecutionState();
+  }
+
+  private updateSummaryProgress(): void {
+    if (!this.executionItems.length) return;
+
+    const success = this.executionItems.filter((item) => item.done === true).length;
+    const failed = this.executionItems.filter((item) => item.done === false).length;
+    const completed = success + failed;
+
+    this.progress = {
+      completed,
+      total: this.executionItems.length,
+      currentFile: '',
+      success,
+      failed,
+    };
   }
 
   private resetExecutionState(): void {
@@ -712,12 +800,14 @@ export class FileSelectorPanel extends LitElement {
               .paused=${this.executorState === ExecutorState.PAUSED}
               .syncStatus=${this.syncStatus}
               .syncMessage=${this.syncMessage}
+              .syncSupported=${!!this.adapter.syncAfterRename}
               @config-change=${this.handleConfigChange}
               @execute=${this.handleExecute}
               @pause=${this.handlePause}
               @cancel=${this.handleCancel}
               @sync=${this.handleSync}
-              @close=${this.handleClose}
+              @retry=${this.handleRetryFailed}
+              @back=${this.handleBack}
             ></config-panel>
 
             <file-list-panel

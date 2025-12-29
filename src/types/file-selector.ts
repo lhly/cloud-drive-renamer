@@ -55,5 +55,7 @@ export interface FileSelectorEvents {
   'type-filter': { type: FileType | 'all' };
   'config-change': RuleConfig;
   'execute': void;
+  'retry': void;
+  'back': void;
   'panel-close': void;
 }
