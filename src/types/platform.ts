@@ -38,6 +38,18 @@ export interface RenameResult {
 }
 
 /**
+ * 执行重命名后尝试同步页面文件列表的结果
+ */
+export interface PageSyncResult {
+  /** 是否同步成功（至少让页面可见列表更新） */
+  success: boolean;
+  /** 使用的方法 */
+  method: 'ui-refresh' | 'dom-patch' | 'none';
+  /** 可选说明信息 */
+  message?: string;
+}
+
+/**
  * 平台适配器接口
  * 所有云盘平台必须实现此接口
  */
@@ -69,6 +81,14 @@ export interface PlatformAdapter {
    * @returns 重命名结果
    */
   renameFile(fileId: string, newName: string): Promise<RenameResult>;
+
+  /**
+   * 执行重命名后，同步当前页面文件列表（可选实现）
+   * 用于避免用户必须手动刷新页面才能看到新文件名
+   */
+  syncAfterRename?(
+    renames: Array<{ fileId: string; oldName?: string; newName: string }>
+  ): Promise<PageSyncResult>;
 
   /**
    * 检查文件名是否冲突

@@ -1,4 +1,4 @@
-import { FileItem, PlatformAdapter, RenameResult } from '../types/platform';
+import { FileItem, PlatformAdapter } from '../types/platform';
 import { RuleConfig } from '../types/rule';
 import { ProgressEvent, BatchResults, Task } from '../types/core';
 import { sleep } from '../utils/helpers';
@@ -10,6 +10,8 @@ import { RuleFactory } from '../rules/rule-factory';
 export interface BatchExecutorOptions {
   /** 请求间隔(毫秒) */
   requestInterval: number;
+  /** 是否跳过无需变更的任务（默认不跳过，保持与平台行为一致） */
+  skipUnchanged?: boolean;
   /** 进度回调 */
   onProgress?: (progress: ProgressEvent) => void;
   /** 完成回调 */
@@ -60,9 +62,14 @@ export class BatchExecutor {
     failed: [],
   };
   private startTime: number = 0;
+  private tasks: Task[] = [];
   private pausePromise: Promise<void> | null = null;
   private pauseResolver: (() => void) | null = null;
   private abortController: AbortController | null = null;
+
+  private isCancelled(): boolean {
+    return this.state === ExecutorState.CANCELLED;
+  }
 
   constructor(
     private files: FileItem[],
@@ -94,10 +101,18 @@ export class BatchExecutor {
     this.startTime = Date.now();
     this.abortController = new AbortController();
     this.results = { success: [], failed: [] };
+    this.tasks = [];
 
     try {
       // 准备所有重命名任务
       const tasks = this.prepareTasks();
+      this.tasks = tasks;
+
+      if (tasks.length === 0) {
+        this.state = ExecutorState.COMPLETED;
+        this.options.onComplete?.(this.results);
+        return this.results;
+      }
 
       // 并发执行,但控制请求间隔
       const promises = tasks.map((task, i) =>
@@ -107,7 +122,10 @@ export class BatchExecutor {
       // 等待所有任务完成
       await Promise.allSettled(promises);
 
-      this.state = ExecutorState.COMPLETED;
+      // 保持 CANCELLED 状态，避免被覆盖为 COMPLETED
+      if (!this.isCancelled()) {
+        this.state = ExecutorState.COMPLETED;
+      }
       this.options.onComplete?.(this.results);
 
       return this.results;
@@ -192,6 +210,10 @@ export class BatchExecutor {
       index,
     }));
 
+    if (this.options.skipUnchanged) {
+      return tasks.filter((task) => task.newName !== task.file.name);
+    }
+
     return tasks;
   }
 
@@ -204,7 +226,7 @@ export class BatchExecutor {
     await sleep(delay);
 
     // 检查是否已取消
-    if (this.state === ExecutorState.CANCELLED) {
+    if (this.isCancelled()) {
       return;
     }
 
@@ -213,35 +235,41 @@ export class BatchExecutor {
       await this.pausePromise;
     }
 
-    // 再次检查是否已取消
-    // Note: CANCELLED state check removed due to type overlap issue
-    // The state will be checked through other means if needed
+    // 再次检查是否已取消（可能发生在暂停期间）
+    if (this.isCancelled()) {
+      return;
+    }
 
     try {
       const result = await this.adapter.renameFile(task.file.id, task.newName);
 
       if (result.success) {
         this.results.success.push({
+          fileId: task.file.id,
           original: task.file.name,
           renamed: task.newName,
           index: task.index,
         });
-        this.emitProgress(task, result);
+        this.emitProgress(task, 'success');
       } else {
+        const errorMessage = result.error?.message || 'Unknown error';
         this.results.failed.push({
+          fileId: task.file.id,
           file: task.file,
-          error: result.error?.message || 'Unknown error',
+          error: errorMessage,
           index: task.index,
         });
-        this.emitProgress(task, result);
+        this.emitProgress(task, 'failed', errorMessage);
       }
     } catch (error) {
+      const errorMessage = (error as Error).message;
       this.results.failed.push({
+        fileId: task.file.id,
         file: task.file,
-        error: (error as Error).message,
+        error: errorMessage,
         index: task.index,
       });
-      this.emitProgress(task, undefined, error as Error);
+      this.emitProgress(task, 'failed', errorMessage);
     }
   }
 
@@ -249,13 +277,17 @@ export class BatchExecutor {
    * 发射进度事件
    * @private
    */
-  private emitProgress(task: Task, _result?: RenameResult, _error?: Error): void {
+  private emitProgress(task: Task, status: 'success' | 'failed', errorMessage?: string): void {
     const progress: ProgressEvent = {
       completed: this.results.success.length + this.results.failed.length,
-      total: this.files.length,
+      total: this.tasks.length || this.files.length,
       currentFile: task.file.name,
       success: this.results.success.length,
       failed: this.results.failed.length,
+      fileId: task.file.id,
+      newName: task.newName,
+      status,
+      error: status === 'failed' ? errorMessage : undefined,
     };
 
     this.options.onProgress?.(progress);
@@ -272,7 +304,8 @@ export class BatchExecutor {
 
     const elapsed = Date.now() - this.startTime;
     const avgTimePerFile = elapsed / completed;
-    const remaining = this.files.length - completed;
+    const total = this.tasks.length || this.files.length;
+    const remaining = total - completed;
 
     return Math.ceil(avgTimePerFile * remaining);
   }
@@ -282,7 +315,7 @@ export class BatchExecutor {
    */
   getStatistics() {
     const completed = this.results.success.length + this.results.failed.length;
-    const total = this.files.length;
+    const total = this.tasks.length || this.files.length;
     const elapsed = Date.now() - this.startTime;
 
     return {

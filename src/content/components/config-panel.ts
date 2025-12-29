@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { RuleType, RuleConfig } from '../../types/rule';
+import { ProgressEvent } from '../../types/core';
 import { I18nService } from '../../utils/i18n';
 
 /**
@@ -44,6 +45,36 @@ export class ConfigPanel extends LitElement {
    */
   @property({ type: Boolean })
   executing = false;
+
+  /**
+   * Execution progress (only when executing/finished)
+   */
+  @property({ type: Object })
+  progress: ProgressEvent | null = null;
+
+  /**
+   * Whether the last execution has finished (including cancelled)
+   */
+  @property({ type: Boolean })
+  finished = false;
+
+  /**
+   * Whether executor is paused
+   */
+  @property({ type: Boolean })
+  paused = false;
+
+  /**
+   * Page list sync status after rename
+   */
+  @property({ type: String })
+  syncStatus: 'idle' | 'syncing' | 'success' | 'failed' = 'idle';
+
+  /**
+   * Optional sync message
+   */
+  @property({ type: String })
+  syncMessage: string | null = null;
 
   /**
    * Current selected rule type
@@ -149,6 +180,7 @@ export class ConfigPanel extends LitElement {
   render() {
     const canExecute = this.selectedCount > 0 && !this.disabled && !this.executing;
     const hasConflicts = this.conflictCount > 0;
+    const showExecutionView = this.executing || this.finished;
 
     return html`
       <div class="config-panel">
@@ -157,12 +189,11 @@ export class ConfigPanel extends LitElement {
         </div>
 
         <div class="panel-body">
-          ${this.renderRuleSelector()}
-          ${this.renderRuleConfig()}
+          ${showExecutionView ? this.renderExecutionView() : html`${this.renderRuleSelector()}${this.renderRuleConfig()}`}
         </div>
 
         <div class="panel-footer">
-          ${hasConflicts
+          ${!showExecutionView && hasConflicts
             ? html`
                 <div class="warning-message">
                   ⚠️ 检测到 ${this.conflictCount} 个冲突
@@ -170,17 +201,147 @@ export class ConfigPanel extends LitElement {
               `
             : ''}
 
-          <button
-            class="button button-primary button-execute"
-            ?disabled=${!canExecute}
-            @click=${this.handleExecute}
-          >
-            ${this.executing ? I18nService.t('executing') : I18nService.t('execute_rename')}
-            ${this.selectedCount > 0 ? ` (${this.selectedCount})` : ''}
-          </button>
+          ${showExecutionView
+            ? this.renderExecutionActions()
+            : html`
+                <button
+                  class="button button-primary button-execute"
+                  ?disabled=${!canExecute}
+                  @click=${this.handleExecute}
+                >
+                  ${this.executing ? I18nService.t('executing') : I18nService.t('execute_rename')}
+                  ${this.selectedCount > 0 ? ` (${this.selectedCount})` : ''}
+                </button>
+              `}
         </div>
       </div>
     `;
+  }
+
+  private renderExecutionView() {
+    const progress = this.progress;
+    const total = progress?.total ?? 0;
+    const completed = progress?.completed ?? 0;
+    const success = progress?.success ?? 0;
+    const failed = progress?.failed ?? 0;
+    const remaining = Math.max(0, total - completed);
+    const percentage = total > 0 ? (completed / total) * 100 : 0;
+
+    const syncText =
+      this.syncStatus === 'syncing'
+        ? I18nService.t('syncing_list')
+        : this.syncStatus === 'success'
+          ? I18nService.t('sync_success')
+          : this.syncStatus === 'failed'
+            ? I18nService.t('sync_failed')
+            : '';
+
+    return html`
+      <div class="execution-view">
+        <div class="execution-title">
+          ${this.executing ? I18nService.t('progress_dialog_title') : I18nService.t('execution_finished_title')}
+        </div>
+
+        <div class="progress-bar-container" role="progressbar" aria-valuenow=${percentage.toFixed(1)} aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar" style="width: ${percentage}%"></div>
+        </div>
+
+        <div class="progress-text">
+          <span class="percentage">${percentage.toFixed(1)}%</span>
+          <span>${completed} / ${total}</span>
+        </div>
+
+        <div class="current-file" title=${progress?.currentFile || ''}>
+          <strong>${I18nService.t('progress_current_file')}</strong>${progress?.currentFile || '-'}
+        </div>
+
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-label">${I18nService.t('progress_success')}</div>
+            <div class="stat-value success">${success}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">${I18nService.t('progress_failed')}</div>
+            <div class="stat-value failed">${failed}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">${I18nService.t('progress_remaining')}</div>
+            <div class="stat-value">${remaining}</div>
+          </div>
+        </div>
+
+        ${this.finished
+          ? html`
+              <div class="sync-status ${this.syncStatus}">
+                ${syncText}${this.syncMessage ? `：${this.syncMessage}` : ''}
+              </div>
+            `
+          : ''}
+      </div>
+    `;
+  }
+
+  private renderExecutionActions() {
+    if (this.executing) {
+      return html`
+        <div class="execution-actions">
+          <button class="button button-default" @click=${this.handlePauseToggle}>
+            ${this.paused ? I18nService.t('progress_button_resume') : I18nService.t('progress_button_pause')}
+          </button>
+          <button class="button button-danger" @click=${this.handleCancel}>
+            ${I18nService.t('progress_button_cancel')}
+          </button>
+        </div>
+      `;
+    }
+
+    return html`
+      <div class="execution-actions">
+        <button class="button button-primary" ?disabled=${this.syncStatus === 'syncing'} @click=${this.handleSync}>
+          ${I18nService.t('sync_list')}
+        </button>
+        <button class="button button-default" @click=${this.handleClose}>
+          ${I18nService.t('close')}
+        </button>
+      </div>
+    `;
+  }
+
+  private handlePauseToggle(): void {
+    this.dispatchEvent(
+      new CustomEvent('pause', {
+        detail: { isPaused: !this.paused },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private handleCancel(): void {
+    this.dispatchEvent(
+      new CustomEvent('cancel', {
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private handleSync(): void {
+    this.dispatchEvent(
+      new CustomEvent('sync', {
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private handleClose(): void {
+    this.dispatchEvent(
+      new CustomEvent('close', {
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 
   /**
@@ -472,6 +633,128 @@ export class ConfigPanel extends LitElement {
       flex-shrink: 0;
     }
 
+    .execution-view {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .execution-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #262626;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #1890ff, #52c41a);
+      transition: width 0.25s ease;
+    }
+
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .percentage {
+      font-weight: 600;
+      color: #262626;
+    }
+
+    .current-file {
+      background: #fafafa;
+      border: 1px solid #f0f0f0;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #666;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .current-file strong {
+      color: #262626;
+      margin-right: 8px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 10px 12px;
+      background: #fafafa;
+      border: 1px solid #f0f0f0;
+      border-radius: 6px;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #8c8c8c;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #262626;
+    }
+
+    .stat-value.success {
+      color: #52c41a;
+    }
+
+    .stat-value.failed {
+      color: #ff4d4f;
+    }
+
+    .sync-status {
+      font-size: 12px;
+      color: #595959;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: #fafafa;
+    }
+
+    .sync-status.success {
+      color: #389e0d;
+      background: #f6ffed;
+      border-color: #b7eb8f;
+    }
+
+    .sync-status.failed {
+      color: #cf1322;
+      background: #fff1f0;
+      border-color: #ffa39e;
+    }
+
+    .sync-status.syncing {
+      color: #0958d9;
+      background: #e6f4ff;
+      border-color: #91caff;
+    }
+
+    .execution-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
     .rule-selector {
       margin-bottom: 24px;
     }
@@ -611,6 +894,30 @@ export class ConfigPanel extends LitElement {
       background: #096dd9;
     }
 
+    .button-default {
+      background: #fff;
+      color: #595959;
+      border: 1px solid #d9d9d9;
+    }
+
+    .button-default:hover:not(:disabled) {
+      border-color: #1890ff;
+      color: #1890ff;
+    }
+
+    .button-danger {
+      background: #ff4d4f;
+      color: #fff;
+    }
+
+    .button-danger:hover:not(:disabled) {
+      background: #ff7875;
+    }
+
+    .button-danger:active:not(:disabled) {
+      background: #cf1322;
+    }
+
     .button:disabled {
       background: #f5f5f5;
       color: #bfbfbf;
@@ -620,6 +927,11 @@ export class ConfigPanel extends LitElement {
     .button-execute {
       font-size: 15px;
       padding: 12px 16px;
+    }
+
+    .execution-actions .button {
+      width: auto;
+      flex: 1;
     }
   `;
 }

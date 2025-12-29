@@ -12,6 +12,14 @@ export interface ProgressEvent {
   success: number;
   /** 失败数量 */
   failed: number;
+  /** 当前完成的文件ID（可选） */
+  fileId?: string;
+  /** 当前完成的目标文件名（可选） */
+  newName?: string;
+  /** 当前完成任务状态（可选） */
+  status?: 'success' | 'failed';
+  /** 失败原因（可选） */
+  error?: string;
 }
 
 /**
@@ -20,12 +28,14 @@ export interface ProgressEvent {
 export interface BatchResults {
   /** 成功的结果 */
   success: Array<{
+    fileId: string;
     original: string;
     renamed: string;
     index: number;
   }>;
   /** 失败的结果 */
   failed: Array<{
+    fileId: string;
     file: any;
     error: string;
     index: number;

@@ -4,8 +4,10 @@ import { FileItem, PlatformAdapter } from '../../types/platform';
 import { FileType, PreviewItem } from '../../types/file-selector';
 import { RuleConfig } from '../../types/rule';
 import { RuleFactory } from '../../rules/rule-factory';
-import { BatchExecutor } from '../../core/executor';
+import { BatchExecutor, ExecutorState } from '../../core/executor';
+import { BatchResults, ProgressEvent } from '../../types/core';
 import { I18nService } from '../../utils/i18n';
+import { parseFileName } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 import './config-panel';
 import './file-list-panel';
@@ -16,7 +18,6 @@ import './preview-panel';
  * Main three-panel container with complete state management
  *
  * @fires panel-close - Dispatched when panel is closed
- * @fires execution-complete - Dispatched when batch execution completes
  *
  * @example
  * ```html
@@ -98,6 +99,41 @@ export class FileSelectorPanel extends LitElement {
   private executing = false;
 
   /**
+   * Executor runtime state
+   */
+  @state()
+  private executorState: ExecutorState = ExecutorState.IDLE;
+
+  /**
+   * Current execution progress
+   */
+  @state()
+  private progress: ProgressEvent | null = null;
+
+  /**
+   * Items displayed during/after execution (with status)
+   */
+  @state()
+  private executionItems: PreviewItem[] = [];
+
+  /**
+   * Last execution results (used for summary and sync)
+   */
+  @state()
+  private executionResults: BatchResults | null = null;
+
+  /**
+   * Page list sync status after rename
+   */
+  @state()
+  private syncStatus: 'idle' | 'syncing' | 'success' | 'failed' = 'idle';
+
+  @state()
+  private syncMessage: string | null = null;
+
+  private executor: BatchExecutor | null = null;
+
+  /**
    * Error message
    */
   @state()
@@ -147,6 +183,10 @@ export class FileSelectorPanel extends LitElement {
       .filter(item => item.newName !== item.file.name);
   }
 
+  private get executionFinished(): boolean {
+    return this.executorState === ExecutorState.COMPLETED || this.executorState === ExecutorState.CANCELLED;
+  }
+
   /**
    * Load all files when panel opens
    */
@@ -154,6 +194,7 @@ export class FileSelectorPanel extends LitElement {
     super.connectedCallback();
 
     if (this.open) {
+      this.resetExecutionState();
       await this.loadAllFiles();
     }
   }
@@ -162,6 +203,7 @@ export class FileSelectorPanel extends LitElement {
     super.updated(changedProperties);
 
     if (changedProperties.has('open') && this.open) {
+      this.resetExecutionState();
       void this.loadAllFiles();
     }
   }
@@ -395,6 +437,12 @@ export class FileSelectorPanel extends LitElement {
       return;
     }
 
+    const executionPlan = this.previewList;
+    if (executionPlan.length === 0) {
+      alert(I18nService.t('no_rename_needed'));
+      return;
+    }
+
     // Confirm if there are conflicts
     if (this.conflictIds.size > 0) {
       const conflictMessage = `检测到 ${this.conflictIds.size} 个冲突，是否继续？`;
@@ -406,20 +454,22 @@ export class FileSelectorPanel extends LitElement {
     }
 
     try {
+      this.resetExecutionState();
       this.executing = true;
+      this.executorState = ExecutorState.RUNNING;
 
-      // Prepare rename tasks
-      const tasks = this.selectedFiles
-        .filter(f => {
-          const newName = this.newNameMap.get(f.id);
-          return newName && newName !== f.name;
-        })
-        .map(f => ({
-          file: f,
-          newName: this.newNameMap.get(f.id)!,
-        }));
-
-      logger.info(`[FileSelectorPanel] Executing ${tasks.length} rename tasks`);
+      this.executionItems = executionPlan.map((item) => ({
+        ...item,
+        done: undefined,
+        error: undefined,
+      }));
+      this.progress = {
+        completed: 0,
+        total: this.executionItems.length,
+        currentFile: '',
+        success: 0,
+        failed: 0,
+      };
 
       // Execute batch rename
       const executor = new BatchExecutor(
@@ -428,23 +478,20 @@ export class FileSelectorPanel extends LitElement {
         this.adapter,
         {
           requestInterval: this.adapter.getConfig().requestInterval,
+          skipUnchanged: true,
           onProgress: (progress) => {
-            logger.info(`[FileSelectorPanel] Progress: ${progress.completed}/${progress.total}`);
+            this.handleProgress(progress);
           },
         }
       );
+      this.executor = executor;
 
-      await executor.execute();
+      const results = await executor.execute();
+      this.executionResults = results;
+      this.executorState = executor.getState();
 
-      // Close panel after successful execution
-      this.dispatchEvent(
-        new CustomEvent('execution-complete', {
-          bubbles: true,
-          composed: true,
-        })
-      );
-
-      this.handleClose();
+      this.applyExecutionResults(results);
+      void this.syncAfterRename();
     } catch (error) {
       const errorObj = error instanceof Error ? error : new Error(String(error));
       this.error = errorObj.message;
@@ -454,17 +501,175 @@ export class FileSelectorPanel extends LitElement {
     }
   }
 
+  private handleProgress(progress: ProgressEvent): void {
+    this.progress = progress;
+
+    if (!progress.fileId) {
+      return;
+    }
+
+    this.executionItems = this.executionItems.map((item) => {
+      if (item.file.id !== progress.fileId) {
+        return item;
+      }
+
+      if (progress.status === 'success') {
+        return { ...item, done: true, error: undefined };
+      }
+
+      if (progress.status === 'failed') {
+        return { ...item, done: false, error: progress.error || I18nService.t('error_unknown') };
+      }
+
+      return item;
+    });
+  }
+
+  private applyExecutionResults(results: BatchResults): void {
+    const successById = new Map(results.success.map((r) => [r.fileId, r.renamed]));
+    const failedById = new Map(results.failed.map((r) => [r.fileId, r.error]));
+
+    this.executionItems = this.executionItems.map((item) => {
+      const renamed = successById.get(item.file.id);
+      if (renamed) {
+        return { ...item, done: true, error: undefined };
+      }
+
+      const failed = failedById.get(item.file.id);
+      if (failed) {
+        return { ...item, done: false, error: failed };
+      }
+
+      return item;
+    });
+
+    if (successById.size > 0) {
+      this.allFiles = this.allFiles.map((file) => {
+        const nextName = successById.get(file.id);
+        if (!nextName) return file;
+
+        const { ext } = parseFileName(nextName);
+        return {
+          ...file,
+          name: nextName,
+          ext,
+          mtime: Date.now(),
+        };
+      });
+
+      // Refresh preview based on new filenames
+      this.updatePreview();
+    }
+  }
+
+  private async syncAfterRename(): Promise<void> {
+    if (!this.executionResults || this.syncStatus === 'syncing') {
+      return;
+    }
+
+    const renames = this.executionResults.success.map((r) => ({
+      fileId: r.fileId,
+      oldName: r.original,
+      newName: r.renamed,
+    }));
+
+    if (renames.length === 0) {
+      this.syncStatus = 'idle';
+      this.syncMessage = null;
+      return;
+    }
+
+    if (!this.adapter.syncAfterRename) {
+      this.syncStatus = 'failed';
+      this.syncMessage = I18nService.t('sync_not_supported');
+      return;
+    }
+
+    try {
+      this.syncStatus = 'syncing';
+      this.syncMessage = null;
+
+      const result = await this.adapter.syncAfterRename(renames);
+      this.syncStatus = result.success ? 'success' : 'failed';
+      this.syncMessage = result.success ? null : result.message || null;
+      logger.info('[DIAG-SYNC] syncAfterRename result', result);
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      this.syncStatus = 'failed';
+      this.syncMessage = errorObj.message;
+    }
+  }
+
+  private handlePause(e: CustomEvent<{ isPaused: boolean }>): void {
+    const isPaused = e.detail.isPaused;
+    if (!this.executor) return;
+
+    if (isPaused) {
+      this.executor.pause();
+    } else {
+      this.executor.resume();
+    }
+
+    this.executorState = this.executor.getState();
+  }
+
+  private handleCancel(): void {
+    if (!this.executor) return;
+
+    const progress = this.progress;
+    const total = progress?.total ?? 0;
+    const completed = progress?.completed ?? 0;
+    const success = progress?.success ?? 0;
+    const failed = progress?.failed ?? 0;
+    const remaining = Math.max(0, total - completed);
+
+    const confirmMessage = `${I18nService.t('progress_cancel_confirm')}\n\n${I18nService.t('progress_cancel_stats', [
+      String(success),
+      String(failed),
+      String(remaining),
+    ])}`;
+
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    this.executor.cancel();
+    this.executorState = this.executor.getState();
+  }
+
+  private handleSync(): void {
+    void this.syncAfterRename();
+  }
+
+  private resetExecutionState(): void {
+    this.executor = null;
+    this.executorState = ExecutorState.IDLE;
+    this.progress = null;
+    this.executionItems = [];
+    this.executionResults = null;
+    this.syncStatus = 'idle';
+    this.syncMessage = null;
+  }
+
   /**
    * Handle panel close
    * @private
    */
   private handleClose(): void {
+    this.resetExecutionState();
     this.dispatchEvent(
       new CustomEvent('panel-close', {
         bubbles: true,
         composed: true,
       })
     );
+  }
+
+  private handleOverlayClick(): void {
+    if (this.executing) {
+      return;
+    }
+    this.handleClose();
   }
 
   render() {
@@ -483,7 +688,7 @@ export class FileSelectorPanel extends LitElement {
     );
 
     return html`
-      <div class="panel-overlay" @click=${this.handleClose}>
+      <div class="panel-overlay" @click=${this.handleOverlayClick}>
         <div class="panel-container" @click=${(e: Event) => e.stopPropagation()}>
           <div class="panel-header">
             <h2 class="panel-title">${I18nService.t('file_selector_title')}</h2>
@@ -502,8 +707,17 @@ export class FileSelectorPanel extends LitElement {
               .conflictCount=${this.conflictIds.size}
               ?disabled=${this.loading}
               ?executing=${this.executing}
+              .progress=${this.progress}
+              .finished=${this.executionFinished}
+              .paused=${this.executorState === ExecutorState.PAUSED}
+              .syncStatus=${this.syncStatus}
+              .syncMessage=${this.syncMessage}
               @config-change=${this.handleConfigChange}
               @execute=${this.handleExecute}
+              @pause=${this.handlePause}
+              @cancel=${this.handleCancel}
+              @sync=${this.handleSync}
+              @close=${this.handleClose}
             ></config-panel>
 
             <file-list-panel
@@ -524,8 +738,9 @@ export class FileSelectorPanel extends LitElement {
 
             <preview-panel
               class="right-panel"
-              .items=${this.previewList}
+              .items=${this.executionItems.length > 0 ? this.executionItems : this.previewList}
               .conflictCount=${this.conflictIds.size}
+              .showStatus=${this.executing || this.executionFinished}
               ?loading=${false}
             ></preview-panel>
           </div>

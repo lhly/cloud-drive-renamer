@@ -68,8 +68,7 @@ window.addEventListener('message', async (event) => {
     // 设置必需的请求头（完全匹配官方请求）
     xhr.setRequestHeader('Accept', 'application/json, text/plain, */*');
     xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('Referer', 'https://pan.quark.cn/');
-    xhr.setRequestHeader('Origin', 'https://pan.quark.cn');
+    // Note: 不要手动设置 Origin/Referer（浏览器禁止修改，会产生控制台噪音）
 
     // 添加可能需要的额外请求头
     // 注意：浏览器会自动添加 User-Agent，无需手动设置
