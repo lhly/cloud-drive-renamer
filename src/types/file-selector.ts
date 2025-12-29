@@ -19,8 +19,8 @@ export interface PreviewItem {
   conflict: boolean;
   /** Whether this file has been successfully renamed */
   done?: boolean;
-  /** Whether this file encountered an error during rename */
-  error?: boolean;
+  /** Error message if rename failed */
+  error?: string;
 }
 
 /**

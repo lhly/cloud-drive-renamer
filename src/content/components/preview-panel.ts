@@ -36,8 +36,17 @@ export class PreviewPanel extends LitElement {
   @property({ type: Boolean })
   loading = false;
 
+  /**
+   * Whether to show execution status counters/badges
+   */
+  @property({ type: Boolean })
+  showStatus = false;
+
   render() {
     const hasConflicts = this.conflictCount > 0;
+    const successCount = this.items.filter((i) => i.done).length;
+    const failedCount = this.items.filter((i) => Boolean(i.error)).length;
+    const pendingCount = Math.max(0, this.items.length - successCount - failedCount);
 
     return html`
       <div class="preview-panel">
@@ -64,6 +73,22 @@ export class PreviewPanel extends LitElement {
             <span class="stat-label">预览项:</span>
             <span class="stat-value">${this.items.length}</span>
           </div>
+          ${this.showStatus
+            ? html`
+                <div class="stat-item">
+                  <span class="stat-label">${I18nService.t('progress_remaining')}</span>
+                  <span class="stat-value">${pendingCount}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">${I18nService.t('progress_success')}</span>
+                  <span class="stat-value success">${successCount}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">${I18nService.t('progress_failed')}</span>
+                  <span class="stat-value failed">${failedCount}</span>
+                </div>
+              `
+            : ''}
           ${hasConflicts
             ? html`
                 <div class="stat-item conflict">
@@ -83,7 +108,7 @@ export class PreviewPanel extends LitElement {
                 </div>
               `
             : html`
-                <virtual-preview-list .items=${this.items}></virtual-preview-list>
+                <virtual-preview-list .items=${this.items} .showStatus=${this.showStatus}></virtual-preview-list>
               `}
         </div>
       </div>
@@ -163,6 +188,14 @@ export class PreviewPanel extends LitElement {
 
     .stat-item.conflict .stat-value {
       color: #fa8c16;
+    }
+
+    .stat-value.success {
+      color: #52c41a;
+    }
+
+    .stat-value.failed {
+      color: #ff4d4f;
     }
 
     .list-container {
