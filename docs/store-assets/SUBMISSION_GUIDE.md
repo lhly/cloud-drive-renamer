@@ -34,11 +34,14 @@ ls -la dist/
 ### 2. 打包扩展
 
 ```bash
+# 获取当前版本号（来自 package.json）
+VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
+
 # 进入dist目录
 cd dist
 
 # 创建zip包
-zip -r ../cloud-drive-renamer-v0.1.0.zip .
+zip -r ../cloud-drive-renamer-v${VERSION}.zip .
 
 # 返回项目根目录
 cd ..
@@ -55,9 +58,9 @@ cd ..
 
 ### 4. 准备文档
 
-- [x] Chrome商店列表: `store-assets/chrome-web-store-listing.md`
-- [x] Edge商店列表: `store-assets/edge-addons-listing.md`
-- [x] 隐私政策: `store-assets/PRIVACY_POLICY.md`
+- [x] Chrome商店列表: `docs/store-assets/chrome-web-store-listing.md`
+- [x] Edge商店列表: `docs/store-assets/edge-addons-listing.md`
+- [x] 隐私政策: `docs/store-assets/PRIVACY_POLICY.md`
 
 ---
 
@@ -73,7 +76,7 @@ cd ..
 ### 第二步：创建新商品
 
 1. 在开发者控制台，点击 **"New Item"**
-2. 上传扩展包 `cloud-drive-renamer-v0.1.0.zip`
+2. 上传扩展包 `cloud-drive-renamer-v{version}.zip`
 3. 等待上传完成
 
 ### 第三步：填写商店列表信息
@@ -100,7 +103,7 @@ cd ..
 
 #### 详细描述
 
-从 `store-assets/chrome-web-store-listing.md` 复制"详细描述"部分的中文内容。
+从 `docs/store-assets/chrome-web-store-listing.md` 复制"详细描述"部分的中文内容。
 
 #### 图形资产
 
@@ -122,11 +125,11 @@ cd ..
 #### 隐私设置
 
 1. **Privacy Policy（隐私政策）**
-   - 上传 `store-assets/PRIVACY_POLICY.md` 到GitHub
-   - 填写URL: `https://github.com/lhly/cloud-drive-renamer/blob/main/store-assets/PRIVACY_POLICY.md`
+   - 上传 `docs/store-assets/PRIVACY_POLICY.md` 到GitHub（或复制到项目根目录并发布）
+   - 填写URL: `https://github.com/lhly/cloud-drive-renamer/blob/main/docs/store-assets/PRIVACY_POLICY.md`
 
 2. **Permissions（权限说明）**
-   - 填写从 `store-assets/chrome-web-store-listing.md` 复制的"权限用途说明"
+   - 填写从 `docs/store-assets/chrome-web-store-listing.md` 复制的"权限用途说明"
 
 3. **Data Usage（数据使用）**
    - 选择: **"This item does not collect user data"**
@@ -172,7 +175,7 @@ cd ..
 ### 第三步：创建新扩展提交
 
 1. 点击 **"Create new extension"**
-2. 上传扩展包 `cloud-drive-renamer-v0.1.0.zip`
+2. 上传扩展包 `cloud-drive-renamer-v{version}.zip`
 3. 等待上传和自动验证完成
 
 ### 第四步：填写商店列表信息
@@ -218,7 +221,7 @@ cd ..
    ```
 
 4. **Long description（详细描述）**
-   - 从 `store-assets/edge-addons-listing.md` 复制中文版本的"完整描述"
+   - 从 `docs/store-assets/edge-addons-listing.md` 复制中文版本的"完整描述"
 
 5. **Screenshots（截图）**
    - 上传以下文件并添加说明:
@@ -231,7 +234,7 @@ cd ..
 
 ##### English列表
 
-重复上述步骤，使用英文内容（从 `store-assets/edge-addons-listing.md` 获取）
+重复上述步骤，使用英文内容（从 `docs/store-assets/edge-addons-listing.md` 获取）
 
 #### Availability（可用性）
 
@@ -245,7 +248,7 @@ cd ..
 
 1. **Privacy policy URL（隐私政策URL）**
    ```
-   https://github.com/lhly/cloud-drive-renamer/blob/main/store-assets/PRIVACY_POLICY.md
+   https://github.com/lhly/cloud-drive-renamer/blob/main/docs/store-assets/PRIVACY_POLICY.md
    ```
 
 2. **Website（网站）**
@@ -257,7 +260,7 @@ cd ..
    - Email: `lhlyzh@qq.com`
 
 4. **Permissions justification（权限说明）**
-   - 从 `store-assets/edge-addons-listing.md` 复制"数据使用说明"
+   - 从 `docs/store-assets/edge-addons-listing.md` 复制"数据使用说明"
 
 ### 第五步：提交审核
 

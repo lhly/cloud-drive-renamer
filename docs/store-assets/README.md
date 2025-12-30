@@ -194,8 +194,9 @@ npm test
 npm run build
 
 # 3. 创建扩展包
+VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
 cd dist
-zip -r ../cloud-drive-renamer-v0.1.0.zip .
+zip -r ../cloud-drive-renamer-v${VERSION}.zip .
 cd ..
 ```
 
@@ -235,7 +236,7 @@ git push origin main
 ## 📋 提交前检查清单（简化版）
 
 ### 必需文件
-- [ ] 扩展包 `cloud-drive-renamer-v0.1.0.zip`
+- [ ] 扩展包 `cloud-drive-renamer-v{version}.zip`
 - [ ] 图标 `icon128.png`
 - [ ] 至少3张截图
 - [ ] 隐私政策已发布到可访问的URL

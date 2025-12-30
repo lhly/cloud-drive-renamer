@@ -181,8 +181,9 @@ git push origin v0.2.0
    5. 选择解压后的文件夹
    ```
 
-2. **Chrome Web Store（未来）**
-   - Phase 2 实施后可通过商店自动更新
+2. **通过浏览器商店安装（推荐）**
+   - Chrome Web Store: https://chromewebstore.google.com/detail/kadpaidccbagkojkdghnkpehkmmbobll
+   - Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/kdfapbfjaoigjlbhjdnkhkkpnggnhkjp
 
 ---
 

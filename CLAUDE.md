@@ -88,7 +88,8 @@ npm run resize large-promo   # Large promo tile (1400x560)
 **Adapter Pattern for Platform Support:**
 - `src/adapters/base/adapter.interface.ts` - Base adapter interface
 - `src/adapters/quark/` - Quark Drive implementation
-- `src/adapters/aliyun/` and `src/adapters/baidu/` - Planned for future
+- `src/adapters/aliyun/` - Aliyun Drive implementation
+- `src/adapters/baidu/` - Baidu Pan implementation
 
 **Strategy Pattern for Rename Rules:**
 - `src/rules/base-rule.ts` - Base rule class
@@ -106,15 +107,20 @@ npm run resize large-promo   # Large promo tile (1400x560)
 **Content Script Architecture:**
 ```
 Content Script (ISOLATED world)
-├── UI Components (Lit Web Components)
-│   ├── rename-dialog.ts      - Main dialog
-│   ├── rename-preview.ts     - Preview list
-│   ├── progress-dialog.ts    - Progress tracking
-│   └── floating-button.ts    - Trigger button
+├── FloatingButton (Shadow DOM)
+│   └── src/content/components/floating-button.ts
+├── Main Panel (Lit Web Components)
+│   ├── file-selector-panel.ts  - 3-column container (config / list / preview)
+│   ├── config-panel.ts         - Rule config + execution/progress
+│   ├── file-list-panel.ts      - Search/filter/select + virtual list
+│   └── preview-panel.ts        - Preview + conflict/status + virtual list
 └── Platform Adapter Integration
 
 Page Script (MAIN world) - For API interception
-└── src/adapters/quark/page-script.ts
+└── src/adapters/{quark,aliyun,baidu}/page-script.ts (dynamically injected)
+
+Dialog Page (extension iframe, optional/legacy UI)
+└── src/dialog/ (hosts rename-dialog/rename-preview, if used)
 ```
 
 **Message Communication:**
@@ -139,8 +145,8 @@ Page Script (MAIN world) - For API interception
 
 **Manifest V3 Requirements:**
 - Service Worker background script (not persistent)
-- Separate content scripts for ISOLATED and MAIN worlds
-- Web-accessible resources for iframe-based dialog
+- Content script runs in ISOLATED world; platform page-scripts are injected into MAIN world via `<script>` (see `injectPageScriptToMainWorld()` in `src/content/index.ts`)
+- Web-accessible resources are used for MAIN-world page-scripts and optional dialog pages
 - Host permissions for target cloud platforms
 
 **Build Configuration:**
@@ -167,8 +173,9 @@ Page Script (MAIN world) - For API interception
 When adding a new platform adapter:
 
 1. **Implement `PlatformAdapter` interface:**
-   - `getSelectedFiles()` - Extract selected files from DOM
-   - `renameFile(fileId, newName)` - Call platform API
+   - `getSelectedFiles()` - Extract selected files from DOM (optional for some flows)
+   - `getAllFiles(parentId?)` - Fetch full file list via API (used by file selector panel)
+   - `renameFile(fileId, newName)` - Call platform API (returns `RenameResult`)
    - `checkNameConflict(fileName, parentId)` - Validate uniqueness
    - `getFileInfo(fileId)` - Fetch file metadata
 

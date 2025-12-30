@@ -162,7 +162,7 @@
 #### 1. 克隆项目
 
 ```bash
-git clone https:///lhly/cloud-drive-renamer.git
+git clone https://github.com/lhly/cloud-drive-renamer.git
 cd cloud-drive-renamer
 ```
 
@@ -193,7 +193,7 @@ npm run build
 
 ### 快速验证
 
-访问 [夸克网盘](https://pan.quark.cn/list#/list/all)，选择文件后应能看到批量重命名按钮。
+访问 [夸克网盘](https://pan.quark.cn/list#/list/all)，页面右侧会出现 **悬浮按钮**（可拖拽）。点击即可打开批量重命名面板。
 
 ---
 
@@ -202,22 +202,25 @@ npm run build
 ### 基础使用流程
 
 #### 1. 打开云盘页面
-访问支持的云盘平台（如夸克网盘）。
+访问支持的云盘平台（如夸克网盘），并进入需要处理的目录。
 
-#### 2. 选择文件
-勾选需要重命名的文件或文件夹。
+#### 2. 打开批量重命名面板
+点击页面右侧的 **悬浮按钮**，打开“文件选择器”面板（左/中/右三栏）。
 
-#### 3. 点击重命名按钮
-在工具栏或浮动按钮中找到批量重命名功能。
+#### 3. 选择需要处理的文件
+在中间栏的文件列表中进行选择：
+- 默认全选当前目录的文件
+- 支持搜索、按类型筛选、全选/取消全选
+- 可单独勾选/取消勾选文件或文件夹
 
 #### 4. 配置规则
-选择重命名规则类型并设置参数。
+在左侧栏选择重命名规则类型并设置参数。
 
 #### 5. 预览结果
-查看预览列表，确认所有变更符合预期。
+在右侧栏查看预览列表，确认所有变更符合预期（包含冲突提示）。
 
 #### 6. 执行重命名
-点击确认按钮，系统自动批量执行。
+点击执行按钮，系统自动批量执行；执行进度与结果会在面板内实时显示。部分平台支持在执行后自动同步页面文件列表。
 
 ### 实战示例
 
@@ -342,10 +345,12 @@ format: "{n}번"     // → 001번, 002번
 - **技术栈**：Lit Web Components
 - **位置**：`src/content/components/`
 - **组件**：
-  - `rename-dialog`：主重命名对话框
-  - `rename-preview`：预览列表
-  - `progress-dialog`：进度追踪
-  - `floating-button`：浮动触发按钮
+  - `floating-button`：悬浮按钮（Shadow DOM 注入、拖拽/位置记忆、可在 Popup 中隐藏）
+  - `file-selector-panel`：主面板（三栏容器：规则配置 / 文件列表 / 预览）
+  - `config-panel`：规则选择与参数配置、执行/暂停/取消、进度与同步状态
+  - `file-list-panel`：文件列表（搜索、类型筛选、全选/取消全选）
+  - `preview-panel`：预览结果（冲突提示、执行状态）
+  - `virtual-file-list` / `virtual-preview-list`：大列表虚拟渲染提升性能
 
 ### 项目结构
 
@@ -361,18 +366,23 @@ src/
 ├── content/            # Content Scripts
 │   ├── index.ts        # 入口文件
 │   └── components/     # Lit Web Components
-│       ├── rename-dialog.ts
-│       ├── rename-preview.ts
-│       ├── progress-dialog.ts
-│       └── floating-button.ts
+│       ├── floating-button.ts
+│       ├── file-selector-panel.ts
+│       ├── config-panel.ts
+│       ├── file-list-panel.ts
+│       ├── preview-panel.ts
+│       ├── search-box.ts
+│       ├── toolbar.ts
+│       ├── virtual-file-list.ts
+│       └── virtual-preview-list.ts
 ├── adapters/           # 平台适配器
 │   ├── base/           # 适配器基类和接口
 │   │   └── adapter.interface.ts
 │   ├── quark/          # 夸克网盘适配器
 │   │   ├── quark.ts
 │   │   └── errors.ts
-│   ├── aliyun/         # 阿里云盘（规划中）
-│   └── baidu/          # 百度网盘（规划中）
+│   ├── aliyun/         # 阿里云盘适配器
+│   └── baidu/          # 百度网盘适配器
 ├── rules/              # 重命名规则
 │   ├── base-rule.ts    # 规则基类
 │   ├── rule-factory.ts # 规则工厂
@@ -436,9 +446,6 @@ npm run lint
 
 # 自动修复代码问题
 npm run lint:fix
-
-# 格式化代码
-npm run format
 
 # TypeScript 类型检查
 npm run typecheck
@@ -673,29 +680,20 @@ describe('PrefixRule', () => {
 #### E2E 测试示例
 
 ```typescript
-// tests/e2e/rename.spec.ts
+// tests/e2e/panel-open.spec.ts (示例)
 
 import { test, expect } from '@playwright/test';
 
-test('should rename files on Quark drive', async ({ page }) => {
+test('should open file selector panel on Quark drive', async ({ page }) => {
   await page.goto('https://pan.quark.cn/list#/list/all');
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(2000); // 等待扩展注入
 
-  // 选择文件
-  await page.click('.file-checkbox');
+  // 点击悬浮按钮（Shadow DOM）
+  await page.locator('#cloud-drive-renamer-shadow-host >>> .floating-button').click();
 
-  // 打开重命名对话框
-  await page.click('.rename-button');
-
-  // 配置规则
-  await page.fill('#prefix-input', 'test_');
-
-  // 预览
-  await page.click('.preview-button');
-  await expect(page.locator('.preview-item')).toContainText('test_');
-
-  // 执行
-  await page.click('.execute-button');
-  await expect(page.locator('.success-message')).toBeVisible();
+  // 面板应出现
+  await expect(page.locator('file-selector-panel >>> .panel-overlay')).toBeVisible();
 });
 ```
 
@@ -729,13 +727,14 @@ test('should rename files on Quark drive', async ({ page }) => {
 
 ### 安装和使用
 
-**Q: 为什么安装后找不到重命名按钮？**
+**Q: 为什么安装后找不到悬浮按钮/面板打不开？**
 
 A: 请检查：
 1. 扩展是否正确加载（访问 `chrome://extensions/` 确认）
 2. 是否访问了支持的网盘平台
-3. 是否选中了文件
-4. 刷新页面后重试
+3. 是否处于分享链接页面（分享页通常不注入 UI）
+4. 在扩展 Popup 中确认“显示悬浮按钮”未被关闭
+5. 刷新页面后重试
 
 **Q: 为什么重命名失败？**
 
@@ -787,15 +786,15 @@ A: 请在 GitHub Issues 中提交，包含：
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.1.0)
-- ✅ 夸克网盘支持
-- ✅ 5 种基础重命名规则
-- ✅ 实时预览功能
-- ✅ 批量执行引擎
+### 当前版本 (v0.4.1)
+- ✅ 夸克/阿里/百度网盘支持
+- ✅ 悬浮按钮 + 文件选择器三栏面板（规则配置/文件列表/预览）
+- ✅ 搜索/类型筛选/大列表虚拟滚动
+- ✅ 实时预览与冲突提示
+- ✅ 执行进度展示，部分平台支持执行后同步页面列表
+- ✅ 多语言（zh_CN / zh_TW / en）
 
-### 计划中 (v0.2.0)
-- 🔄 阿里云盘完整支持
-- 🔄 百度网盘完整支持
+### 计划中
 - 🔄 规则模板保存与分享
 - 🔄 历史记录和撤销功能
 
@@ -825,7 +824,7 @@ A: 请在 GitHub Issues 中提交，包含：
 
 ## 📞 联系我们
 
-- **问题反馈**：[GitHub Issues](https:///lhly/cloud-drive-renamer/issues)
+- **问题反馈**：[GitHub Issues](https://github.com/lhly/cloud-drive-renamer/issues)
 - **功能建议**：[GitHub Discussions](https://github.com/lhly/cloud-drive-renamer/discussions)
 - **邮件联系**：lhlyzh@qq.com
 

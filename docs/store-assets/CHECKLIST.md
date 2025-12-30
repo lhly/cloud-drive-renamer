@@ -3,9 +3,13 @@
 ## 📦 必需文件检查
 
 ### 扩展包
-- [ ] `cloud-drive-renamer-v0.1.0.zip` - 生产构建的扩展包
+- [ ] `cloud-drive-renamer-v{version}.zip` - 生产构建的扩展包
   - 位置: 项目根目录
-  - 创建方法: `npm run build && cd dist && zip -r ../cloud-drive-renamer-v0.1.0.zip . && cd ..`
+  - 创建方法:
+    ```bash
+    VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
+    npm run build && cd dist && zip -r ../cloud-drive-renamer-v${VERSION}.zip . && cd ..
+    ```
 
 ### 图标
 - [x] `public/icons/icon128.png` - 128x128 主图标
@@ -18,10 +22,10 @@
 - [x] `screenshots/store/cdr-03.png` - 执行进度截图
 
 ### 文档
-- [x] `store-assets/chrome-web-store-listing.md` - Chrome商店列表
-- [x] `store-assets/edge-addons-listing.md` - Edge商店列表
-- [x] `store-assets/PRIVACY_POLICY.md` - 隐私政策
-- [x] `store-assets/SUBMISSION_GUIDE.md` - 提交指南
+- [x] `docs/store-assets/chrome-web-store-listing.md` - Chrome商店列表
+- [x] `docs/store-assets/edge-addons-listing.md` - Edge商店列表
+- [x] `docs/store-assets/PRIVACY_POLICY.md` - 隐私政策
+- [x] `docs/store-assets/SUBMISSION_GUIDE.md` - 提交指南
 
 ---
 
@@ -134,12 +138,13 @@ cat dist/manifest.json | jq .
 # - host_permissions正确
 
 # 5. 创建扩展包
+VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
 cd dist
-zip -r ../cloud-drive-renamer-v0.1.0.zip .
+zip -r ../cloud-drive-renamer-v${VERSION}.zip .
 cd ..
 
 # 6. 检查zip包内容
-unzip -l cloud-drive-renamer-v0.1.0.zip
+unzip -l cloud-drive-renamer-v${VERSION}.zip
 ```
 
 ### Chrome安装测试
@@ -188,7 +193,7 @@ unzip -l cloud-drive-renamer-v0.1.0.zip
 
 ```bash
 # 1. 复制隐私政策到项目根目录
-cp store-assets/PRIVACY_POLICY.md ./PRIVACY_POLICY.md
+cp docs/store-assets/PRIVACY_POLICY.md ./PRIVACY_POLICY.md
 
 # 2. 提交到Git
 git add PRIVACY_POLICY.md
