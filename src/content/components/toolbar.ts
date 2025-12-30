@@ -169,8 +169,8 @@ export class Toolbar extends LitElement {
       align-items: center;
       justify-content: space-between;
       padding: 12px 16px;
-      background: #fafafa;
-      border-bottom: 1px solid #f0f0f0;
+      background: var(--cdr-surface-muted, #fafafa);
+      border-bottom: 1px solid var(--cdr-border, #f0f0f0);
       gap: 16px;
     }
 
@@ -205,30 +205,30 @@ export class Toolbar extends LitElement {
     .checkbox {
       width: 18px;
       height: 18px;
-      border: 2px solid #d9d9d9;
+      border: 2px solid var(--cdr-border-strong, #d9d9d9);
       border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #fff;
+      background: var(--cdr-surface, #fff);
       transition: all 0.2s;
       flex-shrink: 0;
       position: relative;
     }
 
     .checkbox-label:not(.disabled):hover .checkbox {
-      border-color: #1890ff;
+      border-color: var(--cdr-primary, #1890ff);
     }
 
     .checkbox.all,
     .checkbox.partial {
-      border-color: #1890ff;
-      background: #1890ff;
+      border-color: var(--cdr-primary, #1890ff);
+      background: var(--cdr-primary, #1890ff);
       color: #fff;
     }
 
     .checkbox.none {
-      background: #fff;
+      background: var(--cdr-surface, #fff);
       color: transparent;
     }
 
@@ -251,12 +251,12 @@ export class Toolbar extends LitElement {
 
     .checkbox-text {
       font-size: 14px;
-      color: #262626;
+      color: var(--cdr-text, #262626);
       white-space: nowrap;
     }
 
     .checkbox-label.disabled .checkbox-text {
-      color: #bfbfbf;
+      color: var(--cdr-text-disabled, #bfbfbf);
     }
 
     .filter-group {
@@ -267,24 +267,24 @@ export class Toolbar extends LitElement {
 
     .filter-label {
       font-size: 14px;
-      color: #595959;
+      color: var(--cdr-text-secondary, #595959);
       white-space: nowrap;
     }
 
     .type-filter {
       padding: 6px 12px;
-      border: 1px solid #d9d9d9;
+      border: 1px solid var(--cdr-border-strong, #d9d9d9);
       border-radius: 4px;
       font-size: 14px;
-      color: #262626;
-      background: #fff;
+      color: var(--cdr-text, #262626);
+      background: var(--cdr-surface, #fff);
       cursor: pointer;
       transition: all 0.2s;
       min-width: 120px;
     }
 
     .type-filter:hover:not(:disabled) {
-      border-color: #1890ff;
+      border-color: var(--cdr-primary, #1890ff);
     }
 
     .type-filter:focus {
@@ -294,14 +294,14 @@ export class Toolbar extends LitElement {
     }
 
     .type-filter:disabled {
-      color: #bfbfbf;
+      color: var(--cdr-text-disabled, #bfbfbf);
       cursor: not-allowed;
       opacity: 0.6;
     }
 
     .selected-count {
       font-size: 14px;
-      color: #595959;
+      color: var(--cdr-text-secondary, #595959);
       white-space: nowrap;
     }
 

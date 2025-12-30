@@ -191,32 +191,32 @@ export class VirtualPreviewList extends LitElement {
       gap: 12px;
       padding: 12px;
       border-radius: 4px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--cdr-border, #f0f0f0);
       transition: background-color 0.2s;
     }
 
     .preview-item:hover {
-      background: #f5f5f5;
+      background: var(--cdr-surface-hover, #f5f5f5);
     }
 
     .preview-item.conflict {
-      background: #fff2e8;
-      border-left: 3px solid #fa8c16;
+      background: var(--cdr-warning-bg, #fff2e8);
+      border-left: 3px solid var(--cdr-warning-text, #fa8c16);
     }
 
     .preview-item.error {
-      background: #fff1f0;
-      border-left: 3px solid #ff4d4f;
+      background: var(--cdr-danger-bg, #fff1f0);
+      border-left: 3px solid var(--cdr-danger, #ff4d4f);
     }
 
     .preview-item.success {
-      background: #f6ffed;
-      border-left: 3px solid #52c41a;
+      background: var(--cdr-success-bg, #f6ffed);
+      border-left: 3px solid var(--cdr-success, #52c41a);
     }
 
     .preview-item.pending {
-      background: #fafafa;
-      border-left: 3px solid #d9d9d9;
+      background: var(--cdr-surface-muted, #fafafa);
+      border-left: 3px solid var(--cdr-border-strong, #d9d9d9);
     }
 
     .preview-content {
@@ -226,7 +226,7 @@ export class VirtualPreviewList extends LitElement {
 
     .new-name {
       font-size: 14px;
-      color: #262626;
+      color: var(--cdr-text, #262626);
       font-weight: 500;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -237,19 +237,19 @@ export class VirtualPreviewList extends LitElement {
     }
 
     .new-name.conflict {
-      color: #fa8c16;
+      color: var(--cdr-warning-text, #fa8c16);
     }
 
     .new-name.error {
-      color: #ff4d4f;
+      color: var(--cdr-danger, #ff4d4f);
     }
 
     .new-name.success {
-      color: #52c41a;
+      color: var(--cdr-success, #52c41a);
     }
 
     .new-name.pending {
-      color: #595959;
+      color: var(--cdr-text-secondary, #595959);
     }
 
     .status-badge {
@@ -264,27 +264,27 @@ export class VirtualPreviewList extends LitElement {
     }
 
     .status-badge.conflict {
-      background: #fff7e6;
-      border: 1px solid #ffd591;
-      color: #fa8c16;
+      background: var(--cdr-warning-bg, #fff7e6);
+      border: 1px solid var(--cdr-warning-border, #ffd591);
+      color: var(--cdr-warning-text, #fa8c16);
     }
 
     .status-badge.error {
-      background: #fff1f0;
-      border: 1px solid #ffa39e;
-      color: #cf1322;
+      background: var(--cdr-danger-bg, #fff1f0);
+      border: 1px solid var(--cdr-danger-border, #ffa39e);
+      color: var(--cdr-danger-text, #cf1322);
     }
 
     .status-badge.success {
-      background: #f6ffed;
-      border: 1px solid #b7eb8f;
-      color: #389e0d;
+      background: var(--cdr-success-bg, #f6ffed);
+      border: 1px solid var(--cdr-success-border, #b7eb8f);
+      color: var(--cdr-success-text, #389e0d);
     }
 
     .status-badge.pending {
-      background: #f5f5f5;
-      border: 1px solid #d9d9d9;
-      color: #595959;
+      background: var(--cdr-surface-hover, #f5f5f5);
+      border: 1px solid var(--cdr-border-strong, #d9d9d9);
+      color: var(--cdr-text-secondary, #595959);
     }
 
     .empty-state {
@@ -293,7 +293,7 @@ export class VirtualPreviewList extends LitElement {
       align-items: center;
       justify-content: center;
       height: 100%;
-      color: #8c8c8c;
+      color: var(--cdr-text-tertiary, #8c8c8c);
       gap: 16px;
       padding: 32px;
       text-align: center;

@@ -242,19 +242,19 @@ export class VirtualFileList extends LitElement {
       border-radius: 4px;
       cursor: pointer;
       transition: background-color 0.2s;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--cdr-border, #f0f0f0);
     }
 
     .file-item:hover {
-      background: #f5f5f5;
+      background: var(--cdr-surface-hover, #f5f5f5);
     }
 
     .file-item.checked {
-      background: #e6f7ff;
+      background: var(--cdr-selection-bg, #e6f7ff);
     }
 
     .file-item.checked:hover {
-      background: #bae7ff;
+      background: var(--cdr-selection-hover-bg, #bae7ff);
     }
 
     .file-checkbox {
@@ -276,15 +276,15 @@ export class VirtualFileList extends LitElement {
       display: inline-block;
       width: 18px;
       height: 18px;
-      border: 2px solid #d9d9d9;
+      border: 2px solid var(--cdr-border-strong, #d9d9d9);
       border-radius: 4px;
       transition: all 0.2s;
       position: relative;
     }
 
     .file-checkbox input[type='checkbox']:checked + .checkbox-custom {
-      background: #1890ff;
-      border-color: #1890ff;
+      background: var(--cdr-primary, #1890ff);
+      border-color: var(--cdr-primary, #1890ff);
     }
 
     .file-checkbox input[type='checkbox']:checked + .checkbox-custom::after {
@@ -314,7 +314,7 @@ export class VirtualFileList extends LitElement {
 
     .file-name {
       font-size: 14px;
-      color: #262626;
+      color: var(--cdr-text, #262626);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -322,7 +322,7 @@ export class VirtualFileList extends LitElement {
 
     .file-meta {
       font-size: 12px;
-      color: #8c8c8c;
+      color: var(--cdr-text-tertiary, #8c8c8c);
     }
 
     .empty-state {
@@ -331,7 +331,7 @@ export class VirtualFileList extends LitElement {
       align-items: center;
       justify-content: center;
       height: 100%;
-      color: #8c8c8c;
+      color: var(--cdr-text-tertiary, #8c8c8c);
       gap: 16px;
     }
 

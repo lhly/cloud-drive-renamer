@@ -196,8 +196,8 @@ export class FileListPanel extends LitElement {
       display: flex;
       flex-direction: column;
       height: 100%;
-      background: #fff;
-      border-right: 1px solid #f0f0f0;
+      background: var(--cdr-surface, #fff);
+      border-right: 1px solid var(--cdr-border, #f0f0f0);
     }
 
     .file-list-panel {
@@ -208,7 +208,7 @@ export class FileListPanel extends LitElement {
 
     .panel-header {
       padding: 16px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--cdr-border, #f0f0f0);
       flex-shrink: 0;
     }
 
@@ -216,12 +216,12 @@ export class FileListPanel extends LitElement {
       margin: 0;
       font-size: 16px;
       font-weight: 600;
-      color: #262626;
+      color: var(--cdr-text, #262626);
     }
 
     .search-container {
       padding: 12px 16px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--cdr-border, #f0f0f0);
       flex-shrink: 0;
     }
 
@@ -238,14 +238,14 @@ export class FileListPanel extends LitElement {
       justify-content: center;
       height: 100%;
       gap: 16px;
-      color: #8c8c8c;
+      color: var(--cdr-text-tertiary, #8c8c8c);
     }
 
     .spinner {
       width: 40px;
       height: 40px;
-      border: 4px solid #f0f0f0;
-      border-top-color: #1890ff;
+      border: 4px solid var(--cdr-border, #f0f0f0);
+      border-top-color: var(--cdr-primary, #1890ff);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }

@@ -145,8 +145,8 @@ export class SearchBox extends LitElement {
       position: relative;
       display: flex;
       align-items: center;
-      background: #fff;
-      border: 1px solid #d9d9d9;
+      background: var(--cdr-surface, #fff);
+      border: 1px solid var(--cdr-border-strong, #d9d9d9);
       border-radius: 4px;
       padding: 8px 12px;
       transition: all 0.3s;
@@ -160,7 +160,7 @@ export class SearchBox extends LitElement {
     .search-icon {
       width: 16px;
       height: 16px;
-      color: #8c8c8c;
+      color: var(--cdr-text-tertiary, #8c8c8c);
       flex-shrink: 0;
       margin-right: 8px;
       stroke-width: 2;
@@ -171,17 +171,17 @@ export class SearchBox extends LitElement {
       border: none;
       outline: none;
       font-size: 14px;
-      color: #262626;
+      color: var(--cdr-text, #262626);
       background: transparent;
       min-width: 0;
     }
 
     .search-input::placeholder {
-      color: #bfbfbf;
+      color: var(--cdr-text-disabled, #bfbfbf);
     }
 
     .search-input:disabled {
-      color: #bfbfbf;
+      color: var(--cdr-text-disabled, #bfbfbf);
       cursor: not-allowed;
     }
 
@@ -195,7 +195,7 @@ export class SearchBox extends LitElement {
       border: none;
       background: transparent;
       cursor: pointer;
-      color: #8c8c8c;
+      color: var(--cdr-text-tertiary, #8c8c8c);
       flex-shrink: 0;
       margin-left: 4px;
       border-radius: 50%;
@@ -203,12 +203,12 @@ export class SearchBox extends LitElement {
     }
 
     .clear-button:hover {
-      background: #f5f5f5;
-      color: #262626;
+      background: var(--cdr-surface-hover, #f5f5f5);
+      color: var(--cdr-text, #262626);
     }
 
     .clear-button:active {
-      background: #e8e8e8;
+      background: var(--cdr-border, #e8e8e8);
     }
 
     .clear-button:disabled {

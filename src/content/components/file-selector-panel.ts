@@ -884,6 +884,82 @@ export class FileSelectorPanel extends LitElement {
   static styles = css`
     :host {
       display: block;
+      color-scheme: light;
+      color: var(--cdr-text, #262626);
+
+      --cdr-overlay-bg: rgba(0, 0, 0, 0.5);
+      --cdr-surface: #fff;
+      --cdr-surface-muted: #fafafa;
+      --cdr-surface-hover: #f5f5f5;
+      --cdr-border: #f0f0f0;
+      --cdr-border-strong: #d9d9d9;
+      --cdr-text: #262626;
+      --cdr-text-secondary: #595959;
+      --cdr-text-tertiary: #8c8c8c;
+      --cdr-text-disabled: #bfbfbf;
+      --cdr-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+      --cdr-primary: #1890ff;
+      --cdr-primary-hover: #40a9ff;
+
+      --cdr-warning-bg: #fff7e6;
+      --cdr-warning-border: #ffd591;
+      --cdr-warning-text: #fa8c16;
+
+      --cdr-success: #52c41a;
+      --cdr-danger: #ff4d4f;
+      --cdr-danger-hover: #ff7875;
+
+      --cdr-info-bg: #e6f4ff;
+      --cdr-info-border: #91caff;
+      --cdr-info-text: #0958d9;
+
+      --cdr-success-bg: #f6ffed;
+      --cdr-success-border: #b7eb8f;
+      --cdr-success-text: #389e0d;
+
+      --cdr-danger-bg: #fff1f0;
+      --cdr-danger-border: #ffa39e;
+      --cdr-danger-text: #cf1322;
+
+      --cdr-selection-bg: #e6f7ff;
+      --cdr-selection-hover-bg: #bae7ff;
+    }
+
+    :host([data-color-scheme='dark']) {
+      color-scheme: dark;
+
+      --cdr-overlay-bg: rgba(0, 0, 0, 0.65);
+      --cdr-surface: #1f1f1f;
+      --cdr-surface-muted: #141414;
+      --cdr-surface-hover: rgba(255, 255, 255, 0.06);
+      --cdr-border: #303030;
+      --cdr-border-strong: #434343;
+      --cdr-text: rgba(255, 255, 255, 0.85);
+      --cdr-text-secondary: rgba(255, 255, 255, 0.65);
+      --cdr-text-tertiary: rgba(255, 255, 255, 0.45);
+      --cdr-text-disabled: rgba(255, 255, 255, 0.35);
+      --cdr-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
+
+      --cdr-warning-bg: rgba(250, 173, 20, 0.15);
+      --cdr-warning-border: rgba(250, 173, 20, 0.35);
+      --cdr-warning-text: #faad14;
+
+      --cdr-info-bg: rgba(24, 144, 255, 0.15);
+      --cdr-info-border: rgba(24, 144, 255, 0.35);
+      --cdr-info-text: #69c0ff;
+
+      --cdr-success-bg: rgba(82, 196, 26, 0.15);
+      --cdr-success-border: rgba(82, 196, 26, 0.35);
+      --cdr-success-text: #73d13d;
+
+      --cdr-danger-bg: rgba(255, 77, 79, 0.15);
+      --cdr-danger-border: rgba(255, 77, 79, 0.35);
+      --cdr-danger-text: #ff7875;
+      --cdr-danger-hover: #ff7875;
+
+      --cdr-selection-bg: rgba(24, 144, 255, 0.18);
+      --cdr-selection-hover-bg: rgba(24, 144, 255, 0.28);
     }
 
     .panel-overlay {
@@ -892,7 +968,7 @@ export class FileSelectorPanel extends LitElement {
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
+      background: var(--cdr-overlay-bg);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -913,9 +989,9 @@ export class FileSelectorPanel extends LitElement {
       width: 95vw;
       height: 90vh;
       max-width: 1800px;
-      background: #fff;
+      background: var(--cdr-surface);
       border-radius: 8px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--cdr-shadow);
       display: flex;
       flex-direction: column;
       animation: slideUp 0.3s ease;
@@ -937,7 +1013,7 @@ export class FileSelectorPanel extends LitElement {
       align-items: center;
       justify-content: space-between;
       padding: 20px 24px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--cdr-border);
       flex-shrink: 0;
     }
 
@@ -945,7 +1021,7 @@ export class FileSelectorPanel extends LitElement {
       margin: 0;
       font-size: 20px;
       font-weight: 600;
-      color: #262626;
+      color: var(--cdr-text);
     }
 
     .close-button {
@@ -963,7 +1039,7 @@ export class FileSelectorPanel extends LitElement {
     }
 
     .close-button:hover:not(:disabled) {
-      background: #f5f5f5;
+      background: var(--cdr-surface-hover);
     }
 
     .close-button:disabled {
@@ -975,7 +1051,7 @@ export class FileSelectorPanel extends LitElement {
       width: 20px;
       height: 20px;
       stroke-width: 2;
-      color: #595959;
+      color: var(--cdr-text-secondary);
     }
 
     .panel-body {
@@ -992,7 +1068,7 @@ export class FileSelectorPanel extends LitElement {
     }
 
     .error-container {
-      background: #fff;
+      background: var(--cdr-surface);
       border-radius: 8px;
       padding: 40px;
       max-width: 500px;
@@ -1016,12 +1092,12 @@ export class FileSelectorPanel extends LitElement {
     .error-container h3 {
       margin: 0 0 12px 0;
       font-size: 20px;
-      color: #262626;
+      color: var(--cdr-text);
     }
 
     .error-container p {
       margin: 0 0 24px 0;
-      color: #595959;
+      color: var(--cdr-text-secondary);
       line-height: 1.6;
     }
 
@@ -1042,23 +1118,23 @@ export class FileSelectorPanel extends LitElement {
     }
 
     .button-primary {
-      background: #1890ff;
+      background: var(--cdr-primary);
       color: #fff;
     }
 
     .button-primary:hover {
-      background: #40a9ff;
+      background: var(--cdr-primary-hover);
     }
 
     .button-default {
-      background: #fff;
-      color: #595959;
-      border: 1px solid #d9d9d9;
+      background: var(--cdr-surface);
+      color: var(--cdr-text-secondary);
+      border: 1px solid var(--cdr-border-strong);
     }
 
     .button-default:hover {
-      border-color: #1890ff;
-      color: #1890ff;
+      border-color: var(--cdr-primary);
+      color: var(--cdr-primary);
     }
 
     @media (max-width: 1200px) {

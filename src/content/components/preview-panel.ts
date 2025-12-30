@@ -118,7 +118,7 @@ export class PreviewPanel extends LitElement {
       display: flex;
       flex-direction: column;
       height: 100%;
-      background: #fff;
+      background: var(--cdr-surface, #fff);
     }
 
     .preview-panel {
@@ -129,7 +129,7 @@ export class PreviewPanel extends LitElement {
 
     .panel-header {
       padding: 16px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--cdr-border, #f0f0f0);
       flex-shrink: 0;
     }
 
@@ -137,7 +137,7 @@ export class PreviewPanel extends LitElement {
       margin: 0 0 8px 0;
       font-size: 16px;
       font-weight: 600;
-      color: #262626;
+      color: var(--cdr-text, #262626);
     }
 
     .conflict-warning {
@@ -145,10 +145,10 @@ export class PreviewPanel extends LitElement {
       align-items: center;
       gap: 8px;
       padding: 8px 12px;
-      background: #fff7e6;
-      border: 1px solid #ffd591;
+      background: var(--cdr-warning-bg, #fff7e6);
+      border: 1px solid var(--cdr-warning-border, #ffd591);
       border-radius: 4px;
-      color: #fa8c16;
+      color: var(--cdr-warning-text, #fa8c16);
       font-size: 13px;
     }
 
@@ -163,8 +163,8 @@ export class PreviewPanel extends LitElement {
       display: flex;
       gap: 16px;
       padding: 12px 16px;
-      background: #fafafa;
-      border-bottom: 1px solid #f0f0f0;
+      background: var(--cdr-surface-muted, #fafafa);
+      border-bottom: 1px solid var(--cdr-border, #f0f0f0);
       flex-shrink: 0;
     }
 
@@ -176,16 +176,16 @@ export class PreviewPanel extends LitElement {
     }
 
     .stat-label {
-      color: #595959;
+      color: var(--cdr-text-secondary, #595959);
     }
 
     .stat-value {
-      color: #262626;
+      color: var(--cdr-text, #262626);
       font-weight: 600;
     }
 
     .stat-item.conflict .stat-value {
-      color: #fa8c16;
+      color: var(--cdr-warning-text, #fa8c16);
     }
 
     .stat-value.success {
@@ -209,14 +209,14 @@ export class PreviewPanel extends LitElement {
       justify-content: center;
       height: 100%;
       gap: 16px;
-      color: #8c8c8c;
+      color: var(--cdr-text-tertiary, #8c8c8c);
     }
 
     .spinner {
       width: 40px;
       height: 40px;
-      border: 4px solid #f0f0f0;
-      border-top-color: #1890ff;
+      border: 4px solid var(--cdr-border, #f0f0f0);
+      border-top-color: var(--cdr-primary, #1890ff);
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
