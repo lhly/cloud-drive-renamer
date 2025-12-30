@@ -163,7 +163,7 @@ This project is open-sourced under MIT License. Contributions and suggestions ar
 - 所有数据本地存储和处理
 - 不与第三方共享数据
 
-详细隐私政策请参见: `store-assets/PRIVACY_POLICY.md`
+详细隐私政策请参见: `docs/store-assets/PRIVACY_POLICY.md`
 
 ## 支持信息
 

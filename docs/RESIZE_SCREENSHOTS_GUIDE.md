@@ -213,29 +213,31 @@ node scripts/resize-screenshots.js small-promo --position=top
 3. **宽高比**：工具会自动保持原图宽高比，不会变形
 4. **文件覆盖**：输出目录如果存在同名文件会被覆盖
 
-## 在 package.json 中添加快捷命令
+## 已内置的 npm 命令（推荐）
 
-可以在 `package.json` 中添加：
-
-```json
-{
-  "scripts": {
-    "resize:screenshots": "node scripts/resize-screenshots.js screenshot",
-    "resize:logo": "node scripts/resize-screenshots.js logo",
-    "resize:promo-small": "node scripts/resize-screenshots.js small-promo",
-    "resize:promo-large": "node scripts/resize-screenshots.js large-promo",
-    "resize:all": "node scripts/resize-screenshots.js screenshot && node scripts/resize-screenshots.js logo && node scripts/resize-screenshots.js small-promo"
-  }
-}
-```
-
-然后使用：
+本项目已在 `package.json` 中内置参数化脚本 `npm run resize`，无需再添加多个 `resize:*` 命令：
 
 ```bash
-npm run resize:screenshots    # 处理商店截图
-npm run resize:logo           # 处理 Logo
-npm run resize:all            # 一次生成所有
+# 商店截图 (1280x800)
+npm run resize screenshot
+
+# 小尺寸截图 (640x400)
+npm run resize screenshot-small
+
+# Logo (300x300)
+npm run resize logo
+
+# 小促销图 (440x280)
+npm run resize small-promo
+
+# 大促销图 (1400x560)
+npm run resize large-promo
+
+# 查看所有可用预设
+npm run resize
 ```
+
+更多参数（输入/输出目录、背景色、位置等）请参考 `docs/SCRIPTS.md`。
 
 ## 常见问题
 

@@ -29,7 +29,7 @@ npm run verify:release
 
 ## 📚 详细文档
 
-- **[RELEASE.md](./RELEASE.md)** - 完整的发布流程指南
+- **[RELEASE.md](../RELEASE.md)** - 完整的发布流程指南
 - **[.github/workflows/README.md](./workflows/README.md)** - 工作流配置说明
 
 ## 🎯 自动化功能
@@ -56,4 +56,4 @@ git push origin feature/my-feature
 
 ---
 
-**需要帮助？** 查看 [RELEASE.md](./RELEASE.md) 获取详细指南和故障排查。
+**需要帮助？** 查看 [RELEASE.md](../RELEASE.md) 获取详细指南和故障排查。

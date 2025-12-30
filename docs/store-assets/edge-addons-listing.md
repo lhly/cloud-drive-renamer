@@ -247,7 +247,7 @@ rename, batch rename, file rename, cloud drive, cloud storage, quark drive, file
 
 ## 隐私政策
 
-详细隐私政策请参见: `store-assets/PRIVACY_POLICY.md`
+详细隐私政策请参见: `docs/store-assets/PRIVACY_POLICY.md`
 
 隐私政策URL (发布后需要更新):
 - https://github.com/lhly/cloud-drive-renamer/blob/main/PRIVACY_POLICY.md
@@ -265,7 +265,7 @@ rename, batch rename, file rename, cloud drive, cloud storage, quark drive, file
 - **功能建议**: https://github.com/lhly/cloud-drive-renamer/discussions
 
 ### 版本历史
-- **当前版本**: 0.1.0
+- **当前版本**: 0.4.1
 - **更新日期**: 2025年
 
 ## 定价和分发
