@@ -4,7 +4,7 @@ import { RuleConfig } from './rule';
 /**
  * File type categories for filtering
  */
-export type FileType = 'video' | 'image' | 'document' | 'other';
+export type FileType = 'video' | 'image' | 'audio' | 'document' | 'other';
 
 /**
  * Preview item for the preview panel

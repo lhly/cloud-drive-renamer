@@ -23,6 +23,7 @@
   "all_types": "All Types",
   "type_video": "Video",
   "type_image": "Image",
+  "type_audio": "Audio",
   "type_document": "Document",
   "type_other": "Other",
   "selected_files_count": "Selected $1 / $2 files",

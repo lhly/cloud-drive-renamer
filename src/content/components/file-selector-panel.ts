@@ -250,10 +250,12 @@ export class FileSelectorPanel extends LitElement {
 
     const videoExts = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v'];
     const imageExts = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp', '.ico'];
+    const audioExts = ['.mp3', '.wav', '.flac', '.aac', '.m4a', '.ogg', '.opus', '.wma'];
     const docExts = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.md'];
 
     if (videoExts.includes(lowerExt)) return 'video';
     if (imageExts.includes(lowerExt)) return 'image';
+    if (audioExts.includes(lowerExt)) return 'audio';
     if (docExts.includes(lowerExt)) return 'document';
     return 'other';
   }

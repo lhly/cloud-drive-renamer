@@ -144,6 +144,7 @@ export class Toolbar extends LitElement {
               <option value="all">${I18nService.t('all_types')}</option>
               <option value="video">${I18nService.t('type_video')}</option>
               <option value="image">${I18nService.t('type_image')}</option>
+              <option value="audio">${I18nService.t('type_audio')}</option>
               <option value="document">${I18nService.t('type_document')}</option>
               <option value="other">${I18nService.t('type_other')}</option>
             </select>
