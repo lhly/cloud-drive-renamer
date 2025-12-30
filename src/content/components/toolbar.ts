@@ -152,7 +152,7 @@ export class Toolbar extends LitElement {
 
         <div class="toolbar-right">
           <span class="selected-count">
-            已选择 ${this.selectedCount} / ${this.totalCount} 个文件
+            ${I18nService.t('selected_files_count', [String(this.selectedCount), String(this.totalCount)])}
           </span>
         </div>
       </div>

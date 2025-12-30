@@ -208,7 +208,7 @@ export class ConfigPanel extends LitElement {
           ${!showExecutionView && hasConflicts
             ? html`
                 <div class="warning-message">
-                  ⚠️ 检测到 ${this.conflictCount} 个冲突
+                  ⚠️ ${I18nService.t('conflicts_detected', [String(this.conflictCount)])}
                 </div>
               `
             : ''}

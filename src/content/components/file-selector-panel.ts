@@ -446,7 +446,7 @@ export class FileSelectorPanel extends LitElement {
 
     // Confirm if there are conflicts
     if (this.conflictIds.size > 0) {
-      const conflictMessage = `检测到 ${this.conflictIds.size} 个冲突，是否继续？`;
+      const conflictMessage = I18nService.t('conflicts_detected_confirm', [String(this.conflictIds.size)]);
       const confirmed = confirm(conflictMessage);
 
       if (!confirmed) {

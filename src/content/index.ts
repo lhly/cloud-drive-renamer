@@ -169,36 +169,60 @@ function cleanupOldInstances(): void {
  * @param platform - 平台名称 (aliyun/baidu/quark)
  */
 async function injectPageScriptToMainWorld(platform: 'aliyun' | 'baidu' | 'quark'): Promise<void> {
+  // ✅ 引用编译后的 .js 文件（Vite 会将 TypeScript 编译为 JavaScript）
+  const scriptPath = `src/adapters/${platform}/page-script.js`;
+  const scriptURL = chrome.runtime.getURL(scriptPath);
+  let script: HTMLScriptElement | null = null;
+
   try {
-    // ✅ 引用编译后的 .js 文件（Vite 会将 TypeScript 编译为 JavaScript）
-    const scriptPath = `src/adapters/${platform}/page-script.js`;
-    const scriptURL = chrome.runtime.getURL(scriptPath);
-
     // 创建 script 标签并注入到页面 (MAIN world)
-    const script = document.createElement('script');
-    script.src = scriptURL;
-    script.type = 'module'; // 支持 ES6 模块
+    const scriptEl = document.createElement('script');
+    script = scriptEl;
+    scriptEl.src = scriptURL;
+    scriptEl.type = 'module'; // 支持 ES6 模块
 
-    // 等待脚本加载完成
+    // 等待脚本加载完成（加超时保护，避免 CSP/站点脚本拦截导致 onload/onerror 永不触发，从而阻塞整个悬浮按钮注入）
+    const timeoutMs = 1500;
     await new Promise<void>((resolve, reject) => {
-      script.onload = () => {
+      const cleanup = () => {
+        scriptEl.onload = null;
+        scriptEl.onerror = null;
+      };
+
+      const timer = window.setTimeout(() => {
+        cleanup();
+        reject(new Error(`Timeout loading page-script for ${platform}`));
+      }, timeoutMs);
+
+      scriptEl.onload = () => {
+        window.clearTimeout(timer);
+        cleanup();
         resolve();
       };
-      script.onerror = () => {
+      scriptEl.onerror = () => {
+        window.clearTimeout(timer);
+        cleanup();
         reject(new Error(`Failed to load page-script for ${platform}`));
       };
 
       // 注入到页面
-      (document.head || document.documentElement).appendChild(script);
+      (document.head || document.documentElement).appendChild(scriptEl);
     });
 
     // 脚本加载后可以移除标签 (代码已执行)
-    script.remove();
+    scriptEl.remove();
 
     logger.info(`${platform} page-script injected to MAIN world successfully`);
   } catch (error) {
-    logger.error(`Failed to inject ${platform} page-script:`, error instanceof Error ? error : new Error(String(error)));
-    throw error;
+    // 不要阻塞悬浮按钮注入：即使 page-script 注入失败，也应该让 UI 先显示出来
+    // 相关平台的 API 调用可能会退化/失败，但用户至少能看到按钮和面板，且能在控制台看到诊断信息
+    logger.warn(
+      `[DIAG] Failed to inject ${platform} page-script (continue without it):`,
+      error instanceof Error ? error : new Error(String(error))
+    );
+  } finally {
+    // Best-effort cleanup: 避免遗留无用的 <script>
+    script?.remove();
   }
 }
 
@@ -396,6 +420,40 @@ function setupStorageListener(platform: PlatformName): void {
 }
 
 /**
+ * Force Lit-based components to re-render when language changes.
+ *
+ * Reason: I18nService stores language in a static field; updating it won't
+ * automatically trigger LitElement re-rendering unless some reactive state changes.
+ * We traverse the panel subtree (including nested shadow roots) and call
+ * requestUpdate() for any element that exposes it.
+ */
+function requestLitRenderDeep(root: Element): void {
+  const queue: Array<Element | ShadowRoot> = [root];
+  const visited = new Set<Node>();
+
+  while (queue.length) {
+    const node = queue.shift();
+    if (!node || visited.has(node)) continue;
+    visited.add(node);
+
+    if (node instanceof Element) {
+      const maybeLit = node as unknown as { requestUpdate?: () => void; shadowRoot?: ShadowRoot | null };
+      maybeLit.requestUpdate?.();
+
+      if (maybeLit.shadowRoot) {
+        queue.push(maybeLit.shadowRoot);
+      }
+
+      queue.push(...Array.from(node.children));
+      continue;
+    }
+
+    // ShadowRoot (DocumentFragment)
+    queue.push(...Array.from(node.children));
+  }
+}
+
+/**
  * 设置语言变更监听器
  * 同步 popup 的语言切换到 content script 上下文
  */
@@ -410,6 +468,11 @@ function setupLanguageChangeListener(): void {
 
       // 通知 FloatingButton 更新 UI
       floatingButton?.updateLanguage();
+
+      // ✅ 同步更新已打开的面板（以及其内部的所有 Lit 组件）
+      if (fileSelectorPanel?.open) {
+        requestLitRenderDeep(fileSelectorPanel);
+      }
 
       logger.info(`Language synced successfully to: ${newLanguage}`);
     }

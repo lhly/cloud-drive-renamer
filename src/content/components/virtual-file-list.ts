@@ -2,6 +2,7 @@ import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { virtualize, virtualizerRef } from '@lit-labs/virtualizer/virtualize.js';
 import { FileItem } from '../../types/platform';
+import { I18nService } from '../../utils/i18n';
 
 /**
  * Virtual File List Component
@@ -201,7 +202,7 @@ export class VirtualFileList extends LitElement {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
           </svg>
-          <p>没有找到文件</p>
+          <p>${I18nService.t('no_files_found')}</p>
         </div>
       `;
     }
