@@ -7,6 +7,8 @@ import { I18nService } from '../utils/i18n';
 import { LANGUAGE_DISPLAY_NAMES } from '../types/i18n';
 import type { LanguageChangeMessage, SupportedLanguage } from '../types/i18n';
 import { detectPlatformFromUrl } from '../utils/platform-detector';
+import { applyAppearanceToDocument, getAppearanceMode, setAppearanceMode, watchSystemColorScheme } from '../utils/appearance';
+import type { AppearanceMode } from '../types/appearance';
 
 /**
  * Popup脚本
@@ -45,6 +47,36 @@ function localizeHTML() {
       el.textContent = I18nService.t(key);
     }
   });
+}
+
+function getAppearanceModeLabel(mode: AppearanceMode): string {
+  switch (mode) {
+    case 'auto':
+      return I18nService.t('appearance_mode_follow');
+    case 'light':
+      return I18nService.t('appearance_mode_light');
+    case 'dark':
+      return I18nService.t('appearance_mode_dark');
+  }
+}
+
+function updateAppearanceButton(mode: AppearanceMode): void {
+  const appearanceButton = document.getElementById('appearance-button') as HTMLButtonElement | null;
+  if (!appearanceButton) return;
+
+  appearanceButton.dataset.mode = mode;
+  appearanceButton.title = I18nService.t('popup_appearance_tooltip', [getAppearanceModeLabel(mode)]);
+}
+
+function getNextAppearanceMode(current: AppearanceMode): AppearanceMode {
+  switch (current) {
+    case 'auto':
+      return 'light';
+    case 'light':
+      return 'dark';
+    case 'dark':
+      return 'auto';
+  }
 }
 
 function updateLanguageMenuSelection(language: SupportedLanguage) {
@@ -121,6 +153,11 @@ function handleLanguageChange(message: any) {
       languageButton.title = I18nService.t('popup_language_label');
     }
 
+    // Keep tooltip up-to-date for appearance button
+    getAppearanceMode().then(mode => updateAppearanceButton(mode)).catch(() => {
+      // ignore
+    });
+
     // Update platform name with new translations
     updatePlatformDisplayName().catch(error => {
       logger.error('Failed to update platform name after language change:', error);
@@ -147,6 +184,9 @@ async function initPopup() {
 
   // 2. After language initialization, localize HTML with correct language
   localizeHTML();
+
+  // 2.5 Initialize appearance toggle and apply current theme
+  await initAppearanceToggle();
 
   // 3. Inject version number to footer
   injectVersion();
@@ -428,6 +468,50 @@ async function initLanguageMenu() {
     e.preventDefault();
     setLanguageMenuOpen(false, { focusButton: true });
   });
+}
+
+async function initAppearanceToggle() {
+  const appearanceButton = document.getElementById('appearance-button') as HTMLButtonElement | null;
+  if (!appearanceButton) return;
+
+  let currentMode: AppearanceMode = await getAppearanceMode();
+
+  const applyMode = (mode: AppearanceMode) => {
+    applyAppearanceToDocument(mode);
+    updateAppearanceButton(mode);
+  };
+
+  applyMode(currentMode);
+
+  // Follow system/browser when mode is auto
+  const stopWatch = watchSystemColorScheme((scheme) => {
+    void scheme;
+    if (currentMode !== 'auto') return;
+    applyMode(currentMode);
+  });
+
+  // Cleanup watcher when popup unloads
+  window.addEventListener('unload', () => {
+    stopWatch();
+  });
+
+  appearanceButton.addEventListener('click', async () => {
+    const nextMode = getNextAppearanceMode(currentMode);
+    currentMode = nextMode;
+
+    try {
+      await setAppearanceMode(nextMode);
+      applyMode(nextMode);
+      showToast(I18nService.t('toast_appearance_changed', [getAppearanceModeLabel(nextMode)]));
+    } catch (error) {
+      logger.error('Failed to change appearance mode:', error as Error);
+      showToast(I18nService.t('toast_appearance_change_failed'));
+      // Revert UI if failed
+      currentMode = await getAppearanceMode().catch(() => currentMode);
+      applyMode(currentMode);
+    }
+  });
+
 }
 
 // 绑定事件

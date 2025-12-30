@@ -629,8 +629,9 @@ export class ConfigPanel extends LitElement {
       display: flex;
       flex-direction: column;
       height: 100%;
-      background: #fff;
-      border-right: 1px solid #f0f0f0;
+      background: var(--cdr-surface, #fff);
+      border-right: 1px solid var(--cdr-border, #f0f0f0);
+      color: var(--cdr-text, #262626);
     }
 
     .config-panel {
@@ -641,7 +642,7 @@ export class ConfigPanel extends LitElement {
 
     .panel-header {
       padding: 16px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--cdr-border, #f0f0f0);
       flex-shrink: 0;
     }
 
@@ -649,7 +650,7 @@ export class ConfigPanel extends LitElement {
       margin: 0;
       font-size: 16px;
       font-weight: 600;
-      color: #262626;
+      color: var(--cdr-text, #262626);
     }
 
     .panel-body {
@@ -660,7 +661,7 @@ export class ConfigPanel extends LitElement {
 
     .panel-footer {
       padding: 16px;
-      border-top: 1px solid #f0f0f0;
+      border-top: 1px solid var(--cdr-border, #f0f0f0);
       flex-shrink: 0;
     }
 
@@ -673,13 +674,13 @@ export class ConfigPanel extends LitElement {
     .execution-title {
       font-size: 14px;
       font-weight: 600;
-      color: #262626;
+      color: var(--cdr-text, #262626);
     }
 
     .progress-bar-container {
       width: 100%;
       height: 8px;
-      background: #f0f0f0;
+      background: var(--cdr-border, #f0f0f0);
       border-radius: 4px;
       overflow: hidden;
     }
@@ -694,28 +695,28 @@ export class ConfigPanel extends LitElement {
       display: flex;
       justify-content: space-between;
       font-size: 13px;
-      color: #666;
+      color: var(--cdr-text-secondary, #595959);
     }
 
     .percentage {
       font-weight: 600;
-      color: #262626;
+      color: var(--cdr-text, #262626);
     }
 
     .current-file {
-      background: #fafafa;
-      border: 1px solid #f0f0f0;
+      background: var(--cdr-surface-muted, #fafafa);
+      border: 1px solid var(--cdr-border, #f0f0f0);
       padding: 10px 12px;
       border-radius: 6px;
       font-size: 12px;
-      color: #666;
+      color: var(--cdr-text-secondary, #595959);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .current-file strong {
-      color: #262626;
+      color: var(--cdr-text, #262626);
       margin-right: 8px;
     }
 
@@ -724,8 +725,8 @@ export class ConfigPanel extends LitElement {
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
       padding: 10px 12px;
-      background: #fafafa;
-      border: 1px solid #f0f0f0;
+      background: var(--cdr-surface-muted, #fafafa);
+      border: 1px solid var(--cdr-border, #f0f0f0);
       border-radius: 6px;
     }
 
@@ -735,14 +736,14 @@ export class ConfigPanel extends LitElement {
 
     .stat-label {
       font-size: 12px;
-      color: #8c8c8c;
+      color: var(--cdr-text-tertiary, #8c8c8c);
       margin-bottom: 4px;
     }
 
     .stat-value {
       font-size: 18px;
       font-weight: 600;
-      color: #262626;
+      color: var(--cdr-text, #262626);
     }
 
     .stat-value.success {
@@ -755,29 +756,29 @@ export class ConfigPanel extends LitElement {
 
     .sync-status {
       font-size: 12px;
-      color: #595959;
+      color: var(--cdr-text-secondary, #595959);
       padding: 8px 10px;
       border-radius: 6px;
       border: 1px solid transparent;
-      background: #fafafa;
+      background: var(--cdr-surface-muted, #fafafa);
     }
 
     .sync-status.success {
-      color: #389e0d;
-      background: #f6ffed;
-      border-color: #b7eb8f;
+      color: var(--cdr-success-text, #389e0d);
+      background: var(--cdr-success-bg, #f6ffed);
+      border-color: var(--cdr-success-border, #b7eb8f);
     }
 
     .sync-status.failed {
-      color: #cf1322;
-      background: #fff1f0;
-      border-color: #ffa39e;
+      color: var(--cdr-danger-text, #cf1322);
+      background: var(--cdr-danger-bg, #fff1f0);
+      border-color: var(--cdr-danger-border, #ffa39e);
     }
 
     .sync-status.syncing {
-      color: #0958d9;
-      background: #e6f4ff;
-      border-color: #91caff;
+      color: var(--cdr-info-text, #0958d9);
+      background: var(--cdr-info-bg, #e6f4ff);
+      border-color: var(--cdr-info-border, #91caff);
     }
 
     .sync-retry {
@@ -785,7 +786,7 @@ export class ConfigPanel extends LitElement {
       padding: 0;
       border: none;
       background: transparent;
-      color: #1677ff;
+      color: var(--cdr-primary, #1890ff);
       cursor: pointer;
       font-size: 12px;
     }
@@ -807,7 +808,7 @@ export class ConfigPanel extends LitElement {
     .section-title {
       font-size: 14px;
       font-weight: 600;
-      color: #262626;
+      color: var(--cdr-text, #262626);
       margin-bottom: 12px;
     }
 
@@ -819,7 +820,7 @@ export class ConfigPanel extends LitElement {
 
     .rule-option {
       padding: 12px;
-      border: 2px solid #d9d9d9;
+      border: 2px solid var(--cdr-border-strong, #d9d9d9);
       border-radius: 4px;
       cursor: pointer;
       transition: all 0.2s;
@@ -829,13 +830,13 @@ export class ConfigPanel extends LitElement {
     }
 
     .rule-option:hover {
-      border-color: #1890ff;
+      border-color: var(--cdr-primary, #1890ff);
     }
 
     .rule-option.selected {
-      border-color: #1890ff;
-      background-color: #e6f7ff;
-      color: #1890ff;
+      border-color: var(--cdr-primary, #1890ff);
+      background-color: var(--cdr-selection-bg, #e6f7ff);
+      color: var(--cdr-primary, #1890ff);
     }
 
     .rule-option input[type='radio'] {
@@ -853,29 +854,32 @@ export class ConfigPanel extends LitElement {
     .form-label {
       display: block;
       font-size: 14px;
-      color: #595959;
+      color: var(--cdr-text-secondary, #595959);
       margin-bottom: 8px;
     }
 
     .form-input {
       width: 100%;
       padding: 8px 12px;
-      border: 1px solid #d9d9d9;
+      border: 1px solid var(--cdr-border-strong, #d9d9d9);
       border-radius: 4px;
       font-size: 14px;
       transition: border-color 0.2s;
       box-sizing: border-box;
+      background: var(--cdr-surface, #fff);
+      color: var(--cdr-text, #262626);
     }
 
     .form-select {
       width: 100%;
       padding: 8px 12px;
-      border: 1px solid #d9d9d9;
+      border: 1px solid var(--cdr-border-strong, #d9d9d9);
       border-radius: 4px;
       font-size: 14px;
       transition: border-color 0.2s;
       box-sizing: border-box;
-      background: #fff;
+      background: var(--cdr-surface, #fff);
+      color: var(--cdr-text, #262626);
     }
 
     .form-input:focus,
@@ -900,17 +904,17 @@ export class ConfigPanel extends LitElement {
 
     .hint-text {
       font-size: 12px;
-      color: #8c8c8c;
+      color: var(--cdr-text-tertiary, #8c8c8c);
       margin-top: 4px;
       line-height: 1.5;
     }
 
     .warning-message {
       padding: 8px 12px;
-      background: #fff7e6;
-      border: 1px solid #ffd591;
+      background: var(--cdr-warning-bg, #fff7e6);
+      border: 1px solid var(--cdr-warning-border, #ffd591);
       border-radius: 4px;
-      color: #fa8c16;
+      color: var(--cdr-warning-text, #fa8c16);
       font-size: 13px;
       margin-bottom: 12px;
     }
@@ -927,12 +931,12 @@ export class ConfigPanel extends LitElement {
     }
 
     .button-primary {
-      background: #1890ff;
+      background: var(--cdr-primary, #1890ff);
       color: #fff;
     }
 
     .button-primary:hover:not(:disabled) {
-      background: #40a9ff;
+      background: var(--cdr-primary-hover, #40a9ff);
     }
 
     .button-primary:active:not(:disabled) {
@@ -940,23 +944,23 @@ export class ConfigPanel extends LitElement {
     }
 
     .button-default {
-      background: #fff;
-      color: #595959;
-      border: 1px solid #d9d9d9;
+      background: var(--cdr-surface, #fff);
+      color: var(--cdr-text-secondary, #595959);
+      border: 1px solid var(--cdr-border-strong, #d9d9d9);
     }
 
     .button-default:hover:not(:disabled) {
-      border-color: #1890ff;
-      color: #1890ff;
+      border-color: var(--cdr-primary, #1890ff);
+      color: var(--cdr-primary, #1890ff);
     }
 
     .button-danger {
-      background: #ff4d4f;
+      background: var(--cdr-danger, #ff4d4f);
       color: #fff;
     }
 
     .button-danger:hover:not(:disabled) {
-      background: #ff7875;
+      background: var(--cdr-danger-hover, #ff7875);
     }
 
     .button-danger:active:not(:disabled) {
@@ -964,8 +968,8 @@ export class ConfigPanel extends LitElement {
     }
 
     .button:disabled {
-      background: #f5f5f5;
-      color: #bfbfbf;
+      background: var(--cdr-surface-hover, #f5f5f5);
+      color: var(--cdr-text-disabled, #bfbfbf);
       cursor: not-allowed;
     }
 

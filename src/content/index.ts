@@ -9,6 +9,8 @@ import { STORAGE_KEYS } from '../types/stats';
 import { I18nService } from '../utils/i18n';
 import type { LanguageChangeMessage } from '../types/i18n';
 import { detectPlatformFromUrl, isQuarkShareLink, isAliyunShareLink } from '../utils/platform-detector';
+import { applyAppearanceToElement, getAppearanceMode, watchSystemColorScheme } from '../utils/appearance';
+import { APPEARANCE_STORAGE_KEY, DEFAULT_APPEARANCE_MODE, isAppearanceMode, type AppearanceMode } from '../types/appearance';
 
 /**
  * Content Script
@@ -29,6 +31,8 @@ const INIT_FLAG = '__cloudDriveRenamerInitialized';
 let floatingButton: FloatingButton | null = null;
 let fileSelectorPanel: (HTMLElement & { open: boolean; adapter: PlatformAdapter }) | null = null;
 let platformAdapter: PlatformAdapter | null = null;
+let currentAppearanceMode: AppearanceMode = DEFAULT_APPEARANCE_MODE;
+let stopWatchSystemColorScheme: (() => void) | null = null;
 
 // 初始化重试计数器（防止无限递归）
 let initRetryCount = 0;
@@ -145,6 +149,12 @@ function cleanupOldInstances(): void {
       logger.error('Failed to close old file selector panel:', error instanceof Error ? error : new Error(String(error)));
     }
     fileSelectorPanel = null;
+  }
+
+  // 清理外观模式监听器（避免重复初始化导致泄漏）
+  if (stopWatchSystemColorScheme) {
+    stopWatchSystemColorScheme();
+    stopWatchSystemColorScheme = null;
   }
 
   // 额外保护：手动移除可能残留的DOM元素（Shadow DOM宿主）
@@ -314,6 +324,7 @@ async function ensureFileSelectorPanel(platform: PlatformName): Promise<void> {
     open: boolean;
     adapter: PlatformAdapter;
   };
+  applyAppearanceToElement(panelEl, currentAppearanceMode);
   panelEl.adapter = platformAdapter;
   panelEl.open = false;
   panelEl.addEventListener('panel-close', () => {
@@ -321,6 +332,11 @@ async function ensureFileSelectorPanel(platform: PlatformName): Promise<void> {
   });
   document.body.appendChild(panelEl);
   fileSelectorPanel = panelEl;
+}
+
+function applyAppearanceToOpenPanel(): void {
+  if (!fileSelectorPanel) return;
+  applyAppearanceToElement(fileSelectorPanel, currentAppearanceMode);
 }
 
 // 注入UI (新实现 - 使用悬浮按钮)
@@ -340,6 +356,17 @@ async function injectUI(platform: PlatformName) {
     // 这确保 I18nService.currentLanguage 从 storage 加载正确的值
     const currentLang = await I18nService.getCurrentLanguage();
     logger.info(`[I18n] Content script initialized with language: ${currentLang}`);
+
+    // 初始化外观模式（从 popup 同步到面板）
+    currentAppearanceMode = await getAppearanceMode();
+    applyAppearanceToOpenPanel();
+
+    if (!stopWatchSystemColorScheme) {
+      stopWatchSystemColorScheme = watchSystemColorScheme(() => {
+        if (currentAppearanceMode !== 'auto') return;
+        applyAppearanceToOpenPanel();
+      });
+    }
 
     // 创建平台适配器（供 File Selector Panel 使用）
     platformAdapter = createPlatformAdapter(platform);
@@ -406,6 +433,12 @@ function setupStorageListener(platform: PlatformName): void {
   // 也监听storage变化（备用机制）
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local') {
+      if (changes[APPEARANCE_STORAGE_KEY]) {
+        const nextMode = changes[APPEARANCE_STORAGE_KEY].newValue;
+        currentAppearanceMode = isAppearanceMode(nextMode) ? nextMode : DEFAULT_APPEARANCE_MODE;
+        applyAppearanceToOpenPanel();
+      }
+
       const storageKey = STORAGE_KEYS.VISIBILITY_PREFIX + platform;
       if (changes[storageKey]) {
         const newValue = changes[storageKey].newValue;
