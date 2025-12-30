@@ -4,7 +4,8 @@ import { PlatformName } from '../types/platform';
 import { PlatformUsageStats, STORAGE_KEYS } from '../types/stats';
 import { APP_VERSION_WITH_PREFIX } from '../shared/version';
 import { I18nService } from '../utils/i18n';
-import { LanguageChangeMessage } from '../types/i18n';
+import { LANGUAGE_DISPLAY_NAMES } from '../types/i18n';
+import type { LanguageChangeMessage, SupportedLanguage } from '../types/i18n';
 import { detectPlatformFromUrl } from '../utils/platform-detector';
 
 /**
@@ -46,6 +47,38 @@ function localizeHTML() {
   });
 }
 
+function updateLanguageMenuSelection(language: SupportedLanguage) {
+  const languageMenu = document.getElementById('language-menu');
+  if (!languageMenu) return;
+
+  languageMenu.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((item) => {
+    const isSelected = item.dataset.lang === language;
+    item.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+    item.dataset.selected = isSelected ? 'true' : 'false';
+  });
+}
+
+function setLanguageMenuOpen(open: boolean, options?: { focusButton?: boolean }) {
+  const languageButton = document.getElementById('language-button') as HTMLButtonElement | null;
+  const languageMenu = document.getElementById('language-menu') as HTMLElement | null;
+  if (!languageButton || !languageMenu) return;
+
+  languageMenu.hidden = !open;
+  languageButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+  if (open) {
+    const selectedItem =
+      languageMenu.querySelector<HTMLButtonElement>('[data-selected="true"]') ||
+      languageMenu.querySelector<HTMLButtonElement>('[data-lang]');
+    selectedItem?.focus();
+    return;
+  }
+
+  if (options?.focusButton) {
+    languageButton.focus();
+  }
+}
+
 /**
  * Update platform display name based on current tab
  * Extracts duplicated logic and removes global state mutation
@@ -78,6 +111,16 @@ function handleLanguageChange(message: any) {
     // Update all internationalized text when language changes
     localizeHTML();
 
+    // Update language menu selection
+    const newLanguage = (message as LanguageChangeMessage).language;
+    updateLanguageMenuSelection(newLanguage);
+
+    // Keep tooltip up-to-date for icon-only button
+    const languageButton = document.getElementById('language-button') as HTMLButtonElement | null;
+    if (languageButton) {
+      languageButton.title = I18nService.t('popup_language_label');
+    }
+
     // Update platform name with new translations
     updatePlatformDisplayName().catch(error => {
       logger.error('Failed to update platform name after language change:', error);
@@ -99,8 +142,8 @@ function setupLanguageChangeListener() {
 
 // 初始化Popup
 async function initPopup() {
-  // 1. First initialize language selector (loads and sets currentLanguage asynchronously)
-  await initLanguageSelector();
+  // 1. First initialize language menu (loads and sets currentLanguage asynchronously)
+  await initLanguageMenu();
 
   // 2. After language initialization, localize HTML with correct language
   localizeHTML();
@@ -315,42 +358,75 @@ function showToast(message: string, duration = 2000) {
 }
 
 /**
- * 初始化语言选择器
+ * 初始化语言菜单
  */
-async function initLanguageSelector() {
-  const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
-  if (!languageSelect) return;
+async function initLanguageMenu() {
+  const languageButton = document.getElementById('language-button') as HTMLButtonElement | null;
+  const languageMenu = document.getElementById('language-menu') as HTMLElement | null;
+  if (!languageButton || !languageMenu) return;
+
+  const menuContainer = languageButton.closest('.menu-container');
+  if (!menuContainer) return;
 
   // 获取当前语言并设置选中状态
   const currentLang = await I18nService.getCurrentLanguage();
-  languageSelect.value = currentLang;
+  updateLanguageMenuSelection(currentLang);
+
+  // Icon-only button: add localized tooltip
+  languageButton.title = I18nService.t('popup_language_label');
+
+  languageButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    setLanguageMenuOpen(languageMenu.hidden);
+  });
 
   // 监听语言切换
-  languageSelect.addEventListener('change', async (e) => {
-    const newLang = (e.target as HTMLSelectElement).value as 'zh_CN' | 'zh_TW' | 'en';
+  languageMenu.querySelectorAll<HTMLButtonElement>('[data-lang]').forEach((item) => {
+    item.addEventListener('click', async () => {
+      const newLang = item.dataset.lang as SupportedLanguage;
 
-    try {
-      // 设置新语言
-      await I18nService.setLanguage(newLang);
+      // Close menu immediately for better UX
+      setLanguageMenuOpen(false, { focusButton: true });
 
-      // 更新页面所有文本
-      localizeHTML();
+      try {
+        // 设置新语言
+        await I18nService.setLanguage(newLang);
 
-      // 显示Toast提示
-      const langName = {
-        'zh_CN': '简体中文',
-        'zh_TW': '繁體中文',
-        'en': 'English'
-      }[newLang];
+        // 更新页面所有文本
+        localizeHTML();
 
-      showToast(I18nService.t('toast_language_changed', [langName]));
+        // 更新 tooltip
+        languageButton.title = I18nService.t('popup_language_label');
 
-      // 更新平台名称翻译（使用提取的函数，消除重复代码）
-      await updatePlatformDisplayName();
-    } catch (error) {
-      logger.error('Failed to change language:', error as Error);
-      showToast(I18nService.t('toast_language_change_failed'));
-    }
+        // 更新菜单选中状态
+        updateLanguageMenuSelection(newLang);
+
+        // 显示Toast提示
+        showToast(I18nService.t('toast_language_changed', [LANGUAGE_DISPLAY_NAMES[newLang]]));
+
+        // 更新平台名称翻译（使用提取的函数，消除重复代码）
+        await updatePlatformDisplayName();
+      } catch (error) {
+        logger.error('Failed to change language:', error as Error);
+        showToast(I18nService.t('toast_language_change_failed'));
+      }
+    });
+  });
+
+  // 点击其他区域关闭菜单
+  document.addEventListener('click', (e) => {
+    if (languageMenu.hidden) return;
+    const target = e.target as Node | null;
+    if (target && menuContainer.contains(target)) return;
+    setLanguageMenuOpen(false);
+  });
+
+  // ESC 关闭菜单
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (languageMenu.hidden) return;
+    e.preventDefault();
+    setLanguageMenuOpen(false, { focusButton: true });
   });
 }
 
