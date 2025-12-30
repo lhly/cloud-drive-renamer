@@ -60,9 +60,7 @@ export class PreviewPanel extends LitElement {
                     <line x1="12" y1="9" x2="12" y2="13"></line>
                     <line x1="12" y1="17" x2="12.01" y2="17"></line>
                   </svg>
-                  <span>
-                    检测到 ${this.conflictCount} 个冲突
-                  </span>
+                  <span>${I18nService.t('conflicts_detected', [String(this.conflictCount)])}</span>
                 </div>
               `
             : ''}
@@ -70,7 +68,7 @@ export class PreviewPanel extends LitElement {
 
         <div class="panel-stats">
           <div class="stat-item">
-            <span class="stat-label">预览项:</span>
+            <span class="stat-label">${I18nService.t('preview_items')}</span>
             <span class="stat-value">${this.items.length}</span>
           </div>
           ${this.showStatus
@@ -92,7 +90,7 @@ export class PreviewPanel extends LitElement {
           ${hasConflicts
             ? html`
                 <div class="stat-item conflict">
-                  <span class="stat-label">冲突:</span>
+                  <span class="stat-label">${I18nService.t('preview_summary_conflict')}</span>
                   <span class="stat-value">${this.conflictCount}</span>
                 </div>
               `
@@ -104,7 +102,7 @@ export class PreviewPanel extends LitElement {
             ? html`
                 <div class="loading-state">
                   <div class="spinner"></div>
-                  <p>正在生成预览...</p>
+                  <p>${I18nService.t('preview_loading')}</p>
                 </div>
               `
             : html`
