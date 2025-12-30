@@ -21,12 +21,29 @@
 
       .header {
         margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
       }
 
       h1 {
         font-size: 18px;
         color: #333;
-        margin-bottom: 8px;
+        margin: 0;
+        flex: 1;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
 
       .platform-status {
@@ -106,41 +123,103 @@
         color: #999;
       }
 
-      /* 语言选择器样式 */
-      .language-selector {
-        padding: 12px;
-        background: white;
-        border-radius: 8px;
-        margin-bottom: 16px;
+      /* Header actions */
+      .header-actions {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
-      .language-label {
-        font-size: 12px;
-        color: #666;
-        margin-bottom: 6px;
-        display: block;
+      .menu-container {
+        position: relative;
       }
 
-      .language-select {
-        width: 100%;
-        padding: 8px 12px;
-        font-size: 14px;
-        border: 1px solid #ddd;
+      .icon-button {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid transparent;
         border-radius: 6px;
-        background: white;
-        color: #333;
+        background: transparent;
+        color: #666;
         cursor: pointer;
         transition: all 0.2s;
       }
 
-      .language-select:hover {
-        border-color: #1890ff;
+      .icon-button:hover {
+        background: rgba(24, 144, 255, 0.08);
+        border-color: rgba(24, 144, 255, 0.35);
+        color: #1890ff;
       }
 
-      .language-select:focus {
+      .icon-button:focus {
         outline: none;
         border-color: #1890ff;
         box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+      }
+
+      .icon {
+        width: 18px;
+        height: 18px;
+        display: block;
+      }
+
+      .menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        min-width: 160px;
+        padding: 6px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        z-index: 1000;
+      }
+
+      .menu-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 10px;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: #333;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+      }
+
+      .menu-item::after {
+        content: '';
+        width: 16px;
+        text-align: right;
+        color: #1890ff;
+        font-size: 12px;
+        line-height: 1;
+      }
+
+      .menu-item:hover {
+        background: #f5f5f5;
+      }
+
+      .menu-item:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+      }
+
+      .menu-item[data-selected='true'] {
+        background: rgba(24, 144, 255, 0.08);
+        color: #1890ff;
+      }
+
+      .menu-item[data-selected='true']::after {
+        content: '✓';
       }
 
       /* Toast提示样式 */
@@ -283,16 +362,24 @@
   <body>
     <div class="header">
       <h1 data-i18n="popup_title">CloudDrive Renamer</h1>
-    </div>
-
-    <!-- 语言选择器 -->
-    <div class="language-selector">
-      <label class="language-label" data-i18n="popup_language_label">语言 / Language</label>
-      <select class="language-select" id="language-select">
-        <option value="zh_CN">简体中文</option>
-        <option value="zh_TW">繁體中文</option>
-        <option value="en">English</option>
-      </select>
+      <div class="header-actions">
+        <div class="menu-container">
+          <button class="icon-button" id="language-button" type="button" aria-haspopup="menu" aria-expanded="false">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+              <path d="M3 12h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M12 3c3 3 3 15 0 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            <span class="sr-only" data-i18n="popup_language_label">语言 / Language</span>
+          </button>
+          <div class="menu" id="language-menu" role="menu" aria-labelledby="language-button" hidden>
+            <button class="menu-item" type="button" role="menuitemradio" aria-checked="false" data-lang="zh_CN">简体中文</button>
+            <button class="menu-item" type="button" role="menuitemradio" aria-checked="false" data-lang="zh_TW">繁體中文</button>
+            <button class="menu-item" type="button" role="menuitemradio" aria-checked="false" data-lang="en">English</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="platform-status">
