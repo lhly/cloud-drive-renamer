@@ -385,18 +385,53 @@ Screenshots are processed using the `npm run resize` command with predefined pre
 - **Bundle Size:** Lit is chosen for its small footprint (~20KB) vs React/Vue
 - **Memory:** Crash recovery stores minimal state in chrome.storage.local
 
-## Future Expansion Points
+## Version History and Roadmap
 
-**Platform Adapters (Planned):**
-- `src/adapters/aliyun/` - Aliyun Drive (architecture ready)
-- `src/adapters/baidu/` - Baidu Drive (architecture ready)
+### Current Version: v1.0.0 (Stable Release)
 
-**Potential Rule Types:**
-- Regex-based rules (mentioned in roadmap)
-- Conditional rules based on file type/size
-- Template-based batch rules
+**Major improvements from v0.4.1:**
+
+1. **Complete Platform Support:**
+   - Quark Drive: Full support with folder renaming and page sync
+   - Aliyun Drive: Full support with auto page list sync
+   - Baidu Drive: Full support with optimized API calls
+
+2. **Enhanced UI/UX:**
+   - File selector panel with 3-column layout (config/list/preview)
+   - Draggable floating button with position memory
+   - Virtual scrolling for large file lists (thousands of files)
+   - Advanced search and filtering capabilities
+
+3. **Execution Engine Improvements:**
+   - Auto page sync after rename completion (Aliyun/Baidu)
+   - Manual retry for failed items
+   - Real-time progress visualization
+   - Platform usage statistics
+
+4. **Internationalization:**
+   - Multi-language support (zh_CN / zh_TW / en)
+   - Auto language detection
+   - Optimized script injection for i18n
+
+5. **Stability & Error Handling:**
+   - Unified platform detection logic
+   - Enhanced error messages and fallback handling
+   - Improved filename extraction (noise filtering)
+
+### Future Expansion Points
+
+**Platform Adapters:**
+- Additional cloud storage platforms (based on API availability and compatibility)
+
+**Rule Engine Enhancements:**
+- More flexible renaming rule types
+- Rule template save/share functionality
+
+**Advanced Features:**
+- History and undo functionality
+- Batch task optimization
 
 **Testing Gaps:**
 - `quark-adapter.test.ts` requires Chrome extension mock environment
 - Performance benchmarks not yet integrated in CI
-- E2E tests for all platforms (currently Quark only)
+- E2E tests expansion to all platforms (currently Quark only)
