@@ -9,6 +9,7 @@ import { BatchResults, ProgressEvent } from '../../types/core';
 import { I18nService } from '../../utils/i18n';
 import { parseFileName } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
+import { recordUsageStatsDelta } from '../../utils/usage-stats';
 import './config-panel';
 import './file-list-panel';
 import './preview-panel';
@@ -490,6 +491,11 @@ export class FileSelectorPanel extends LitElement {
       this.executionResults = results;
       this.executorState = executor.getState();
 
+      await recordUsageStatsDelta(this.adapter.platform, {
+        success: results.success.length,
+        failed: results.failed.length,
+      });
+
       this.applyExecutionResults(results);
       void this.syncAfterRename();
     } catch (error) {
@@ -696,6 +702,11 @@ export class FileSelectorPanel extends LitElement {
       const results = await executor.execute();
       this.executionResults = results;
       this.executorState = executor.getState();
+
+      await recordUsageStatsDelta(this.adapter.platform, {
+        success: results.success.length,
+        failed: results.failed.length,
+      });
 
       this.applyExecutionResults(results);
       this.updateSummaryProgress();

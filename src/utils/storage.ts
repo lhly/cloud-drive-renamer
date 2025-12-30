@@ -22,7 +22,7 @@ export class StorageManager {
   async get<T>(key: string): Promise<T | null> {
     try {
       const result = await chrome.storage.local.get(key);
-      return result[key] || null;
+      return (result as Record<string, T | undefined>)[key] ?? null;
     } catch (error) {
       console.error('[CDR] Failed to read from chrome.storage:', error);
       // 降级到localStorage
