@@ -23,6 +23,7 @@
   "all_types": "所有類型",
   "type_video": "影片",
   "type_image": "圖片",
+  "type_audio": "音訊",
   "type_document": "文件",
   "type_other": "其他",
   "selected_files_count": "已選擇 $1 / $2 個檔案",
