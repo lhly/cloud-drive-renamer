@@ -111,6 +111,20 @@ describe('StorageManager', () => {
       expect(result).toEqual(value);
     });
 
+    it('应该正确读取 falsy 值 (false/0/空字符串)', async () => {
+      const cases = [
+        { key: 'bool-false', value: false },
+        { key: 'number-zero', value: 0 },
+        { key: 'empty-string', value: '' },
+      ] as const;
+
+      for (const { key, value } of cases) {
+        mockChromeStorage.get.mockResolvedValueOnce({ [key]: value });
+        const result = await storageManager.get<any>(key);
+        expect(result).toBe(value);
+      }
+    });
+
     it('应该在数据不存在时返回null', async () => {
       const key = 'non-existent-key';
 
