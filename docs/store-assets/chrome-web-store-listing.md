@@ -7,8 +7,8 @@
 - **英文**: CloudDrive Renamer
 
 ### 简短描述 (132字符以内)
-- **中文**: 强大的批量重命名工具，支持夸克网盘、阿里云盘、百度网盘文件批量重命名
-- **英文**: Powerful batch renaming tool for Quark Drive, Aliyun Drive, and Baidu Cloud Drive
+- **中文**: 强大的批量重命名工具，支持夸克网盘、阿里云盘、百度网盘，并支持正则替换规则
+- **英文**: Powerful batch renaming tool for Quark Drive, Aliyun Drive, and Baidu Cloud Drive with regex replace support
 
 ### 详细描述
 
@@ -23,12 +23,13 @@
 • 阿里云盘 - 完全支持，可立即使用
 • 百度网盘 - 完全支持，可立即使用
 
-🔧 五大重命名规则
+🔧 六大重命名规则
 1. 替换规则 - 批量替换文件名中的特定文本
-2. 前缀规则 - 为所有文件添加统一前缀
-3. 后缀规则 - 为文件名添加后缀标记
-4. 编号规则 - 自动添加序号，支持自定义格式
-5. 清理规则 - 清除非法字符或特定字符集
+2. 正则替换规则 - 使用正则表达式批量替换文件名
+3. 前缀规则 - 为所有文件添加统一前缀
+4. 后缀规则 - 为文件名添加后缀标记
+5. 编号规则 - 自动添加序号，支持自定义格式
+6. 清理规则 - 清除非法字符或特定字符集
 
 🚀 智能功能
 • 实时预览 - 应用规则前预览所有变更
@@ -67,12 +68,13 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
 • Aliyun Drive - Fully supported, ready to use
 • Baidu Cloud Drive - Fully supported, ready to use
 
-🔧 Five Renaming Rules
+🔧 Six Renaming Rules
 1. Replace - Batch replace specific text in file names
-2. Prefix - Add uniform prefix to all files
-3. Suffix - Add suffix markers to file names
-4. Numbering - Auto-add sequence numbers with custom format
-5. Sanitize - Remove illegal or specific characters
+2. Regex Replace - Use regular expressions to batch replace filenames
+3. Prefix - Add uniform prefix to all files
+4. Suffix - Add suffix markers to file names
+5. Numbering - Auto-add sequence numbers with custom format
+6. Sanitize - Remove illegal or specific characters
 
 🚀 Smart Features
 • Real-time Preview - Preview all changes before applying
