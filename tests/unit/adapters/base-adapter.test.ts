@@ -69,6 +69,7 @@ describe('BasePlatformAdapter', () => {
 
       expect(config.platform).toBe('quark');
       expect(config.requestInterval).toBe(800);
+      expect(config.maxConcurrent).toBe(3);
       expect(config.maxRetries).toBe(3);
       expect(config.timeout).toBe(30000);
     });
@@ -83,6 +84,7 @@ describe('BasePlatformAdapter', () => {
 
       expect(config.platform).toBe('quark');
       expect(config.requestInterval).toBe(1000);
+      expect(config.maxConcurrent).toBe(3); // 保持默认值
       expect(config.maxRetries).toBe(5);
       expect(config.timeout).toBe(30000); // 保持默认值
     });
@@ -91,6 +93,7 @@ describe('BasePlatformAdapter', () => {
       const customConfig = {
         platform: 'aliyun' as PlatformName,
         requestInterval: 1500,
+        maxConcurrent: 5,
         maxRetries: 10,
         timeout: 60000,
       };

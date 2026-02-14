@@ -10,6 +10,8 @@ import { RuleFactory } from '../rules/rule-factory';
 export interface BatchExecutorOptions {
   /** 请求间隔(毫秒) */
   requestInterval: number;
+  /** 最大并发请求数（默认从平台配置读取，兜底为 3） */
+  maxConcurrent?: number;
   /** 是否跳过无需变更的任务（默认不跳过，保持与平台行为一致） */
   skipUnchanged?: boolean;
   /** 自定义任务列表（可选，用于重试等场景，优先级高于 rule 生成的任务） */
@@ -38,7 +40,7 @@ export enum ExecutorState {
  *
  * 核心功能:
  * - 800ms请求间隔控制
- * - 不限制并发数的并发执行策略
+ * - 最大并发控制（默认 3，可配置）
  * - 进度事件系统
  * - 支持暂停/恢复/取消功能
  *
@@ -68,6 +70,8 @@ export class BatchExecutor {
   private pausePromise: Promise<void> | null = null;
   private pauseResolver: (() => void) | null = null;
   private abortController: AbortController | null = null;
+  private rateLimitChain: Promise<void> = Promise.resolve();
+  private lastRequestStartAt = 0;
 
   private isCancelled(): boolean {
     return this.state === ExecutorState.CANCELLED;
@@ -104,6 +108,8 @@ export class BatchExecutor {
     this.abortController = new AbortController();
     this.results = { success: [], failed: [] };
     this.tasks = [];
+    this.rateLimitChain = Promise.resolve();
+    this.lastRequestStartAt = 0;
 
     try {
       // 准备所有重命名任务
@@ -119,13 +125,38 @@ export class BatchExecutor {
         return this.results;
       }
 
-      // 并发执行,但控制请求间隔
-      const promises = tasks.map((task, i) =>
-        this.delayedRename(task, i * this.options.requestInterval)
-      );
+      // 并发执行（限制最大并发 + 全局请求间隔）
+      const maxConcurrent = this.getMaxConcurrent(tasks.length);
+      let cursor = 0;
 
-      // 等待所有任务完成
-      await Promise.allSettled(promises);
+      const runWorker = async () => {
+        for (;;) {
+          const task = tasks[cursor++];
+          if (!task) return;
+
+          // 取消/暂停检查
+          if (this.isCancelled()) return;
+          if (this.state === ExecutorState.PAUSED && this.pausePromise) {
+            await this.pausePromise;
+          }
+          if (this.isCancelled()) return;
+
+          // 全局节流：确保相邻请求的 start 间隔 >= requestInterval
+          await this.waitForRequestSlot();
+
+          // 再次检查（避免在等待 slot 期间被暂停/取消）
+          if (this.isCancelled()) return;
+          if (this.state === ExecutorState.PAUSED && this.pausePromise) {
+            await this.pausePromise;
+          }
+          if (this.isCancelled()) return;
+
+          await this.processTask(task);
+        }
+      };
+
+      const workers = Array.from({ length: maxConcurrent }, () => runWorker());
+      await Promise.allSettled(workers);
 
       // 保持 CANCELLED 状态，避免被覆盖为 COMPLETED
       if (!this.isCancelled()) {
@@ -226,25 +257,7 @@ export class BatchExecutor {
    * 延迟执行重命名
    * @private
    */
-  private async delayedRename(task: Task, delay: number): Promise<void> {
-    // 等待延迟
-    await sleep(delay);
-
-    // 检查是否已取消
-    if (this.isCancelled()) {
-      return;
-    }
-
-    // 检查是否暂停
-    if (this.state === ExecutorState.PAUSED && this.pausePromise) {
-      await this.pausePromise;
-    }
-
-    // 再次检查是否已取消（可能发生在暂停期间）
-    if (this.isCancelled()) {
-      return;
-    }
-
+  private async processTask(task: Task): Promise<void> {
     try {
       const result = await this.adapter.renameFile(task.file.id, task.newName);
 
@@ -276,6 +289,38 @@ export class BatchExecutor {
       });
       this.emitProgress(task, 'failed', errorMessage);
     }
+  }
+
+  private getMaxConcurrent(taskCount: number): number {
+    const fallback = this.adapter.getConfig().maxConcurrent ?? 3;
+    const raw = this.options.maxConcurrent ?? fallback;
+    const n = Math.max(1, Math.trunc(raw));
+    return Math.min(n, Math.max(1, taskCount));
+  }
+
+  private async waitForRequestSlot(): Promise<void> {
+    const interval = this.options.requestInterval;
+    if (!interval || interval <= 0) {
+      return;
+    }
+
+    const doWait = async () => {
+      const now = Date.now();
+
+      if (this.lastRequestStartAt > 0) {
+        const delta = now - this.lastRequestStartAt;
+        const delay = interval - delta;
+        if (delay > 0) {
+          await sleep(delay);
+        }
+      }
+
+      this.lastRequestStartAt = Date.now();
+    };
+
+    const chained = this.rateLimitChain.then(doWait, doWait);
+    this.rateLimitChain = chained;
+    await chained;
   }
 
   /**

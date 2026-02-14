@@ -481,6 +481,7 @@ export class FileSelectorPanel extends LitElement {
         this.adapter,
         {
           requestInterval: this.adapter.getConfig().requestInterval,
+          maxConcurrent: this.adapter.getConfig().maxConcurrent,
           skipUnchanged: true,
           onProgress: (progress) => {
             this.handleProgress(progress);
@@ -694,6 +695,7 @@ export class FileSelectorPanel extends LitElement {
 
       const executor = new BatchExecutor(retryFiles, this.ruleConfig, this.adapter, {
         requestInterval: this.adapter.getConfig().requestInterval,
+        maxConcurrent: this.adapter.getConfig().maxConcurrent,
         tasks,
         onProgress: (progress) => {
           this.handleProgress(progress);

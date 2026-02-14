@@ -120,6 +120,8 @@ export interface PlatformConfig {
   platform: PlatformName;
   /** API请求间隔(毫秒) */
   requestInterval: number;
+  /** 最大并发请求数（用于批量重命名等操作） */
+  maxConcurrent?: number;
   /** 最大重试次数 */
   maxRetries: number;
   /** 请求超时时间(毫秒) */

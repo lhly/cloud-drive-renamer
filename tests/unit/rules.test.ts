@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ReplaceRule } from '../../src/rules/replace';
+import { RegexRule } from '../../src/rules/regex';
 import { NumberingRule } from '../../src/rules/numbering';
 import { RuleFactory } from '../../src/rules/rule-factory';
 
@@ -82,6 +83,58 @@ describe('NumberingRule', () => {
   });
 });
 
+describe('RegexRule', () => {
+  it('should replace using regex pattern', () => {
+    const rule = new RegexRule({
+      pattern: '^old_',
+      replace: 'new_',
+      caseSensitive: false,
+      global: false,
+    });
+
+    const result = rule.execute('old_file.txt', 0, 1);
+    expect(result).toBe('new_file.txt');
+  });
+
+  it('should support capture groups', () => {
+    const rule = new RegexRule({
+      pattern: '^(\\d+)-(.*)$',
+      replace: '$2-$1',
+      caseSensitive: false,
+      global: false,
+    });
+
+    const result = rule.execute('001-hello.txt', 0, 1);
+    expect(result).toBe('hello-001.txt');
+  });
+
+  it('should ignore g/i in custom flags and respect toggles', () => {
+    const rule = new RegexRule({
+      pattern: 'a',
+      replace: 'b',
+      caseSensitive: false,
+      global: false,
+      flags: 'g', // should NOT force global replace
+    });
+
+    const result = rule.execute('aaa.txt', 0, 1);
+    expect(result).toBe('baa.txt');
+  });
+
+  it('should allow updating extension when includeExtension is true', () => {
+    const rule = new RegexRule({
+      pattern: '\\.jpeg$',
+      replace: '.jpg',
+      caseSensitive: false,
+      global: false,
+      includeExtension: true,
+    });
+
+    const result = rule.execute('photo.jpeg', 0, 1);
+    expect(result).toBe('photo.jpg');
+  });
+});
+
 describe('RuleFactory', () => {
   it('should create replace rule', () => {
     const rule = RuleFactory.create({
@@ -93,6 +146,18 @@ describe('RuleFactory', () => {
     });
 
     expect(rule).toBeInstanceOf(ReplaceRule);
+  });
+
+  it('should create regex rule', () => {
+    const rule = RuleFactory.create({
+      type: 'regex',
+      params: {
+        pattern: 'a+',
+        replace: 'b',
+      },
+    });
+
+    expect(rule).toBeInstanceOf(RegexRule);
   });
 
   it('should create numbering rule', () => {

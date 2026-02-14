@@ -125,8 +125,10 @@ export class CrashRecoveryManager {
     });
 
     // 创建新的executor继续执行
+    const { requestInterval, maxConcurrent } = adapter.getConfig();
     const executor = new BatchExecutor(pendingFiles, savedState.rule, adapter, {
-      requestInterval: 800,
+      requestInterval: requestInterval ?? 800,
+      maxConcurrent,
       onProgress: (progress) => {
         // 转发进度事件
         onProgress?.(progress);

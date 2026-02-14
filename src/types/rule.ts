@@ -1,7 +1,7 @@
 /**
  * 重命名规则类型
  */
-export type RuleType = 'replace' | 'prefix' | 'suffix' | 'numbering' | 'sanitize';
+export type RuleType = 'replace' | 'regex' | 'prefix' | 'suffix' | 'numbering' | 'sanitize';
 
 /**
  * 规则配置接口
@@ -25,6 +25,31 @@ export interface ReplaceRuleParams {
   caseSensitive?: boolean;
   /** 是否全局替换 */
   global?: boolean;
+}
+
+/**
+ * 正则替换规则参数
+ */
+export interface RegexRuleParams {
+  /** 正则表达式（不包含前后 /） */
+  pattern: string;
+  /** 替换表达式 */
+  replace: string;
+  /** 是否大小写敏感 */
+  caseSensitive?: boolean;
+  /** 是否全局替换 */
+  global?: boolean;
+  /**
+   * 自定义 flags（高级，可选）
+   * - `g/i` 由 `global/caseSensitive` 控制，建议这里输入其它 flags（如 `m/s/u`）
+   */
+  flags?: string;
+  /**
+   * 是否在匹配时包含扩展名（允许修改后缀）
+   * - false（默认）：只对文件名主体（不含扩展名）做替换
+   * - true：对完整文件名（含扩展名）做替换
+   */
+  includeExtension?: boolean;
 }
 
 /**
