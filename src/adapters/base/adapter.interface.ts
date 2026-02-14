@@ -19,6 +19,7 @@ export abstract class BasePlatformAdapter implements PlatformAdapter {
     this.config = {
       platform: 'quark',
       requestInterval: 800,
+      maxConcurrent: 3,
       maxRetries: 3,
       timeout: 30000,
       ...config,

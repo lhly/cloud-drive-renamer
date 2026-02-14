@@ -206,6 +206,34 @@ describe('BatchExecutor', () => {
 
       expect(results.success.length + results.failed.length).toBe(files.length);
     });
+
+    it('应该限制最大并发数', async () => {
+      // 让单次请求更慢，便于观测并发峰值
+      adapter.renameDelay = 200;
+
+      let inFlight = 0;
+      let maxInFlight = 0;
+
+      const originalRename = adapter.renameFile.bind(adapter);
+      adapter.renameFile = async (fileId: string, newName: string) => {
+        inFlight++;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        try {
+          return await originalRename(fileId, newName);
+        } finally {
+          inFlight--;
+        }
+      };
+
+      const executor = new BatchExecutor(files, mockRule, adapter, {
+        requestInterval: 0,
+        maxConcurrent: 2,
+      });
+
+      await executor.execute();
+
+      expect(maxInFlight).toBeLessThanOrEqual(2);
+    });
   });
 
   describe('pause/resume', () => {

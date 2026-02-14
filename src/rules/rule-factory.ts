@@ -1,5 +1,6 @@
 import { RuleConfig, RuleExecutor } from '../types/rule';
 import { ReplaceRule } from './replace';
+import { RegexRule } from './regex';
 import { NumberingRule } from './numbering';
 import { PrefixRule } from './prefix';
 import { SuffixRule } from './suffix';
@@ -19,6 +20,9 @@ export class RuleFactory {
     switch (config.type) {
       case 'replace':
         return new ReplaceRule(config.params as any);
+
+      case 'regex':
+        return new RegexRule(config.params as any);
 
       case 'prefix':
         return new PrefixRule(config.params as any);

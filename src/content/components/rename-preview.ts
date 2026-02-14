@@ -399,6 +399,10 @@ export class RenamePreview extends LitElement {
         // Replace 规则要求 search 非空
         return typeof params.search === 'string' && params.search.length > 0;
 
+      case 'regex':
+        // Regex 规则要求 pattern 非空
+        return typeof params.pattern === 'string' && params.pattern.length > 0;
+
       case 'prefix':
         // Prefix 规则要求 prefix 非空
         return typeof params.prefix === 'string' && params.prefix.length > 0;

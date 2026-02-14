@@ -105,17 +105,31 @@ export class ConfigPanel extends LitElement {
     global: true,
   };
 
+  @state()
+  private regexValidationError: string | null = null;
+
   /**
    * Handle rule type change
    * @private
    */
   private handleRuleChange(type: RuleType): void {
     this.selectedRuleType = type;
+    this.regexValidationError = null;
 
     // Reset params based on rule type
     switch (type) {
       case 'replace':
         this.ruleParams = { search: '', replace: '', caseSensitive: false, global: true };
+        break;
+      case 'regex':
+        this.ruleParams = {
+          pattern: '',
+          replace: '',
+          caseSensitive: false,
+          global: true,
+          flags: '',
+          includeExtension: false,
+        };
         break;
       case 'prefix':
         this.ruleParams = { prefix: '', separator: '' };
@@ -137,6 +151,7 @@ export class ConfigPanel extends LitElement {
         break;
     }
 
+    this.validateRegexIfNeeded();
     this.emitConfigChange();
   }
 
@@ -150,7 +165,62 @@ export class ConfigPanel extends LitElement {
       [key]: value,
     };
 
+    this.validateRegexIfNeeded();
     this.emitConfigChange();
+  }
+
+  private validateRegexIfNeeded(): void {
+    if (this.selectedRuleType !== 'regex') {
+      this.regexValidationError = null;
+      return;
+    }
+
+    const pattern = String(this.ruleParams.pattern || '');
+    if (!pattern) {
+      this.regexValidationError = null;
+      return;
+    }
+
+    const flags = this.getRegexFlags(this.ruleParams);
+
+    try {
+      // eslint-disable-next-line no-new
+      new RegExp(pattern, flags);
+      this.regexValidationError = null;
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      this.regexValidationError = errorObj.message;
+    }
+  }
+
+  private getRegexFlags(params: Record<string, any>): string {
+    const global = Boolean(params.global);
+    const caseSensitive = Boolean(params.caseSensitive);
+    const base = (global ? 'g' : '') + (caseSensitive ? '' : 'i');
+
+    // 自定义 flags（高级，可选）：仅允许追加其它 flags，g/i 由开关控制
+    const raw = String(params.flags || '');
+    const cleaned = raw.replace(/[^a-z]/gi, '').toLowerCase();
+    const extraSet = new Set<string>();
+    for (const ch of cleaned) {
+      if (ch === 'g' || ch === 'i') continue;
+      extraSet.add(ch);
+    }
+
+    // 与规则实现保持一致的稳定顺序
+    const preferredOrder = ['m', 's', 'u', 'y', 'd', 'v'];
+    const extras: string[] = [];
+    for (const ch of preferredOrder) {
+      if (extraSet.has(ch)) {
+        extras.push(ch);
+        extraSet.delete(ch);
+      }
+    }
+    for (const ch of extraSet) {
+      extras.push(ch);
+    }
+
+    return base + extras.join('');
   }
 
   /**
@@ -382,6 +452,7 @@ export class ConfigPanel extends LitElement {
   private renderRuleSelector() {
     const rules: { type: RuleType; label: string }[] = [
       { type: 'replace', label: I18nService.t('rule_replace') },
+      { type: 'regex', label: I18nService.t('rule_regex') },
       { type: 'prefix', label: I18nService.t('rule_prefix') },
       { type: 'suffix', label: I18nService.t('rule_suffix') },
       { type: 'numbering', label: I18nService.t('rule_numbering') },
@@ -476,6 +547,83 @@ export class ConfigPanel extends LitElement {
             </label>
           </div>
         `;
+
+      case 'regex': {
+        const flags = this.getRegexFlags(this.ruleParams);
+        return html`
+          <div class="form-group">
+            <label class="form-label">${I18nService.t('param_regex_pattern')}</label>
+            <input
+              type="text"
+              class="form-input"
+              .value=${this.ruleParams.pattern || ''}
+              @input=${(e: Event) => this.updateParam('pattern', (e.target as HTMLInputElement).value)}
+              placeholder="${I18nService.t('param_regex_pattern_placeholder')}"
+            />
+            ${this.regexValidationError
+              ? html`<div class="hint-text hint-text-error">
+                  ${I18nService.t('param_regex_invalid')}: ${this.regexValidationError}
+                </div>`
+              : html`<div class="hint-text">${I18nService.t('param_regex_flags_hint', [flags || '(none)'])}</div>`}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${I18nService.t('param_replace_with')}</label>
+            <input
+              type="text"
+              class="form-input"
+              .value=${this.ruleParams.replace || ''}
+              @input=${(e: Event) => this.updateParam('replace', (e.target as HTMLInputElement).value)}
+              placeholder="${I18nService.t('param_replace_placeholder')}"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-checkbox">
+              <input
+                type="checkbox"
+                ?checked=${this.ruleParams.caseSensitive || false}
+                @change=${(e: Event) => this.updateParam('caseSensitive', (e.target as HTMLInputElement).checked)}
+              />
+              <span>${I18nService.t('param_case_sensitive')}</span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label class="form-checkbox">
+              <input
+                type="checkbox"
+                ?checked=${this.ruleParams.global ?? true}
+                @change=${(e: Event) => this.updateParam('global', (e.target as HTMLInputElement).checked)}
+              />
+              <span>${I18nService.t('param_replace_all')}</span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${I18nService.t('param_regex_flags')}</label>
+            <input
+              type="text"
+              class="form-input"
+              .value=${this.ruleParams.flags || ''}
+              @input=${(e: Event) => this.updateParam('flags', (e.target as HTMLInputElement).value)}
+              placeholder="${I18nService.t('param_regex_flags_placeholder')}"
+            />
+            <div class="hint-text">${I18nService.t('param_regex_flags_extra_hint')}</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-checkbox">
+              <input
+                type="checkbox"
+                ?checked=${this.ruleParams.includeExtension || false}
+                @change=${(e: Event) => this.updateParam('includeExtension', (e.target as HTMLInputElement).checked)}
+              />
+              <span>${I18nService.t('param_regex_include_extension')}</span>
+            </label>
+          </div>
+        `;
+      }
 
       case 'prefix':
         return html`
@@ -907,6 +1055,10 @@ export class ConfigPanel extends LitElement {
       color: var(--cdr-text-tertiary, #8c8c8c);
       margin-top: 4px;
       line-height: 1.5;
+    }
+
+    .hint-text-error {
+      color: var(--cdr-danger, #ff4d4f);
     }
 
     .warning-message {

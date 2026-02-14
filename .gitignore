@@ -36,3 +36,6 @@ coverage/
 .cache/
 .serena/
 .claude/
+findings.md
+task_plan.md
+progress.md
