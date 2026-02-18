@@ -58,6 +58,8 @@ export interface OperationState {
   completed: number[];
   /** 失败的索引 */
   failed: number[];
+  /** 自定义任务列表（可选） */
+  tasks?: Task[];
 }
 
 /**

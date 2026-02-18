@@ -1,5 +1,5 @@
 import { PlatformAdapter } from '../types/platform';
-import { OperationState } from '../types/core';
+import { OperationState, Task } from '../types/core';
 import { storage } from '../utils/storage';
 import { logger } from '../utils/logger';
 import { BatchExecutor } from './executor';
@@ -46,6 +46,7 @@ export class CrashRecoveryManager {
         rule: state.rule,
         completed: state.completed,
         failed: state.failed,
+        tasks: state.tasks,
       };
 
       await storage.set(this.STORAGE_KEY, data);
@@ -76,15 +77,18 @@ export class CrashRecoveryManager {
       }
 
       // 检查是否有未完成的文件
+      const totalItems = (savedData.tasks && savedData.tasks.length > 0)
+        ? savedData.tasks.length
+        : savedData.files.length;
       const totalCompleted = savedData.completed.length + savedData.failed.length;
-      if (totalCompleted >= savedData.files.length) {
+      if (totalCompleted >= totalItems) {
         await this.clearOperationState();
         return null;
       }
 
       logger.info('Recoverable operation found', {
         age: `${ageMinutes.toFixed(1)} minutes`,
-        files: savedData.files.length,
+        files: totalItems,
         completed: savedData.completed.length,
         failed: savedData.failed.length,
       });
@@ -111,7 +115,24 @@ export class CrashRecoveryManager {
   ): Promise<void> {
     // 过滤出未完成的文件
     const completedSet = new Set([...savedState.completed, ...savedState.failed]);
-    const pendingFiles = savedState.files.filter((_file: any, index: number) => !completedSet.has(index));
+    const hasTasks = Array.isArray(savedState.tasks) && savedState.tasks.length > 0;
+    const indexByFileId = new Map<string, number>();
+
+    let pendingFiles: any[] = [];
+    let pendingTasks: Task[] | undefined;
+
+    if (hasTasks) {
+      savedState.tasks!.forEach((task) => {
+        indexByFileId.set(task.file.id, task.index);
+      });
+      pendingTasks = savedState.tasks!.filter((task) => !completedSet.has(task.index));
+      pendingFiles = pendingTasks.map((task) => task.file);
+    } else {
+      savedState.files.forEach((file: any, index: number) => {
+        indexByFileId.set(file.id, index);
+      });
+      pendingFiles = savedState.files.filter((_file: any, index: number) => !completedSet.has(index));
+    }
 
     if (pendingFiles.length === 0) {
       await this.clearOperationState();
@@ -129,21 +150,25 @@ export class CrashRecoveryManager {
     const executor = new BatchExecutor(pendingFiles, savedState.rule, adapter, {
       requestInterval: requestInterval ?? 800,
       maxConcurrent,
+      tasks: pendingTasks,
       onProgress: (progress) => {
         // 转发进度事件
         onProgress?.(progress);
 
-        // 更新进度到存储
-        const currentIndex = savedState.files.findIndex(
-          (f: any) => f.id === pendingFiles[progress.completed - 1]?.id
-        );
-        if (currentIndex !== -1) {
-          const isFailed = progress.failed > 0;
-          if (isFailed) {
-            this.markAsFailed(currentIndex);
-          } else {
-            this.markAsCompleted(currentIndex);
-          }
+        if (!progress.fileId) {
+          return;
+        }
+
+        const currentIndex = indexByFileId.get(progress.fileId);
+        if (currentIndex === undefined) {
+          return;
+        }
+
+        const isFailed = progress.status === 'failed';
+        if (isFailed) {
+          this.markAsFailed(currentIndex);
+        } else {
+          this.markAsCompleted(currentIndex);
         }
       },
       onComplete: async (results) => {
@@ -214,14 +239,17 @@ export class CrashRecoveryManager {
    * @returns 用户是否选择恢复
    */
   showRecoveryDialog(savedState: OperationState): boolean {
+    const totalItems = (savedState.tasks && savedState.tasks.length > 0)
+      ? savedState.tasks.length
+      : savedState.files.length;
     const totalCompleted = savedState.completed.length + savedState.failed.length;
-    const remaining = savedState.files.length - totalCompleted;
+    const remaining = totalItems - totalCompleted;
     const ageMinutes = Math.floor((Date.now() - savedState.timestamp) / 60000);
 
     const message =
       `检测到未完成的批量重命名操作:\n\n` +
       `平台: ${savedState.platform}\n` +
-      `总文件数: ${savedState.files.length}\n` +
+      `总文件数: ${totalItems}\n` +
       `已完成: ${savedState.completed.length}\n` +
       `已失败: ${savedState.failed.length}\n` +
       `待完成: ${remaining}\n` +
