@@ -207,6 +207,26 @@ describe('BatchExecutor', () => {
       expect(results.success.length + results.failed.length).toBe(files.length);
     });
 
+    it('should increase adaptive interval factor when backoff error occurs', async () => {
+      const backoffAdapter = new MockAdapter();
+      let called = 0;
+      backoffAdapter.renameFile = async () => {
+        called++;
+        if (called === 1) {
+          return { success: false, error: new Error('TooManyRequests') } as any;
+        }
+        return { success: true, newName: 'ok' } as any;
+      };
+
+      const executor = new BatchExecutor(files, mockRule, backoffAdapter, {
+        requestInterval: 50,
+      });
+
+      await executor.execute();
+
+      expect(executor.getAdaptiveIntervalFactor()).toBeGreaterThan(1);
+    });
+
     it('应该限制最大并发数', async () => {
       // 让单次请求更慢，便于观测并发峰值
       adapter.renameDelay = 200;

@@ -73,6 +73,12 @@ export class BatchExecutor {
   private rateLimitChain: Promise<void> = Promise.resolve();
   private lastRequestStartAt = 0;
 
+  private adaptiveIntervalFactor = 1;
+  private adaptiveSuccessStreak = 0;
+  private readonly adaptiveMaxFactor = 5;
+  private readonly adaptiveRecoverThreshold = 5;
+  private readonly adaptiveStep = 0.5;
+
   private isCancelled(): boolean {
     return this.state === ExecutorState.CANCELLED;
   }
@@ -110,6 +116,8 @@ export class BatchExecutor {
     this.tasks = [];
     this.rateLimitChain = Promise.resolve();
     this.lastRequestStartAt = 0;
+    this.adaptiveIntervalFactor = 1;
+    this.adaptiveSuccessStreak = 0;
 
     try {
       // 准备所有重命名任务
@@ -262,6 +270,7 @@ export class BatchExecutor {
       const result = await this.adapter.renameFile(task.file.id, task.newName);
 
       if (result.success) {
+        this.noteSuccess();
         this.results.success.push({
           fileId: task.file.id,
           original: task.file.name,
@@ -270,6 +279,7 @@ export class BatchExecutor {
         });
         this.emitProgress(task, 'success');
       } else {
+        this.noteBackoff(result.error);
         const errorMessage = result.error?.message || 'Unknown error';
         this.results.failed.push({
           fileId: task.file.id,
@@ -280,6 +290,7 @@ export class BatchExecutor {
         this.emitProgress(task, 'failed', errorMessage);
       }
     } catch (error) {
+      this.noteBackoff(error as Error);
       const errorMessage = (error as Error).message;
       this.results.failed.push({
         fileId: task.file.id,
@@ -304,12 +315,14 @@ export class BatchExecutor {
       return;
     }
 
+    const effectiveInterval = interval * Math.max(1, this.adaptiveIntervalFactor);
+
     const doWait = async () => {
       const now = Date.now();
 
       if (this.lastRequestStartAt > 0) {
         const delta = now - this.lastRequestStartAt;
-        const delay = interval - delta;
+        const delay = effectiveInterval - delta;
         if (delay > 0) {
           await sleep(delay);
         }
@@ -321,6 +334,74 @@ export class BatchExecutor {
     const chained = this.rateLimitChain.then(doWait, doWait);
     this.rateLimitChain = chained;
     await chained;
+  }
+
+  private noteBackoff(error?: Error): void {
+    if (!this.isBackoffError(error)) {
+      return;
+    }
+
+    this.adaptiveIntervalFactor = Math.min(
+      this.adaptiveMaxFactor,
+      this.adaptiveIntervalFactor + this.adaptiveStep
+    );
+    this.adaptiveSuccessStreak = 0;
+  }
+
+  private noteSuccess(): void {
+    if (this.adaptiveIntervalFactor <= 1) {
+      return;
+    }
+
+    this.adaptiveSuccessStreak += 1;
+
+    if (this.adaptiveSuccessStreak >= this.adaptiveRecoverThreshold) {
+      this.adaptiveIntervalFactor = Math.max(
+        1,
+        this.adaptiveIntervalFactor - this.adaptiveStep
+      );
+      this.adaptiveSuccessStreak = 0;
+    }
+  }
+
+  private isBackoffError(error?: Error): boolean {
+    if (!error) return false;
+
+    const anyError = error as any;
+
+    const numericCode = typeof anyError.code === 'number' ? anyError.code : null;
+    if (numericCode === 429 || numericCode === 500) {
+      return true;
+    }
+
+    const errno = typeof anyError.errno === 'number' ? anyError.errno : null;
+    if (errno !== null && [4, 110, 111, 112].includes(errno)) {
+      return true;
+    }
+
+    const stringCode = typeof anyError.code === 'string' ? anyError.code : '';
+    if (['TooManyRequests', 'InternalError.Timeout', 'ServiceUnavailable'].includes(stringCode)) {
+      return true;
+    }
+
+    const message = String(anyError.message || '').toLowerCase();
+    if (
+      message.includes('too many') ||
+      message.includes('toomanyrequests') ||
+      message.includes('rate limit') ||
+      message.includes('rate') ||
+      message.includes('429') ||
+      message.includes('请求过于频繁') ||
+      message.includes('过于频繁')
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  getAdaptiveIntervalFactor(): number {
+    return this.adaptiveIntervalFactor;
   }
 
   /**
