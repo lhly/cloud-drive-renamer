@@ -106,6 +106,7 @@
   "sync_not_supported": "Auto sync is not supported on this platform. Please refresh the page.",
   "conflicts_detected": "Conflicts detected: $1",
   "conflicts_detected_confirm": "Conflicts detected: $1. Continue?",
+  "conflict_check_failed_confirm": "Conflict check failed. Continue?",
   "preview_empty": "No files to preview",
   "preview_empty_hint": "Select files and configure rules to see the preview",
   "preview_loading": "Generating preview...",

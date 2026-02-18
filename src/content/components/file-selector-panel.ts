@@ -5,6 +5,14 @@ import { FileType, PreviewItem } from '../../types/file-selector';
 import { RuleConfig } from '../../types/rule';
 import { RuleFactory } from '../../rules/rule-factory';
 import { BatchExecutor, ExecutorState } from '../../core/executor';
+import { buildExecutionPlan } from '../../core/execution-plan';
+import {
+  ConflictDetector,
+  ConflictResolution,
+  ConflictResult,
+  showConflictResolutionDialog,
+} from '../../core/conflict-detector';
+import { crashRecovery, initCrashRecovery } from '../../core/crash-recovery';
 import { BatchResults, ProgressEvent } from '../../types/core';
 import { I18nService } from '../../utils/i18n';
 import { parseFileName } from '../../utils/helpers';
@@ -133,6 +141,8 @@ export class FileSelectorPanel extends LitElement {
   private syncMessage: string | null = null;
 
   private executor: BatchExecutor | null = null;
+  private recoveryChecked = false;
+  private operationIndexByFileId: Map<string, number> | null = null;
 
   /**
    * Error message
@@ -197,15 +207,21 @@ export class FileSelectorPanel extends LitElement {
     if (this.open) {
       this.resetExecutionState();
       await this.loadAllFiles();
+      await this.ensureCrashRecovery();
     }
   }
 
   protected updated(changedProperties: PropertyValues<this>): void {
     super.updated(changedProperties);
 
-    if (changedProperties.has('open') && this.open) {
-      this.resetExecutionState();
-      void this.loadAllFiles();
+    if (changedProperties.has('open')) {
+      if (this.open) {
+        this.resetExecutionState();
+        void this.loadAllFiles();
+        void this.ensureCrashRecovery();
+      } else {
+        this.recoveryChecked = false;
+      }
     }
   }
 
@@ -238,6 +254,20 @@ export class FileSelectorPanel extends LitElement {
       logger.error('[FileSelectorPanel] Failed to load files:', errorObj);
     } finally {
       this.loading = false;
+    }
+  }
+
+  private async ensureCrashRecovery(): Promise<void> {
+    if (this.recoveryChecked || !this.adapter) {
+      return;
+    }
+
+    this.recoveryChecked = true;
+    try {
+      await initCrashRecovery(this.adapter);
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      logger.warn('[FileSelectorPanel] Crash recovery check failed:', errorObj);
     }
   }
 
@@ -440,29 +470,68 @@ export class FileSelectorPanel extends LitElement {
       return;
     }
 
-    const executionPlan = this.previewList;
-    if (executionPlan.length === 0) {
+    const selectedFiles = this.selectedFiles;
+    const previewPlan = this.previewList;
+
+    if (previewPlan.length === 0) {
       alert(I18nService.t('no_rename_needed'));
       return;
     }
 
-    // Confirm if there are conflicts
-    if (this.conflictIds.size > 0) {
-      const conflictMessage = I18nService.t('conflicts_detected_confirm', [String(this.conflictIds.size)]);
-      const confirmed = confirm(conflictMessage);
+    const newNames = selectedFiles.map((file) => this.newNameMap.get(file.id) || file.name);
 
+    let conflicts: Map<string, ConflictResult> | null = null;
+    let resolution: ConflictResolution | null = null;
+
+    try {
+      const detector = new ConflictDetector(this.adapter);
+      conflicts = await detector.detectConflicts(selectedFiles, newNames);
+
+      const conflictCount = Array.from(conflicts.values()).filter((result) => result.hasConflict).length;
+      if (conflictCount > 0) {
+        resolution = showConflictResolutionDialog(conflictCount);
+        if (!resolution) {
+          return;
+        }
+      }
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      logger.error('[FileSelectorPanel] Conflict detection failed:', errorObj);
+      const confirmed = confirm(I18nService.t('conflict_check_failed_confirm'));
       if (!confirmed) {
         return;
       }
     }
+
+    const executionPlan = buildExecutionPlan({
+      files: selectedFiles,
+      newNames,
+      conflicts: conflicts ?? undefined,
+      resolution,
+      skipUnchanged: true,
+    });
+
+    if (executionPlan.tasks.length === 0) {
+      alert(I18nService.t('no_rename_needed'));
+      return;
+    }
+
+    const resolvedNameMap = new Map<string, string>();
+    selectedFiles.forEach((file, index) => {
+      resolvedNameMap.set(file.id, executionPlan.resolvedNames[index] || file.name);
+    });
+    this.newNameMap = resolvedNameMap;
+    this.conflictIds = new Set();
 
     try {
       this.resetExecutionState();
       this.executing = true;
       this.executorState = ExecutorState.RUNNING;
 
-      this.executionItems = executionPlan.map((item) => ({
-        ...item,
+      this.executionItems = executionPlan.tasks.map((task) => ({
+        file: task.file,
+        newName: task.newName,
+        conflict: false,
         done: undefined,
         error: undefined,
       }));
@@ -474,15 +543,29 @@ export class FileSelectorPanel extends LitElement {
         failed: 0,
       };
 
+      this.operationIndexByFileId = new Map(
+        executionPlan.tasks.map((task) => [task.file.id, task.index])
+      );
+
+      await crashRecovery.saveOperationState({
+        platform: this.adapter.platform,
+        files: executionPlan.tasks.map((task) => task.file),
+        rule: this.ruleConfig,
+        completed: [],
+        failed: [],
+        tasks: executionPlan.tasks,
+      });
+
       // Execute batch rename
       const executor = new BatchExecutor(
-        this.selectedFiles,
+        executionPlan.tasks.map((task) => task.file),
         this.ruleConfig,
         this.adapter,
         {
           requestInterval: this.adapter.getConfig().requestInterval,
           maxConcurrent: this.adapter.getConfig().maxConcurrent,
           skipUnchanged: true,
+          tasks: executionPlan.tasks,
           onProgress: (progress) => {
             this.handleProgress(progress);
           },
@@ -501,6 +584,10 @@ export class FileSelectorPanel extends LitElement {
 
       this.applyExecutionResults(results);
       void this.syncAfterRename();
+
+      if (this.executorState !== ExecutorState.CANCELLED) {
+        await crashRecovery.clearOperationState();
+      }
     } catch (error) {
       const errorObj = error instanceof Error ? error : new Error(String(error));
       this.error = errorObj.message;
@@ -515,6 +602,17 @@ export class FileSelectorPanel extends LitElement {
 
     if (!progress.fileId) {
       return;
+    }
+
+    if (this.operationIndexByFileId) {
+      const index = this.operationIndexByFileId.get(progress.fileId);
+      if (index !== undefined) {
+        if (progress.status === 'failed') {
+          void crashRecovery.markAsFailed(index);
+        } else if (progress.status === 'success') {
+          void crashRecovery.markAsCompleted(index);
+        }
+      }
     }
 
     this.executionItems = this.executionItems.map((item) => {
@@ -643,6 +741,7 @@ export class FileSelectorPanel extends LitElement {
 
     this.executor.cancel();
     this.executorState = this.executor.getState();
+    void crashRecovery.clearOperationState();
   }
 
   private handleSync(): void {
@@ -752,6 +851,7 @@ export class FileSelectorPanel extends LitElement {
     this.executionResults = null;
     this.syncStatus = 'idle';
     this.syncMessage = null;
+    this.operationIndexByFileId = null;
   }
 
   /**
@@ -760,6 +860,7 @@ export class FileSelectorPanel extends LitElement {
    */
   private handleClose(): void {
     this.resetExecutionState();
+    this.recoveryChecked = false;
     this.dispatchEvent(
       new CustomEvent('panel-close', {
         bubbles: true,

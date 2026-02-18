@@ -106,6 +106,7 @@
   "sync_not_supported": "目前平台暫不支援自動同步，請手動重新整理頁面",
   "conflicts_detected": "偵測到 $1 個衝突",
   "conflicts_detected_confirm": "偵測到 $1 個衝突，是否繼續？",
+  "conflict_check_failed_confirm": "衝突偵測失敗，是否繼續執行？",
   "preview_empty": "暫無檔案可預覽",
   "preview_empty_hint": "選擇檔案並設定規則以查看預覽",
   "preview_loading": "產生預覽中...",
