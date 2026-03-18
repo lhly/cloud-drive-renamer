@@ -37,6 +37,10 @@ class MockFolderAdapter implements PlatformAdapter {
     return Array.from(this.fileStore.values());
   }
 
+  getCurrentDirectoryKey(): string {
+    return 'root';
+  }
+
   async renameFile(fileId: string, newName: string): Promise<RenameResult> {
     // 模拟网络失败
     if (this.networkFailCount < this.maxNetworkFails) {

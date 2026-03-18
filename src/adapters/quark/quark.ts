@@ -69,6 +69,10 @@ export class QuarkAdapter extends BasePlatformAdapter {
     });
   }
 
+  getCurrentDirectoryKey(): string {
+    return this.getCurrentFolderId();
+  }
+
   /**
    * 获取当前选中的文件列表
    * 从夸克网盘的 DOM 结构中提取选中文件信息

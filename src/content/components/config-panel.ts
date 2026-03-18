@@ -88,6 +88,12 @@ export class ConfigPanel extends LitElement {
   @property({ type: Boolean })
   syncSupported = false;
 
+  @property({ type: Boolean })
+  canUndo = false;
+
+  @property({ type: Boolean })
+  undoBusy = false;
+
   /**
    * Current selected rule type
    */
@@ -270,6 +276,26 @@ export class ConfigPanel extends LitElement {
     );
   }
 
+  private renderUndoIconButton() {
+    const label = this.undoBusy ? I18nService.t('undo_in_progress') : I18nService.t('undo_last_rename');
+
+    return html`
+      <button
+        class="button-icon button-icon-undo ${this.undoBusy ? 'is-busy' : ''}"
+        data-role="undo-icon-button"
+        ?disabled=${!this.canUndo || this.undoBusy}
+        @click=${this.handleUndo}
+        title=${label}
+        aria-label=${label}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 7v6h6"></path>
+          <path d="M21 17a8 8 0 0 0-13.66-5.66L3 17"></path>
+        </svg>
+      </button>
+    `;
+  }
+
   render() {
     const canExecute = this.renameCount > 0 && !this.disabled && !this.executing;
     const hasConflicts = this.conflictCount > 0;
@@ -297,14 +323,19 @@ export class ConfigPanel extends LitElement {
           ${showExecutionView
             ? this.renderExecutionActions()
             : html`
-                <button
-                  class="button button-primary button-execute"
-                  ?disabled=${!canExecute}
-                  @click=${this.handleExecute}
-                >
-                  ${this.executing ? I18nService.t('executing') : I18nService.t('execute_rename')}
-                  ${this.selectedCount > 0 ? ` (${this.renameCount})` : ''}
-                </button>
+                <div class="execution-actions">
+                  <div class="execution-actions-main">
+                    <button
+                      class="button button-primary button-execute"
+                      ?disabled=${!canExecute}
+                      @click=${this.handleExecute}
+                    >
+                      ${this.executing ? I18nService.t('executing') : I18nService.t('execute_rename')}
+                      ${this.selectedCount > 0 ? ` (${this.renameCount})` : ''}
+                    </button>
+                  </div>
+                  ${this.renderUndoIconButton()}
+                </div>
               `}
         </div>
       </div>
@@ -400,12 +431,15 @@ export class ConfigPanel extends LitElement {
 
     return html`
       <div class="execution-actions">
-        <button class="button button-primary" ?disabled=${failed <= 0} @click=${this.handleRetry}>
-          ${I18nService.t('retry')}
-        </button>
-        <button class="button button-default" @click=${this.handleBack}>
-          ${I18nService.t('back')}
-        </button>
+        <div class="execution-actions-main">
+          <button class="button button-primary" ?disabled=${failed <= 0} @click=${this.handleRetry}>
+            ${I18nService.t('retry')}
+          </button>
+          <button class="button button-default" @click=${this.handleBack}>
+            ${I18nService.t('back')}
+          </button>
+        </div>
+        ${this.renderUndoIconButton()}
       </div>
     `;
   }
@@ -441,6 +475,15 @@ export class ConfigPanel extends LitElement {
   private handleRetry(): void {
     this.dispatchEvent(
       new CustomEvent('retry', {
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private handleUndo(): void {
+    this.dispatchEvent(
+      new CustomEvent('undo', {
         bubbles: true,
         composed: true,
       })
@@ -1042,8 +1085,18 @@ export class ConfigPanel extends LitElement {
 
     .execution-actions {
       display: flex;
-      gap: 10px;
+      align-items: center;
+      gap: 8px;
       justify-content: flex-end;
+    }
+
+    .execution-actions-main {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex: 0 1 auto;
+      min-width: 0;
+      max-width: 100%;
     }
 
     .rule-selector {
@@ -1172,11 +1225,49 @@ export class ConfigPanel extends LitElement {
       width: 100%;
       padding: 10px 16px;
       border: none;
-      border-radius: 4px;
+      border-radius: 8px;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s;
+    }
+
+    .button-icon {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border: 1px solid var(--cdr-border, #f0f0f0);
+      border-radius: 10px;
+      background: var(--cdr-surface-muted, #fafafa);
+      color: var(--cdr-text-secondary, #595959);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      cursor: pointer;
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+    }
+
+    .button-icon svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+
+    .button-icon:hover:not(:disabled) {
+      background: var(--cdr-surface-hover, #f5f5f5);
+      border-color: var(--cdr-border-strong, #d9d9d9);
+      color: var(--cdr-primary, #1890ff);
+    }
+
+    .button-icon:active:not(:disabled) {
+      background: var(--cdr-selection-bg, #e6f7ff);
+      border-color: var(--cdr-primary, #1890ff);
+      color: var(--cdr-primary, #1890ff);
+    }
+
+    .button-icon.is-busy svg {
+      animation: cdr-undo-spin 0.9s linear infinite;
     }
 
     .button-primary {
@@ -1223,13 +1314,32 @@ export class ConfigPanel extends LitElement {
     }
 
     .button-execute {
-      font-size: 15px;
-      padding: 12px 16px;
+      min-width: 136px;
+      font-size: 14px;
+      padding: 10px 14px;
     }
 
     .execution-actions .button {
       width: auto;
-      flex: 1;
+      flex: 0 0 auto;
+      min-width: 96px;
+    }
+
+    .button-icon:disabled {
+      background: var(--cdr-surface-muted, #fafafa);
+      border-color: var(--cdr-border, #f0f0f0);
+      color: var(--cdr-text-disabled, #bfbfbf);
+      cursor: not-allowed;
+      opacity: 0.72;
+    }
+
+    @keyframes cdr-undo-spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
     }
   `;
 }

@@ -14,6 +14,13 @@ import {
 } from '../../core/conflict-detector';
 import { crashRecovery, initCrashRecovery } from '../../core/crash-recovery';
 import { BatchResults, ProgressEvent } from '../../types/core';
+import {
+  createLastRenameOperation,
+  isLastRenameOperationInScope,
+  mergeLastRenameOperation,
+  retainFailedUndoItems,
+} from '../../core/last-rename-operation';
+import { LastRenameOperation } from '../../types/undo';
 import { I18nService } from '../../utils/i18n';
 import { parseFileName } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
@@ -147,6 +154,12 @@ export class FileSelectorPanel extends LitElement {
   @state()
   private syncMessage: string | null = null;
 
+  @state()
+  private lastRenameOperation: LastRenameOperation | null = null;
+
+  @state()
+  private undoBusy = false;
+
   private executor: BatchExecutor | null = null;
   private recoveryChecked = false;
   private operationIndexByFileId: Map<string, number> | null = null;
@@ -231,6 +244,7 @@ export class FileSelectorPanel extends LitElement {
 
     if (changedProperties.has('open')) {
       if (this.open) {
+        this.clearLastRenameOperationIfOutOfScope();
         this.resetExecutionState();
         void this.loadAllFiles();
         void this.ensureCrashRecovery();
@@ -509,11 +523,151 @@ export class FileSelectorPanel extends LitElement {
     this.conflictIds = conflicts;
   }
 
+  private getCurrentUndoScope(): { platform: PlatformAdapter['platform']; directoryKey: string } {
+    return {
+      platform: this.adapter.platform,
+      directoryKey: this.adapter.getCurrentDirectoryKey(),
+    };
+  }
+
+  private clearLastRenameOperationIfOutOfScope(): void {
+    if (!this.lastRenameOperation) {
+      return;
+    }
+
+    const scope = this.getCurrentUndoScope();
+    if (!isLastRenameOperationInScope(this.lastRenameOperation, scope.platform, scope.directoryKey)) {
+      this.lastRenameOperation = null;
+    }
+  }
+
+  private updateLastRenameOperationFromExecute(results: BatchResults): void {
+    const scope = this.getCurrentUndoScope();
+    this.lastRenameOperation = createLastRenameOperation(
+      scope.platform,
+      scope.directoryKey,
+      results.success
+    );
+  }
+
+  private mergeLastRenameOperationFromRetry(results: BatchResults): void {
+    if (!this.lastRenameOperation || results.success.length === 0) {
+      return;
+    }
+
+    const scope = this.getCurrentUndoScope();
+    if (!isLastRenameOperationInScope(this.lastRenameOperation, scope.platform, scope.directoryKey)) {
+      this.lastRenameOperation = null;
+      return;
+    }
+
+    this.lastRenameOperation = mergeLastRenameOperation(
+      this.lastRenameOperation,
+      scope.platform,
+      scope.directoryKey,
+      results.success
+    );
+  }
+
+  private getUndoFallbackFile(item: LastRenameOperation['items'][number]): FileItem {
+    const { ext } = parseFileName(item.renamed);
+    return {
+      id: item.fileId,
+      name: item.renamed,
+      ext,
+      parentId: '',
+      size: 0,
+      mtime: Date.now(),
+    };
+  }
+
+  private async handleUndoLastRename(): Promise<void> {
+    if (this.executing || this.undoBusy) {
+      return;
+    }
+
+    this.clearLastRenameOperationIfOutOfScope();
+    if (!this.lastRenameOperation) {
+      return;
+    }
+
+    const tasks = this.lastRenameOperation.items.map((item, index) => ({
+      file: this.allFiles.find((file) => file.id === item.fileId) || this.getUndoFallbackFile(item),
+      newName: item.original,
+      index,
+    }));
+
+    if (tasks.length === 0) {
+      this.lastRenameOperation = null;
+      return;
+    }
+
+    try {
+      this.resetExecutionState();
+      this.executing = true;
+      this.undoBusy = true;
+      this.executorState = ExecutorState.RUNNING;
+      this.executionItems = tasks.map((task) => ({
+        file: task.file,
+        newName: task.newName,
+        conflict: false,
+        done: undefined,
+        error: undefined,
+      }));
+      this.progress = {
+        completed: 0,
+        total: tasks.length,
+        currentFile: '',
+        success: 0,
+        failed: 0,
+      };
+      this.operationIndexByFileId = new Map(tasks.map((task) => [task.file.id, task.index]));
+
+      const executor = new BatchExecutor(tasks.map((task) => task.file), this.ruleConfig, this.adapter, {
+        requestInterval: this.adapter.getConfig().requestInterval,
+        maxConcurrent: this.adapter.getConfig().maxConcurrent,
+        tasks,
+        onProgress: (progress) => {
+          this.handleProgress(progress);
+        },
+      });
+      this.executor = executor;
+
+      const results = await executor.execute();
+      this.executionResults = results;
+      this.executorState = executor.getState();
+      this.applyExecutionResults(results);
+      void this.syncAfterRename();
+
+      const failedIds = new Set(results.failed.map((item) => item.fileId));
+      this.lastRenameOperation = retainFailedUndoItems(this.lastRenameOperation, failedIds);
+
+      if (results.failed.length > 0) {
+        const failedLines = results.failed.map((item) => `- ${item.file?.name || item.fileId}: ${item.error}`);
+        alert([
+          I18nService.t('undo_failed_prefix'),
+          ...failedLines,
+          '',
+          I18nService.t('undo_failed_manual_hint'),
+        ].join('\n'));
+      }
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      this.error = errorObj.message;
+      logger.error('[FileSelectorPanel] Undo failed:', errorObj);
+    } finally {
+      this.undoBusy = false;
+      this.executing = false;
+    }
+  }
+
   /**
    * Handle execute
    * @private
    */
   private async handleExecute(): Promise<void> {
+    this.clearLastRenameOperationIfOutOfScope();
+
     if (this.executing || this.selectedFiles.length === 0) {
       return;
     }
@@ -631,6 +785,7 @@ export class FileSelectorPanel extends LitElement {
       });
 
       this.applyExecutionResults(results);
+      this.updateLastRenameOperationFromExecute(results);
       void this.syncAfterRename();
 
       if (this.executorState !== ExecutorState.CANCELLED) {
@@ -797,6 +952,8 @@ export class FileSelectorPanel extends LitElement {
   }
 
   private async handleRetryFailed(): Promise<void> {
+    this.clearLastRenameOperationIfOutOfScope();
+
     if (this.executing || !this.executionFinished) {
       return;
     }
@@ -860,6 +1017,7 @@ export class FileSelectorPanel extends LitElement {
       });
 
       this.applyExecutionResults(results);
+      this.mergeLastRenameOperationFromRetry(results);
       this.updateSummaryProgress();
       void this.syncAfterRename();
     } catch (error) {
@@ -966,12 +1124,15 @@ export class FileSelectorPanel extends LitElement {
               .syncStatus=${this.syncStatus}
               .syncMessage=${this.syncMessage}
               .syncSupported=${!!this.adapter.syncAfterRename}
+              .canUndo=${Boolean(this.lastRenameOperation)}
+              .undoBusy=${this.undoBusy}
               @config-change=${this.handleConfigChange}
               @execute=${this.handleExecute}
               @pause=${this.handlePause}
               @cancel=${this.handleCancel}
               @sync=${this.handleSync}
               @retry=${this.handleRetryFailed}
+              @undo=${this.handleUndoLastRename}
               @back=${this.handleBack}
             ></config-panel>
 

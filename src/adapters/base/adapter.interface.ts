@@ -50,6 +50,12 @@ export abstract class BasePlatformAdapter implements PlatformAdapter {
   abstract renameFile(fileId: string, newName: string): Promise<RenameResult>;
 
   /**
+   * 获取当前目录 scope 键
+   * 子类必须实现
+   */
+  abstract getCurrentDirectoryKey(): string;
+
+  /**
    * 检查文件名冲突
    * 子类必须实现
    */

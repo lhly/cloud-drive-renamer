@@ -13,6 +13,10 @@ class MockAdapter implements PlatformAdapter {
     return [];
   }
 
+  getCurrentDirectoryKey(): string {
+    return 'root';
+  }
+
   async renameFile(fileId: string, newName: string): Promise<RenameResult> {
     // 模拟延迟
     await new Promise((resolve) => setTimeout(resolve, this.renameDelay));

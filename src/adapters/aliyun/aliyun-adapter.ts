@@ -138,6 +138,10 @@ export class AliyunAdapter extends BasePlatformAdapter {
     return /[a-z0-9]{32,}/.test(lastSegment) ? lastSegment : 'root';
   }
 
+  getCurrentDirectoryKey(): string {
+    return this.getParentIdFromUrl();
+  }
+
   /**
    * Get currently selected files from Aliyun Drive
    *

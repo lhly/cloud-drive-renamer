@@ -68,6 +68,10 @@ export class BaiduAdapter extends BasePlatformAdapter {
     });
   }
 
+  getCurrentDirectoryKey(): string {
+    return this.getCurrentPath();
+  }
+
   /**
    * Get currently selected files from Baidu Drive DOM
    */

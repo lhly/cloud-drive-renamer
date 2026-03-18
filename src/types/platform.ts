@@ -83,6 +83,12 @@ export interface PlatformAdapter {
   renameFile(fileId: string, newName: string): Promise<RenameResult>;
 
   /**
+   * 获取当前目录 scope 键
+   * 用于判断撤销记录是否仍属于当前目录
+   */
+  getCurrentDirectoryKey(): string;
+
+  /**
    * 执行重命名后，同步当前页面文件列表（可选实现）
    * 用于避免用户必须手动刷新页面才能看到新文件名
    */

@@ -22,6 +22,10 @@ class PerformanceMockAdapter implements PlatformAdapter {
     return [];
   }
 
+  getCurrentDirectoryKey(): string {
+    return 'root';
+  }
+
   async renameFile(fileId: string, newName: string): Promise<RenameResult> {
     // 模拟API延迟
     await new Promise((resolve) => setTimeout(resolve, this.renameDelay));
