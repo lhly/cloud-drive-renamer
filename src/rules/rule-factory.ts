@@ -5,6 +5,7 @@ import { NumberingRule } from './numbering';
 import { PrefixRule } from './prefix';
 import { SuffixRule } from './suffix';
 import { SanitizeRule } from './sanitize';
+import { EpisodeExtractRule } from './episode-extract';
 
 /**
  * 规则工厂
@@ -35,6 +36,9 @@ export class RuleFactory {
 
       case 'sanitize':
         return new SanitizeRule(config.params as any);
+
+      case 'episodeExtract':
+        return new EpisodeExtractRule(config.params as any);
 
       default:
         throw new Error(`Unknown rule type: ${config.type}`);

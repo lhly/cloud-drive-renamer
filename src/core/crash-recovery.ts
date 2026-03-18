@@ -37,10 +37,12 @@ export class CrashRecoveryManager {
    * 保存操作状态
    * @param state 操作状态
    */
-  async saveOperationState(state: OperationState): Promise<void> {
+  async saveOperationState(
+    state: Omit<OperationState, 'timestamp'> & Partial<Pick<OperationState, 'timestamp'>>
+  ): Promise<void> {
     try {
       const data: OperationState = {
-        timestamp: Date.now(),
+        timestamp: state.timestamp ?? Date.now(),
         platform: state.platform,
         files: state.files,
         rule: state.rule,

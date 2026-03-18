@@ -102,6 +102,11 @@ export class VirtualPreviewList extends LitElement {
             ${item.newName}
             ${statusBadge}
           </div>
+          ${
+            item.error
+              ? html`<div class="error-message" title=${item.error}>${item.error}</div>`
+              : ''
+          }
         </div>
       </div>
     `;
@@ -250,6 +255,14 @@ export class VirtualPreviewList extends LitElement {
 
     .new-name.pending {
       color: var(--cdr-text-secondary, #595959);
+    }
+
+    .error-message {
+      margin-top: 4px;
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--cdr-danger-text, #cf1322);
+      word-break: break-word;
     }
 
     .status-badge {

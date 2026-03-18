@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { ReplaceRule } from '../../src/rules/replace';
 import { RegexRule } from '../../src/rules/regex';
 import { NumberingRule } from '../../src/rules/numbering';
+import { EpisodeExtractRule } from '../../src/rules/episode-extract';
 import { RuleFactory } from '../../src/rules/rule-factory';
 
 describe('ReplaceRule', () => {
@@ -173,6 +174,19 @@ describe('RuleFactory', () => {
     });
 
     expect(rule).toBeInstanceOf(NumberingRule);
+  });
+
+  it('should create episode extract rule', () => {
+    const rule = RuleFactory.create({
+      type: 'episodeExtract',
+      params: {
+        template: '{prefix}.S{season}E{episode}{ext}',
+        prefix: 'Series',
+        season: 1,
+      },
+    });
+
+    expect(rule).toBeInstanceOf(EpisodeExtractRule);
   });
 
   it('should throw error for unknown rule type', () => {

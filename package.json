@@ -1,6 +1,6 @@
 {
   "name": "cloud-drive-renamer",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "批量重命名工具，支持夸克网盘、阿里云盘、百度网盘",
   "type": "module",
   "scripts": {
@@ -50,5 +50,6 @@
     "@lit-labs/virtualizer": "^2.1.1",
     "@webcomponents/webcomponentsjs": "^2.8.0",
     "lit": "^3.3.1"
-  }
+  },
+  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }

@@ -69,6 +69,13 @@ export class FileSelectorPanel extends LitElement {
   private newNameMap: Map<string, string> = new Map();
 
   /**
+   * Map of file ID to extract rule error message
+   * 用于“剧集提取”规则的失败可视化（失败文件跳过执行并在预览标红）
+   */
+  @state()
+  private extractErrorMap: Map<string, string> = new Map();
+
+  /**
    * Set of file IDs with naming conflicts
    */
   @state()
@@ -190,8 +197,16 @@ export class FileSelectorPanel extends LitElement {
         file: f,
         newName: this.newNameMap.get(f.id) || f.name,
         conflict: this.conflictIds.has(f.id),
+        error: this.extractErrorMap.get(f.id),
       }))
-      .filter(item => item.newName !== item.file.name);
+      .filter(item => item.newName !== item.file.name || Boolean(item.error));
+  }
+
+  /**
+   * Computed: real rename task count (exclude unchanged and extract errors)
+   */
+  private get renameTaskCount(): number {
+    return this.previewList.filter(item => !item.error && item.newName !== item.file.name).length;
   }
 
   private get executionFinished(): boolean {
@@ -387,15 +402,35 @@ export class FileSelectorPanel extends LitElement {
   }
 
   /**
+   * Map episode extract error code to localized message
+   * @private
+   */
+  private mapEpisodeExtractError(error: unknown): string {
+    const rawMessage = error instanceof Error ? error.message : String(error ?? '');
+
+    if (rawMessage.includes('extract_episode_not_found')) {
+      return I18nService.t('error_extract_episode_not_found');
+    }
+
+    if (rawMessage.includes('extract_episode_out_of_range')) {
+      return I18nService.t('error_extract_episode_out_of_range');
+    }
+
+    return I18nService.t('error_extract_episode_failed');
+  }
+
+  /**
    * Update preview based on current rule and selection
    * @private
    */
   private updatePreview(): void {
     const nextNameMap = new Map<string, string>();
+    const nextExtractErrorMap = new Map<string, string>();
     const selectedFiles = this.selectedFiles;
 
     if (selectedFiles.length === 0) {
       this.newNameMap = nextNameMap;
+      this.extractErrorMap = nextExtractErrorMap;
       this.conflictIds = new Set();
       return;
     }
@@ -408,11 +443,13 @@ export class FileSelectorPanel extends LitElement {
       // 规则参数尚未配置完成时（例如 Replace 的 search 为空），这是预期情况：不生成预览即可。
       if (errorObj.message === 'Invalid rule configuration') {
         this.newNameMap = nextNameMap;
+        this.extractErrorMap = nextExtractErrorMap;
         this.conflictIds = new Set();
         return;
       }
       logger.error('[FileSelectorPanel] Failed to create rule executor:', errorObj);
       this.newNameMap = nextNameMap;
+      this.extractErrorMap = nextExtractErrorMap;
       this.conflictIds = new Set();
       return;
     }
@@ -420,12 +457,22 @@ export class FileSelectorPanel extends LitElement {
     try {
       // Apply rule to each selected file
       selectedFiles.forEach((file, index) => {
-        const newName = rule!.execute(file.name, index, selectedFiles.length);
-        nextNameMap.set(file.id, newName);
+        try {
+          const newName = rule!.execute(file.name, index, selectedFiles.length);
+          nextNameMap.set(file.id, newName);
+        } catch (error) {
+          if (this.ruleConfig.type === 'episodeExtract') {
+            nextNameMap.set(file.id, file.name);
+            nextExtractErrorMap.set(file.id, this.mapEpisodeExtractError(error));
+            return;
+          }
+          throw error;
+        }
       });
 
       // Trigger reactive update
       this.newNameMap = nextNameMap;
+      this.extractErrorMap = nextExtractErrorMap;
 
       // Detect conflicts
       this.detectConflicts(selectedFiles);
@@ -433,6 +480,7 @@ export class FileSelectorPanel extends LitElement {
       const errorObj = error instanceof Error ? error : new Error(String(error));
       logger.error('[FileSelectorPanel] Failed to update preview:', errorObj);
       this.newNameMap = nextNameMap;
+      this.extractErrorMap = nextExtractErrorMap;
       this.conflictIds = new Set();
     }
   }
@@ -908,7 +956,7 @@ export class FileSelectorPanel extends LitElement {
             <config-panel
               class="left-panel"
               .selectedCount=${this.selectedFiles.length}
-              .renameCount=${this.previewList.length}
+              .renameCount=${this.renameTaskCount}
               .conflictCount=${this.conflictIds.size}
               ?disabled=${this.loading}
               ?executing=${this.executing}

@@ -149,6 +149,17 @@ export class ConfigPanel extends LitElement {
       case 'sanitize':
         this.ruleParams = { removeIllegal: true, removeChars: '' };
         break;
+      case 'episodeExtract':
+        this.ruleParams = {
+          template: '{prefix}.S{season}E{episode}{ext}',
+          prefix: '',
+          season: 1,
+          offset: 0,
+          leadingZeroCount: 3,
+          helperPre: '',
+          helperPost: '',
+        };
+        break;
     }
 
     this.validateRegexIfNeeded();
@@ -457,6 +468,7 @@ export class ConfigPanel extends LitElement {
       { type: 'suffix', label: I18nService.t('rule_suffix') },
       { type: 'numbering', label: I18nService.t('rule_numbering') },
       { type: 'sanitize', label: I18nService.t('rule_sanitize') },
+      { type: 'episodeExtract', label: I18nService.t('rule_episode_extract') },
     ];
 
     return html`
@@ -764,6 +776,91 @@ export class ConfigPanel extends LitElement {
               placeholder="${I18nService.t('param_remove_chars_placeholder')}"
             />
             <div class="hint-text">${I18nService.t('param_remove_chars_hint')}</div>
+          </div>
+        `;
+
+      case 'episodeExtract':
+        return html`
+          <div class="form-group">
+            <label class="form-label">${I18nService.t('param_extract_template')}</label>
+            <input
+              type="text"
+              class="form-input"
+              .value=${this.ruleParams.template || '{prefix}.S{season}E{episode}{ext}'}
+              @input=${(e: Event) => this.updateParam('template', (e.target as HTMLInputElement).value)}
+              placeholder="${I18nService.t('param_extract_template_placeholder')}"
+            />
+            <div class="hint-text">${I18nService.t('param_extract_template_hint')}</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${I18nService.t('param_extract_prefix')}</label>
+            <input
+              type="text"
+              class="form-input"
+              .value=${this.ruleParams.prefix || ''}
+              @input=${(e: Event) => this.updateParam('prefix', (e.target as HTMLInputElement).value)}
+              placeholder="${I18nService.t('param_extract_prefix_placeholder')}"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${I18nService.t('param_extract_season')}</label>
+            <input
+              type="number"
+              class="form-input"
+              .value=${String(this.ruleParams.season ?? 1)}
+              @input=${(e: Event) => this.updateParam('season', (e.target as HTMLInputElement).value)}
+              min="1"
+              max="99"
+            />
+            <div class="hint-text">${I18nService.t('param_extract_season_hint')}</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${I18nService.t('param_extract_offset')}</label>
+            <input
+              type="number"
+              class="form-input"
+              .value=${String(this.ruleParams.offset ?? 0)}
+              @input=${(e: Event) => this.updateParam('offset', (e.target as HTMLInputElement).value)}
+            />
+            <div class="hint-text">${I18nService.t('param_extract_offset_hint')}</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${I18nService.t('param_extract_leading_zero_count')}</label>
+            <input
+              type="number"
+              class="form-input"
+              .value=${String(this.ruleParams.leadingZeroCount ?? 3)}
+              @input=${(e: Event) =>
+                this.updateParam('leadingZeroCount', parseInt((e.target as HTMLInputElement).value, 10))}
+              min="1"
+              max="10"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${I18nService.t('param_extract_helper_pre')}</label>
+            <input
+              type="text"
+              class="form-input"
+              .value=${this.ruleParams.helperPre || ''}
+              @input=${(e: Event) => this.updateParam('helperPre', (e.target as HTMLInputElement).value)}
+              placeholder="${I18nService.t('param_extract_helper_pre_placeholder')}"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">${I18nService.t('param_extract_helper_post')}</label>
+            <input
+              type="text"
+              class="form-input"
+              .value=${this.ruleParams.helperPost || ''}
+              @input=${(e: Event) => this.updateParam('helperPost', (e.target as HTMLInputElement).value)}
+              placeholder="${I18nService.t('param_extract_helper_post_placeholder')}"
+            />
           </div>
         `;
 

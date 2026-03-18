@@ -1,7 +1,14 @@
 /**
  * 重命名规则类型
  */
-export type RuleType = 'replace' | 'regex' | 'prefix' | 'suffix' | 'numbering' | 'sanitize';
+export type RuleType =
+  | 'replace'
+  | 'regex'
+  | 'prefix'
+  | 'suffix'
+  | 'numbering'
+  | 'sanitize'
+  | 'episodeExtract';
 
 /**
  * 规则配置接口
@@ -96,6 +103,26 @@ export interface SanitizeRuleParams {
   removeChars?: string;
   /** 是否移除非法字符 */
   removeIllegal?: boolean;
+}
+
+/**
+ * 剧集提取规则参数
+ */
+export interface EpisodeExtractRuleParams {
+  /** 输出模板，支持变量：{prefix} {season} {episode} {ext} */
+  template: string;
+  /** 剧名/前缀 */
+  prefix: string;
+  /** 季号（默认 1） */
+  season?: number | string;
+  /** 集数偏移（默认 0） */
+  offset?: number | string;
+  /** 集数前导零位数（默认 3，范围 1~10） */
+  leadingZeroCount?: number;
+  /** 集数前锚点（可选） */
+  helperPre?: string;
+  /** 集数后锚点（可选） */
+  helperPost?: string;
 }
 
 /**
