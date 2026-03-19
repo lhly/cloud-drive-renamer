@@ -184,5 +184,19 @@
   "platform_baidu": "百度网盘",
   "popup_language_label": "语言 / Language",
   "toast_language_changed": "语言已更改为$1",
-  "toast_language_change_failed": "语言切换失败,请重试"
+  "toast_language_change_failed": "语言切换失败,请重试",
+  "conflict_dialog_title": "检测到 $1 个文件名冲突",
+  "conflict_dialog_description": "请查看以下冲突详情，并选择处理方式。未变化的文件不会再被误判为冲突。",
+  "conflict_dialog_summary": "以下文件的目标名称存在冲突",
+  "conflict_dialog_empty": "暂无冲突详情",
+  "conflict_dialog_cancel": "取消本次执行",
+  "conflict_dialog_skip": "跳过冲突文件",
+  "conflict_dialog_auto_number": "自动添加编号（推荐）",
+  "conflict_dialog_original_name": "原文件名",
+  "conflict_dialog_target_name": "目标文件名",
+  "conflict_dialog_conflicting_files": "冲突文件",
+  "conflict_dialog_type_batch": "批量内重复",
+  "conflict_dialog_type_existing": "目录中已存在",
+  "conflict_dialog_type_batch_hint": "同批次目标名重复",
+  "conflict_dialog_type_existing_hint": "目录中已有同名文件"
 }

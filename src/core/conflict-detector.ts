@@ -25,6 +25,22 @@ export interface ConflictResult {
 }
 
 /**
+ * 面向 UI 的冲突详情
+ */
+export interface ConflictDetail {
+  /** 原文件 ID */
+  fileId: string;
+  /** 原文件名 */
+  originalName: string;
+  /** 目标文件名 */
+  targetName: string;
+  /** 冲突类型 */
+  type: ConflictType;
+  /** 相关冲突文件名列表 */
+  conflictingFiles: string[];
+}
+
+/**
  * 冲突解决策略
  */
 export enum ConflictResolution {
@@ -32,8 +48,6 @@ export enum ConflictResolution {
   AUTO_NUMBER = 'auto_number',
   /** 跳过冲突文件 */
   SKIP = 'skip',
-  /** 强制覆盖 */
-  OVERWRITE = 'overwrite',
 }
 
 /**
@@ -162,6 +176,34 @@ export async function checkAllConflicts(
 }
 
 /**
+ * 构建面向 UI 的冲突详情列表
+ * @param files 文件列表
+ * @param newNames 新文件名列表
+ * @param conflicts 冲突检测结果
+ * @returns 冲突详情列表（按输入顺序）
+ */
+export function buildConflictDetails(
+  files: FileItem[],
+  newNames: string[],
+  conflicts: Map<string, ConflictResult>
+): ConflictDetail[] {
+  return files.flatMap((file, index) => {
+    const conflict = conflicts.get(file.id);
+    if (!conflict?.hasConflict) {
+      return [];
+    }
+
+    return [{
+      fileId: file.id,
+      originalName: file.name,
+      targetName: conflict.conflictingName ?? newNames[index] ?? file.name,
+      type: conflict.type,
+      conflictingFiles: conflict.conflictingFiles ? [...conflict.conflictingFiles] : [],
+    }];
+  });
+}
+
+/**
  * 解决冲突:自动添加编号
  * @param baseName 基础文件名
  * @param startNumber 起始编号
@@ -219,38 +261,6 @@ export function resolveBatchConflicts(
   return resolvedNames;
 }
 
-/**
- * 显示冲突解决对话框
- * @param conflictCount 冲突数量
- * @returns 用户选择的解决策略
- */
-export function showConflictResolutionDialog(conflictCount: number): ConflictResolution | null {
-  const message =
-    `检测到 ${conflictCount} 个文件名冲突!\n\n` +
-    `请选择处理方式:\n` +
-    `1. 自动添加编号(推荐) - 如 file.txt -> file(1).txt\n` +
-    `2. 跳过冲突文件 - 保留原文件名\n` +
-    `3. 强制覆盖 - 替换同名文件(危险!)\n\n` +
-    `输入 1, 2 或 3:`;
-
-  const choice = prompt(message);
-
-  switch (choice) {
-    case '1':
-      return ConflictResolution.AUTO_NUMBER;
-    case '2':
-      return ConflictResolution.SKIP;
-    case '3': {
-      // 强制覆盖需要二次确认
-      const confirmed = confirm(
-        `警告!强制覆盖将替换同名文件,可能导致数据丢失。\n\n确定要继续吗?`
-      );
-      return confirmed ? ConflictResolution.OVERWRITE : null;
-    }
-    default:
-      return null;
-  }
-}
 
 /**
  * 冲突检测管理器
@@ -291,10 +301,6 @@ export class ConflictDetector {
           const conflict = conflicts.get(file.id);
           return conflict?.hasConflict ? file.name : newName;
         });
-
-      case ConflictResolution.OVERWRITE:
-        // 强制覆盖,不做修改
-        return newNames;
 
       default:
         return newNames;

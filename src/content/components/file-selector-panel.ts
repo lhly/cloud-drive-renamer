@@ -7,10 +7,11 @@ import { RuleFactory } from '../../rules/rule-factory';
 import { BatchExecutor, ExecutorState } from '../../core/executor';
 import { buildExecutionPlan } from '../../core/execution-plan';
 import {
+  buildConflictDetails,
+  ConflictDetail,
   ConflictDetector,
   ConflictResolution,
   ConflictResult,
-  showConflictResolutionDialog,
 } from '../../core/conflict-detector';
 import { crashRecovery, initCrashRecovery } from '../../core/crash-recovery';
 import { BatchResults, ProgressEvent } from '../../types/core';
@@ -28,6 +29,7 @@ import { recordUsageStatsDelta } from '../../utils/usage-stats';
 import './config-panel';
 import './file-list-panel';
 import './preview-panel';
+import './conflict-resolution-dialog';
 
 /**
  * File Selector Panel Component
@@ -87,6 +89,18 @@ export class FileSelectorPanel extends LitElement {
    */
   @state()
   private conflictIds: Set<string> = new Set();
+
+  /**
+   * 自定义冲突对话框是否打开
+   */
+  @state()
+  private conflictDialogOpen = false;
+
+  /**
+   * 冲突对话框详情项
+   */
+  @state()
+  private conflictDialogItems: ConflictDetail[] = [];
 
   /**
    * Current search query
@@ -163,6 +177,7 @@ export class FileSelectorPanel extends LitElement {
   private executor: BatchExecutor | null = null;
   private recoveryChecked = false;
   private operationIndexByFileId: Map<string, number> | null = null;
+  private conflictDialogResolver: ((resolution: ConflictResolution | null) => void) | null = null;
 
   /**
    * Error message
@@ -237,6 +252,11 @@ export class FileSelectorPanel extends LitElement {
       await this.loadAllFiles();
       await this.ensureCrashRecovery();
     }
+  }
+
+  disconnectedCallback(): void {
+    this.resolveConflictDialog(null);
+    super.disconnectedCallback();
   }
 
   protected updated(changedProperties: PropertyValues<this>): void {
@@ -680,18 +700,34 @@ export class FileSelectorPanel extends LitElement {
       return;
     }
 
-    const newNames = selectedFiles.map((file) => this.newNameMap.get(file.id) || file.name);
+    const renameCandidates = selectedFiles
+      .map((file, index) => ({
+        file,
+        newName: this.newNameMap.get(file.id) || file.name,
+        index,
+      }))
+      .filter((candidate) => candidate.newName !== candidate.file.name);
+
+    if (renameCandidates.length === 0) {
+      alert(I18nService.t('no_rename_needed'));
+      return;
+    }
+
+    const candidateFiles = renameCandidates.map((candidate) => candidate.file);
+    const candidateNewNames = renameCandidates.map((candidate) => candidate.newName);
 
     let conflicts: Map<string, ConflictResult> | null = null;
     let resolution: ConflictResolution | null = null;
 
     try {
       const detector = new ConflictDetector(this.adapter);
-      conflicts = await detector.detectConflicts(selectedFiles, newNames);
+      conflicts = await detector.detectConflicts(candidateFiles, candidateNewNames);
 
       const conflictCount = Array.from(conflicts.values()).filter((result) => result.hasConflict).length;
       if (conflictCount > 0) {
-        resolution = showConflictResolutionDialog(conflictCount);
+        resolution = await this.openConflictResolutionDialog(
+          buildConflictDetails(candidateFiles, candidateNewNames, conflicts)
+        );
         if (!resolution) {
           return;
         }
@@ -706,8 +742,8 @@ export class FileSelectorPanel extends LitElement {
     }
 
     const executionPlan = buildExecutionPlan({
-      files: selectedFiles,
-      newNames,
+      files: candidateFiles,
+      newNames: candidateNewNames,
       conflicts: conflicts ?? undefined,
       resolution,
       skipUnchanged: true,
@@ -719,8 +755,11 @@ export class FileSelectorPanel extends LitElement {
     }
 
     const resolvedNameMap = new Map<string, string>();
-    selectedFiles.forEach((file, index) => {
-      resolvedNameMap.set(file.id, executionPlan.resolvedNames[index] || file.name);
+    selectedFiles.forEach((file) => {
+      resolvedNameMap.set(file.id, this.newNameMap.get(file.id) || file.name);
+    });
+    renameCandidates.forEach((candidate, index) => {
+      resolvedNameMap.set(candidate.file.id, executionPlan.resolvedNames[index] || candidate.file.name);
     });
     this.newNameMap = resolvedNameMap;
     this.conflictIds = new Set();
@@ -833,6 +872,37 @@ export class FileSelectorPanel extends LitElement {
 
       return item;
     });
+  }
+
+  private async openConflictResolutionDialog(
+    items: ConflictDetail[]
+  ): Promise<ConflictResolution | null> {
+    this.resolveConflictDialog(null);
+    this.conflictDialogItems = items;
+    this.conflictDialogOpen = true;
+
+    return await new Promise<ConflictResolution | null>((resolve) => {
+      this.conflictDialogResolver = resolve;
+    });
+  }
+
+  private handleConflictDialogResolve(
+    event: CustomEvent<{ resolution: ConflictResolution }>
+  ): void {
+    this.resolveConflictDialog(event.detail.resolution);
+  }
+
+  private handleConflictDialogClose(): void {
+    this.resolveConflictDialog(null);
+  }
+
+  private resolveConflictDialog(resolution: ConflictResolution | null): void {
+    const resolver = this.conflictDialogResolver;
+    this.conflictDialogResolver = null;
+    this.conflictDialogOpen = false;
+    this.conflictDialogItems = [];
+
+    resolver?.(resolution);
   }
 
   private applyExecutionResults(results: BatchResults): void {
@@ -1160,6 +1230,14 @@ export class FileSelectorPanel extends LitElement {
               ?loading=${false}
             ></preview-panel>
           </div>
+
+          <conflict-resolution-dialog
+            .open=${this.conflictDialogOpen}
+            .conflictCount=${this.conflictDialogItems.length}
+            .items=${this.conflictDialogItems}
+            @conflict-dialog-resolve=${this.handleConflictDialogResolve}
+            @dialog-close=${this.handleConflictDialogClose}
+          ></conflict-resolution-dialog>
         </div>
       </div>
     `;

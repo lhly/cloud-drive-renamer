@@ -184,5 +184,19 @@
   "platform_baidu": "Baidu Cloud Drive",
   "popup_language_label": "Language",
   "toast_language_changed": "Language changed to $1",
-  "toast_language_change_failed": "Failed to change language, please try again"
+  "toast_language_change_failed": "Failed to change language, please try again",
+  "conflict_dialog_title": "$1 filename conflicts detected",
+  "conflict_dialog_description": "Review the conflict details below and choose how to proceed. Unchanged files will no longer be treated as conflicts.",
+  "conflict_dialog_summary": "The following target names are in conflict",
+  "conflict_dialog_empty": "No conflict details available",
+  "conflict_dialog_cancel": "Cancel execution",
+  "conflict_dialog_skip": "Skip conflicting files",
+  "conflict_dialog_auto_number": "Auto-number (Recommended)",
+  "conflict_dialog_original_name": "Original name",
+  "conflict_dialog_target_name": "Target name",
+  "conflict_dialog_conflicting_files": "Conflicting files",
+  "conflict_dialog_type_batch": "Duplicate in batch",
+  "conflict_dialog_type_existing": "Already exists",
+  "conflict_dialog_type_batch_hint": "Duplicate target name in this batch",
+  "conflict_dialog_type_existing_hint": "A file with the same name already exists in this folder"
 }

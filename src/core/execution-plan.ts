@@ -47,7 +47,6 @@ export function buildExecutionPlan({
           return conflict?.hasConflict ? file.name : name;
         });
         break;
-      case ConflictResolution.OVERWRITE:
       default:
         resolvedNames = newNames.slice();
         break;

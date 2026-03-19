@@ -184,5 +184,19 @@
   "platform_baidu": "百度雲端硬碟",
   "popup_language_label": "語言 / Language",
   "toast_language_changed": "語言已更改為$1",
-  "toast_language_change_failed": "語言切換失敗,請重試"
+  "toast_language_change_failed": "語言切換失敗,請重試",
+  "conflict_dialog_title": "偵測到 $1 個檔名衝突",
+  "conflict_dialog_description": "請檢視以下衝突詳情，並選擇處理方式。未變更的檔案不會再被誤判為衝突。",
+  "conflict_dialog_summary": "以下檔案的目標名稱存在衝突",
+  "conflict_dialog_empty": "暫無衝突詳情",
+  "conflict_dialog_cancel": "取消本次執行",
+  "conflict_dialog_skip": "略過衝突檔案",
+  "conflict_dialog_auto_number": "自動加上編號（推薦）",
+  "conflict_dialog_original_name": "原檔名",
+  "conflict_dialog_target_name": "目標檔名",
+  "conflict_dialog_conflicting_files": "衝突檔案",
+  "conflict_dialog_type_batch": "批次內重複",
+  "conflict_dialog_type_existing": "目錄中已存在",
+  "conflict_dialog_type_batch_hint": "同批次目標名稱重複",
+  "conflict_dialog_type_existing_hint": "目錄中已有同名檔案"
 }
