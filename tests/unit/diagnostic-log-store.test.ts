@@ -59,6 +59,8 @@ describe('DiagnosticLogStore', () => {
 
     await store.clear();
 
-    expect(mockChromeStorage.remove).toHaveBeenCalledWith(DIAGNOSTIC_STORAGE_KEYS.RECENT_LOGS);
+    expect(mockChromeStorage.remove).toHaveBeenCalledTimes(1);
+    expect(mockChromeStorage.remove).toHaveBeenNthCalledWith(1, DIAGNOSTIC_STORAGE_KEYS.RECENT_LOGS);
+    expect(mockChromeStorage.remove).not.toHaveBeenCalledWith(DIAGNOSTIC_STORAGE_KEYS.LAST_FAILURE);
   });
 });
