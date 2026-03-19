@@ -54,6 +54,33 @@ describe('DiagnosticLogStore', () => {
     expect(logs.at(-1)?.id).toBe('log-304');
   });
 
+  it('does not lose logs when append is called concurrently', async () => {
+    let currentLogs: DiagnosticLogEntry[] = [];
+
+    const concurrentStorage = {
+      get: vi.fn(async () => {
+        const snapshot = [...currentLogs];
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        return snapshot;
+      }),
+      set: vi.fn(async (_key: string, value: DiagnosticLogEntry[]) => {
+        currentLogs = value;
+      }),
+      remove: vi.fn(async () => {}),
+    };
+
+    const store = new DiagnosticLogStore(concurrentStorage as any);
+
+    await Promise.all([
+      store.append({ id: 'log-a', level: 'INFO', message: 'A' }),
+      store.append({ id: 'log-b', level: 'INFO', message: 'B' }),
+    ]);
+
+    expect(currentLogs).toHaveLength(2);
+    expect(currentLogs.map((item) => item.id)).toEqual(['log-a', 'log-b']);
+  });
+
+
   it('clears the buffer without touching unrelated keys', async () => {
     const store = new DiagnosticLogStore(new StorageManager());
 

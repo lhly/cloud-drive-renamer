@@ -6,17 +6,25 @@ const MAX_RECENT_LOGS = 300;
 type DiagnosticStoreStorage = Pick<StorageManager, 'get' | 'set' | 'remove'>;
 
 export class DiagnosticLogStore {
+  private appendChain: Promise<void> = Promise.resolve();
+
   constructor(private readonly storageManager: DiagnosticStoreStorage = storage) {}
 
   async append(entry: DiagnosticLogEntry): Promise<void> {
-    const recent = await this.getRecent();
-    const next = [...recent, entry];
+    const runAppend = async () => {
+      const recent = await this.getRecent();
+      const next = [...recent, entry];
 
-    if (next.length > MAX_RECENT_LOGS) {
-      next.splice(0, next.length - MAX_RECENT_LOGS);
-    }
+      if (next.length > MAX_RECENT_LOGS) {
+        next.splice(0, next.length - MAX_RECENT_LOGS);
+      }
 
-    await this.storageManager.set(DIAGNOSTIC_STORAGE_KEYS.RECENT_LOGS, next);
+      await this.storageManager.set(DIAGNOSTIC_STORAGE_KEYS.RECENT_LOGS, next);
+    };
+
+    const appendPromise = this.appendChain.then(runAppend, runAppend);
+    this.appendChain = appendPromise.catch(() => undefined);
+    return appendPromise;
   }
 
   async getRecent(): Promise<DiagnosticLogEntry[]> {
