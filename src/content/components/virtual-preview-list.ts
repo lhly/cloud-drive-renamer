@@ -121,8 +121,8 @@ export class VirtualPreviewList extends LitElement {
     const newNameClasses = ['new-name', 'new-name-primary', statusClass].filter(Boolean).join(' ');
 
     return html`
-      <div class="${previewItemClasses}" data-preview-item="true">
-        <div class="preview-content" data-preview-content="true">
+      <div class="${previewItemClasses}">
+        <div class="preview-content">
           <div class="old-name-row">
             <div class="old-name old-name-secondary" title=${item.file.name}>
               ${item.file.name}
