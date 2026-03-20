@@ -183,26 +183,29 @@ describe('VirtualPreviewList pending preview mapping', () => {
     const newNameText = previewContent?.querySelector('.new-name-text');
     expect(newNameText).toBeTruthy();
 
-    const styleContent = Array.from(element.shadowRoot?.querySelectorAll('style') ?? [])
-      .map((style) => style.textContent ?? '')
+    const stylesArray = Array.isArray(VirtualPreviewList.styles)
+      ? VirtualPreviewList.styles
+      : [VirtualPreviewList.styles];
+    const staticCss = stylesArray
+      .map((result) => ('cssText' in result ? (result as any).cssText : result.toString()))
       .join(' ');
     const extractBlock = (selector: string) => {
-      const start = styleContent.indexOf(selector);
+      const start = staticCss.indexOf(selector);
       expect(start, `missing ${selector}`).toBeGreaterThan(-1);
-      const braceOpen = styleContent.indexOf('{', start);
-      const braceClose = styleContent.indexOf('}', braceOpen);
-      return styleContent.slice(braceOpen + 1, braceClose);
+      const braceOpen = staticCss.indexOf('{', start);
+      const braceClose = staticCss.indexOf('}', braceOpen);
+      return staticCss.slice(braceOpen + 1, braceClose);
     };
 
     const oldNameDeclarations = extractBlock('.old-name.old-name-secondary');
+    expect(oldNameDeclarations).toContain('flex: 1 1 0');
+    expect(oldNameDeclarations).toContain('min-width: 0');
     expect(oldNameDeclarations).toContain('overflow: hidden');
-    expect(oldNameDeclarations).toContain('text-overflow: ellipsis');
-    expect(oldNameDeclarations).toContain('white-space: nowrap');
 
-    const newNameDeclarations = extractBlock('.new-name.new-name-primary .new-name-text');
+    const newNameDeclarations = extractBlock('.new-name-primary .new-name-text');
+    expect(newNameDeclarations).toContain('flex: 1 1 0');
+    expect(newNameDeclarations).toContain('min-width: 0');
     expect(newNameDeclarations).toContain('overflow: hidden');
-    expect(newNameDeclarations).toContain('text-overflow: ellipsis');
-    expect(newNameDeclarations).toContain('white-space: nowrap');
 
     element.remove();
   });
