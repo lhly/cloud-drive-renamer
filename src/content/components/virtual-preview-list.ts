@@ -275,6 +275,12 @@ export class VirtualPreviewList extends LitElement {
       white-space: nowrap;
     }
 
+    .old-name.old-name-secondary {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .new-name {
       font-size: 14px;
       color: var(--cdr-text, #262626);
@@ -287,7 +293,8 @@ export class VirtualPreviewList extends LitElement {
       gap: 8px;
     }
 
-    .new-name-text {
+    .new-name-text,
+    .new-name.new-name-primary .new-name-text {
       flex: 1;
       min-width: 0;
       overflow: hidden;
