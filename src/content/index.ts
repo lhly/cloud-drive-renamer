@@ -1,4 +1,4 @@
-import { logger } from '../utils/logger';
+import { configureLoggerDiagnostics, logger } from '../utils/logger';
 import type { PlatformAdapter, PlatformName } from '../types/platform';
 import { FloatingButton } from './components/floating-button';
 import { AliyunAdapter } from '../adapters/aliyun/aliyun-adapter';
@@ -11,6 +11,7 @@ import type { LanguageChangeMessage } from '../types/i18n';
 import { detectPlatformFromUrl, isQuarkShareLink, isAliyunShareLink } from '../utils/platform-detector';
 import { applyAppearanceToElement, getAppearanceMode, watchSystemColorScheme } from '../utils/appearance';
 import { APPEARANCE_STORAGE_KEY, DEFAULT_APPEARANCE_MODE, isAppearanceMode, type AppearanceMode } from '../types/appearance';
+import { RUNTIME_MESSAGE_TYPES } from '../types/runtime-message';
 
 /**
  * Content Script
@@ -37,6 +38,16 @@ let stopWatchSystemColorScheme: (() => void) | null = null;
 // 初始化重试计数器（防止无限递归）
 let initRetryCount = 0;
 const MAX_INIT_RETRIES = 3;
+
+configureLoggerDiagnostics({
+  source: 'content',
+  transport: async (entry) => {
+    await chrome.runtime.sendMessage({
+      type: RUNTIME_MESSAGE_TYPES.APPEND_DIAGNOSTIC_LOG,
+      entry,
+    });
+  },
+});
 
 // 检测当前平台
 // 使用统一的平台检测工具函数

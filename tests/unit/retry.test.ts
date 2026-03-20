@@ -3,13 +3,17 @@ import { renameWithRetry, isNetworkError, RetryConfig } from '../../src/core/ret
 import { PlatformAdapter, RenameResult } from '../../src/types/platform';
 
 // Mock logger
-vi.mock('../../src/utils/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
-}));
+vi.mock('../../src/utils/logger', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/utils/logger')>();
+  return {
+    ...actual,
+    logger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    },
+  };
+});
 
 // Mock helpers
 vi.mock('../../src/utils/helpers', () => ({

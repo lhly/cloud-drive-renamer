@@ -9,13 +9,17 @@ import { detectPlatform } from '../../src/content/index';
 import { logger } from '../../src/utils/logger';
 
 // Mock logger 模块
-vi.mock('../../src/utils/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  }
-}));
+vi.mock('../../src/utils/logger', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/utils/logger')>();
+  return {
+    ...actual,
+    logger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    },
+  };
+});
 
 describe('Platform Detection - Unified Utils', () => {
   beforeEach(() => {

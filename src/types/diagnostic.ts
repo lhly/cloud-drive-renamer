@@ -1,3 +1,5 @@
+import type { PlatformName } from './platform';
+
 /**
  * 诊断日志级别
  */
@@ -10,6 +12,8 @@ export interface DiagnosticLogEntry {
   id: string;
   level: DiagnosticLogLevel;
   message: string;
+  module?: string;
+  source?: string;
   timestamp?: number;
   context?: Record<string, unknown>;
 }
@@ -25,11 +29,37 @@ export interface DiagnosticFailureEntry {
 }
 
 /**
+ * 失败文件明细
+ */
+export interface DiagnosticFailureItem {
+  fileId: string;
+  originalName: string;
+  targetName: string;
+  errorMessage: string;
+  attempt: number;
+}
+
+/**
+ * 一次导出的任务摘要
+ */
+export interface DiagnosticSummary {
+  platform: PlatformName;
+  total: number;
+  success: number;
+  failed: number;
+  retried: number;
+  startedAt: number;
+  finishedAt: number;
+}
+
+/**
  * 最近一次失败的诊断快照
  */
 export interface LastFailureDiagnosticSnapshot {
   failure: DiagnosticFailureEntry;
-  recentLogs: DiagnosticLogEntry[];
+  summary: DiagnosticSummary;
+  failures: DiagnosticFailureItem[];
+  recentLogs?: DiagnosticLogEntry[];
 }
 
 /**
@@ -38,15 +68,13 @@ export interface LastFailureDiagnosticSnapshot {
 export interface DiagnosticExportPayload {
   exportedAt: number;
   lastFailure: LastFailureDiagnosticSnapshot | null;
+  logs: DiagnosticLogEntry[];
 }
 
 /**
  * 诊断提示状态
  */
-export interface DiagnosticPromptState {
-  shouldPrompt: boolean;
-  lastPromptedAt?: number;
-}
+export type DiagnosticPromptState = 'hidden' | 'ready' | 'exporting' | 'exported' | 'error';
 
 export const DIAGNOSTIC_STORAGE_KEYS = {
   RECENT_LOGS: 'diagnostic_recent_logs',

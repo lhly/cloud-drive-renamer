@@ -14,22 +14,41 @@ import {
   ConflictResult,
 } from '../../core/conflict-detector';
 import { crashRecovery, initCrashRecovery } from '../../core/crash-recovery';
+import { buildLastFailureDiagnosticSnapshot } from '../../core/diagnostic-session';
 import { BatchResults, ProgressEvent } from '../../types/core';
+import {
+  DIAGNOSTIC_STORAGE_KEYS,
+  type DiagnosticPromptState,
+} from '../../types/diagnostic';
 import {
   createLastRenameOperation,
   isLastRenameOperationInScope,
   mergeLastRenameOperation,
   retainFailedUndoItems,
 } from '../../core/last-rename-operation';
+import { RUNTIME_MESSAGE_TYPES } from '../../types/runtime-message';
 import { LastRenameOperation } from '../../types/undo';
+import {
+  buildDiagnosticFeedbackText,
+  buildGithubIssueUrl,
+  buildMailtoUrl,
+  downloadDiagnosticPayload,
+} from '../../utils/diagnostic-download';
 import { I18nService } from '../../utils/i18n';
 import { parseFileName } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
+import { storage } from '../../utils/storage';
 import { recordUsageStatsDelta } from '../../utils/usage-stats';
 import './config-panel';
 import './file-list-panel';
 import './preview-panel';
 import './conflict-resolution-dialog';
+
+interface DiagnosticFeedbackContext {
+  exportedAt: number;
+  failedCount: number;
+  fileName: string;
+}
 
 /**
  * File Selector Panel Component
@@ -174,10 +193,25 @@ export class FileSelectorPanel extends LitElement {
   @state()
   private undoBusy = false;
 
+  @state()
+  private diagnosticPromptState: DiagnosticPromptState = 'hidden';
+
+  @state()
+  private diagnosticFailureCount = 0;
+
+  @state()
+  private diagnosticFileName: string | null = null;
+
+  @state()
+  private diagnosticErrorMessage: string | null = null;
+
   private executor: BatchExecutor | null = null;
   private recoveryChecked = false;
   private operationIndexByFileId: Map<string, number> | null = null;
   private conflictDialogResolver: ((resolution: ConflictResolution | null) => void) | null = null;
+  private diagnosticExecutionStartedAt: number | null = null;
+  private diagnosticRetryCount = 0;
+  private diagnosticFeedbackContext: DiagnosticFeedbackContext | null = null;
 
   /**
    * Error message
@@ -601,6 +635,169 @@ export class FileSelectorPanel extends LitElement {
     };
   }
 
+  private resetDiagnosticPromptState(): void {
+    this.diagnosticPromptState = 'hidden';
+    this.diagnosticFailureCount = 0;
+    this.diagnosticFileName = null;
+    this.diagnosticErrorMessage = null;
+    this.diagnosticFeedbackContext = null;
+  }
+
+  private async syncDiagnosticSnapshotFromExecution(): Promise<void> {
+    const snapshot = buildLastFailureDiagnosticSnapshot({
+      platform: this.adapter.platform,
+      startedAt: this.diagnosticExecutionStartedAt ?? Date.now(),
+      finishedAt: Date.now(),
+      retried: this.diagnosticRetryCount,
+      items: this.executionItems.map((item) => ({
+        fileId: item.file.id,
+        originalName: item.file.name,
+        targetName: item.newName,
+        done: item.done,
+        error: item.error,
+      })),
+    });
+
+    if (!snapshot) {
+      this.resetDiagnosticPromptState();
+      await storage.remove(DIAGNOSTIC_STORAGE_KEYS.LAST_FAILURE);
+      return;
+    }
+
+    await storage.set(DIAGNOSTIC_STORAGE_KEYS.LAST_FAILURE, snapshot);
+    this.diagnosticPromptState = 'ready';
+    this.diagnosticFailureCount = snapshot.summary.failed;
+    this.diagnosticFileName = null;
+    this.diagnosticErrorMessage = null;
+    this.diagnosticFeedbackContext = null;
+  }
+
+  private buildDiagnosticFeedbackInput(): {
+    platform: PlatformAdapter['platform'];
+    failedCount: number;
+    exportedAt: number;
+    fileName: string;
+    extensionVersion: string;
+  } | null {
+    if (!this.diagnosticFeedbackContext) {
+      return null;
+    }
+
+    return {
+      platform: this.adapter.platform,
+      failedCount: this.diagnosticFeedbackContext.failedCount,
+      exportedAt: this.diagnosticFeedbackContext.exportedAt,
+      fileName: this.diagnosticFeedbackContext.fileName,
+      extensionVersion: chrome.runtime.getManifest().version,
+    };
+  }
+
+  private async openDiagnosticExternalUrl(url: string): Promise<void> {
+    const response = await chrome.runtime.sendMessage({
+      type: RUNTIME_MESSAGE_TYPES.OPEN_EXTERNAL_URL,
+      url,
+    });
+
+    if (response?.success === false) {
+      throw new Error(response.error || 'Failed to open external url');
+    }
+  }
+
+  private async writeDiagnosticFeedbackText(text: string): Promise<void> {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch (error) {
+        logger.warn('[FileSelectorPanel] Clipboard write failed, falling back:', error);
+      }
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', 'true');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+      document.execCommand('copy');
+    } finally {
+      textarea.remove();
+    }
+  }
+
+  private async handleDiagnosticExport(): Promise<void> {
+    if (this.diagnosticPromptState === 'exporting') {
+      return;
+    }
+
+    this.diagnosticPromptState = 'exporting';
+    this.diagnosticErrorMessage = null;
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: RUNTIME_MESSAGE_TYPES.GET_DIAGNOSTIC_EXPORT,
+      });
+
+      if (response?.success === false) {
+        throw new Error(response.error || 'Failed to export diagnostic payload');
+      }
+
+      const payload = response?.payload;
+      if (!payload) {
+        throw new Error('Diagnostic payload is empty');
+      }
+
+      const fileName = await downloadDiagnosticPayload(payload);
+      this.diagnosticPromptState = 'exported';
+      this.diagnosticFileName = fileName;
+      this.diagnosticErrorMessage = null;
+      this.diagnosticFeedbackContext = {
+        exportedAt: payload.exportedAt,
+        failedCount: payload.lastFailure?.summary.failed ?? this.diagnosticFailureCount,
+        fileName,
+      };
+    } catch (error) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      this.diagnosticPromptState = 'error';
+      this.diagnosticErrorMessage = errorObj.message;
+      logger.error('[FileSelectorPanel] Diagnostic export failed:', errorObj);
+    }
+  }
+
+  private handleDiagnosticDismiss(): void {
+    this.diagnosticPromptState = 'hidden';
+  }
+
+  private async handleDiagnosticFeedbackGithub(): Promise<void> {
+    const input = this.buildDiagnosticFeedbackInput();
+    if (!input) {
+      return;
+    }
+
+    await this.openDiagnosticExternalUrl(buildGithubIssueUrl(input));
+  }
+
+  private async handleDiagnosticFeedbackEmail(): Promise<void> {
+    const input = this.buildDiagnosticFeedbackInput();
+    if (!input) {
+      return;
+    }
+
+    await this.openDiagnosticExternalUrl(buildMailtoUrl(input));
+  }
+
+  private async handleDiagnosticCopy(): Promise<void> {
+    const input = this.buildDiagnosticFeedbackInput();
+    if (!input) {
+      return;
+    }
+
+    await this.writeDiagnosticFeedbackText(buildDiagnosticFeedbackText(input));
+  }
+
   private async handleUndoLastRename(): Promise<void> {
     if (this.executing || this.undoBusy) {
       return;
@@ -768,6 +965,8 @@ export class FileSelectorPanel extends LitElement {
       this.resetExecutionState();
       this.executing = true;
       this.executorState = ExecutorState.RUNNING;
+      this.diagnosticExecutionStartedAt = Date.now();
+      this.diagnosticRetryCount = 0;
 
       this.executionItems = executionPlan.tasks.map((task) => ({
         file: task.file,
@@ -825,6 +1024,7 @@ export class FileSelectorPanel extends LitElement {
 
       this.applyExecutionResults(results);
       this.updateLastRenameOperationFromExecute(results);
+      await this.syncDiagnosticSnapshotFromExecution();
       void this.syncAfterRename();
 
       if (this.executorState !== ExecutorState.CANCELLED) {
@@ -1038,6 +1238,7 @@ export class FileSelectorPanel extends LitElement {
       this.executorState = ExecutorState.RUNNING;
       this.syncStatus = 'idle';
       this.syncMessage = null;
+      this.diagnosticRetryCount += 1;
 
       // Reset only failed items back to pending
       this.executionItems = this.executionItems.map((item) => {
@@ -1089,6 +1290,7 @@ export class FileSelectorPanel extends LitElement {
       this.applyExecutionResults(results);
       this.mergeLastRenameOperationFromRetry(results);
       this.updateSummaryProgress();
+      await this.syncDiagnosticSnapshotFromExecution();
       void this.syncAfterRename();
     } catch (error) {
       const errorObj = error instanceof Error ? error : new Error(String(error));
@@ -1128,6 +1330,9 @@ export class FileSelectorPanel extends LitElement {
     this.syncStatus = 'idle';
     this.syncMessage = null;
     this.operationIndexByFileId = null;
+    this.diagnosticExecutionStartedAt = null;
+    this.diagnosticRetryCount = 0;
+    this.resetDiagnosticPromptState();
   }
 
   /**
@@ -1196,6 +1401,10 @@ export class FileSelectorPanel extends LitElement {
               .syncSupported=${!!this.adapter.syncAfterRename}
               .canUndo=${Boolean(this.lastRenameOperation)}
               .undoBusy=${this.undoBusy}
+              .diagnosticPromptState=${this.diagnosticPromptState}
+              .diagnosticFailureCount=${this.diagnosticFailureCount}
+              .diagnosticFileName=${this.diagnosticFileName}
+              .diagnosticErrorMessage=${this.diagnosticErrorMessage}
               @config-change=${this.handleConfigChange}
               @execute=${this.handleExecute}
               @pause=${this.handlePause}
@@ -1204,6 +1413,11 @@ export class FileSelectorPanel extends LitElement {
               @retry=${this.handleRetryFailed}
               @undo=${this.handleUndoLastRename}
               @back=${this.handleBack}
+              @diagnostic-export=${this.handleDiagnosticExport}
+              @diagnostic-dismiss=${this.handleDiagnosticDismiss}
+              @diagnostic-feedback-github=${this.handleDiagnosticFeedbackGithub}
+              @diagnostic-feedback-email=${this.handleDiagnosticFeedbackEmail}
+              @diagnostic-copy=${this.handleDiagnosticCopy}
             ></config-panel>
 
             <file-list-panel

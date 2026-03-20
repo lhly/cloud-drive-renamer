@@ -198,5 +198,15 @@
   "conflict_dialog_type_batch": "Duplicate in batch",
   "conflict_dialog_type_existing": "Already exists",
   "conflict_dialog_type_batch_hint": "Duplicate target name in this batch",
-  "conflict_dialog_type_existing_hint": "A file with the same name already exists in this folder"
+  "conflict_dialog_type_existing_hint": "A file with the same name already exists in this folder",
+  "diagnostic_prompt_ready": "Failures detected. Export a diagnostic file before sending feedback.",
+  "diagnostic_export": "Export Diagnostic",
+  "diagnostic_exporting": "Exporting...",
+  "diagnostic_exported_message": "Diagnostic file exported. You can attach it when sending feedback.",
+  "diagnostic_export_failed": "Diagnostic export failed. Try again or send manual feedback.",
+  "diagnostic_export_retry": "Retry Export",
+  "diagnostic_feedback_github": "GitHub",
+  "diagnostic_feedback_email": "Email",
+  "diagnostic_copy": "Copy Details",
+  "diagnostic_dismiss": "Dismiss"
 }

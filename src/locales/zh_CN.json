@@ -198,5 +198,15 @@
   "conflict_dialog_type_batch": "批量内重复",
   "conflict_dialog_type_existing": "目录中已存在",
   "conflict_dialog_type_batch_hint": "同批次目标名重复",
-  "conflict_dialog_type_existing_hint": "目录中已有同名文件"
+  "conflict_dialog_type_existing_hint": "目录中已有同名文件",
+  "diagnostic_prompt_ready": "检测到失败记录，建议先导出诊断文件再反馈。",
+  "diagnostic_export": "导出诊断",
+  "diagnostic_exporting": "导出中...",
+  "diagnostic_exported_message": "诊断文件已导出，可附在反馈中一并发送。",
+  "diagnostic_export_failed": "诊断导出失败，请重试或改用手动反馈。",
+  "diagnostic_export_retry": "重新导出",
+  "diagnostic_feedback_github": "GitHub",
+  "diagnostic_feedback_email": "邮件",
+  "diagnostic_copy": "复制说明",
+  "diagnostic_dismiss": "稍后处理"
 }

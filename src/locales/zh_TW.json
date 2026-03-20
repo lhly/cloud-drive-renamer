@@ -198,5 +198,15 @@
   "conflict_dialog_type_batch": "批次內重複",
   "conflict_dialog_type_existing": "目錄中已存在",
   "conflict_dialog_type_batch_hint": "同批次目標名稱重複",
-  "conflict_dialog_type_existing_hint": "目錄中已有同名檔案"
+  "conflict_dialog_type_existing_hint": "目錄中已有同名檔案",
+  "diagnostic_prompt_ready": "偵測到失敗記錄，建議先匯出診斷檔再回報。",
+  "diagnostic_export": "匯出診斷",
+  "diagnostic_exporting": "匯出中...",
+  "diagnostic_exported_message": "診斷檔已匯出，可隨回報一併附上。",
+  "diagnostic_export_failed": "診斷匯出失敗，請重試或改用手動回報。",
+  "diagnostic_export_retry": "重新匯出",
+  "diagnostic_feedback_github": "GitHub",
+  "diagnostic_feedback_email": "郵件",
+  "diagnostic_copy": "複製說明",
+  "diagnostic_dismiss": "稍後處理"
 }

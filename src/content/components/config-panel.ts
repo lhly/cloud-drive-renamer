@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { RuleType, RuleConfig } from '../../types/rule';
 import { ProgressEvent } from '../../types/core';
+import { type DiagnosticPromptState } from '../../types/diagnostic';
 import { I18nService } from '../../utils/i18n';
 
 /**
@@ -93,6 +94,18 @@ export class ConfigPanel extends LitElement {
 
   @property({ type: Boolean })
   undoBusy = false;
+
+  @property({ attribute: false })
+  diagnosticPromptState: DiagnosticPromptState = 'hidden';
+
+  @property({ type: Number })
+  diagnosticFailureCount = 0;
+
+  @property({ attribute: false })
+  diagnosticFileName: string | null = null;
+
+  @property({ attribute: false })
+  diagnosticErrorMessage: string | null = null;
 
   /**
    * Current selected rule type
@@ -409,6 +422,8 @@ export class ConfigPanel extends LitElement {
               </div>
             `
           : ''}
+
+        ${this.renderDiagnosticPrompt()}
       </div>
     `;
   }
@@ -497,6 +512,132 @@ export class ConfigPanel extends LitElement {
         composed: true,
       })
     );
+  }
+
+  private renderDiagnosticPrompt() {
+    if (!this.finished || this.diagnosticPromptState === 'hidden') {
+      return null;
+    }
+
+    const isExporting = this.diagnosticPromptState === 'exporting';
+    const isExported = this.diagnosticPromptState === 'exported';
+    const isError = this.diagnosticPromptState === 'error';
+
+    let message = I18nService.t('diagnostic_prompt_ready');
+    if (isExporting) {
+      message = I18nService.t('diagnostic_exporting');
+    } else if (isExported) {
+      message = I18nService.t('diagnostic_exported_message');
+    } else if (isError) {
+      message = I18nService.t('diagnostic_export_failed');
+    }
+
+    const promptClass = [
+      'diagnostic-prompt',
+      isExported ? 'exported' : '',
+      isError ? 'error' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    return html`
+      <div class=${promptClass}>
+        <div class="diagnostic-prompt-message">
+          <span>${message}</span>
+          ${isExported && this.diagnosticFileName
+            ? html`<span class="diagnostic-file-name">${this.diagnosticFileName}</span>`
+            : ''}
+          ${isError && this.diagnosticErrorMessage
+            ? html`<span class="diagnostic-file-name">${this.diagnosticErrorMessage}</span>`
+            : ''}
+          ${!isExported && !isError && this.diagnosticFailureCount > 0
+            ? html`
+                <span class="diagnostic-file-name">
+                  ${this.diagnosticFailureCount} ${I18nService.t('progress_failed')}
+                </span>
+              `
+            : ''}
+        </div>
+
+        <div class="diagnostic-prompt-actions">
+          ${isExported
+            ? html`
+                <button
+                  class="button button-default"
+                  data-role="diagnostic-feedback-github"
+                  @click=${this.handleDiagnosticFeedbackGithub}
+                >
+                  ${I18nService.t('diagnostic_feedback_github')}
+                </button>
+                <button
+                  class="button button-default"
+                  data-role="diagnostic-feedback-email"
+                  @click=${this.handleDiagnosticFeedbackEmail}
+                >
+                  ${I18nService.t('diagnostic_feedback_email')}
+                </button>
+                <button
+                  class="button button-default"
+                  data-role="diagnostic-copy-button"
+                  @click=${this.handleDiagnosticCopy}
+                >
+                  ${I18nService.t('diagnostic_copy')}
+                </button>
+              `
+            : html`
+                <button
+                  class="button button-default"
+                  data-role="diagnostic-export-button"
+                  ?disabled=${isExporting}
+                  @click=${this.handleDiagnosticExport}
+                >
+                  ${isExporting
+                    ? I18nService.t('diagnostic_exporting')
+                    : isError
+                      ? I18nService.t('diagnostic_export_retry')
+                      : I18nService.t('diagnostic_export')}
+                </button>
+              `}
+
+          <button
+            class="button button-default"
+            data-role="diagnostic-dismiss-button"
+            @click=${this.handleDiagnosticDismiss}
+          >
+            ${I18nService.t('diagnostic_dismiss')}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  private emitDiagnosticEvent(name: string): void {
+    this.dispatchEvent(
+      new CustomEvent(name, {
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private handleDiagnosticExport(): void {
+    this.emitDiagnosticEvent('diagnostic-export');
+  }
+
+  private handleDiagnosticDismiss(): void {
+    this.emitDiagnosticEvent('diagnostic-dismiss');
+  }
+
+  private handleDiagnosticFeedbackGithub(): void {
+    this.emitDiagnosticEvent('diagnostic-feedback-github');
+  }
+
+  private handleDiagnosticFeedbackEmail(): void {
+    this.emitDiagnosticEvent('diagnostic-feedback-email');
+  }
+
+  private handleDiagnosticCopy(): void {
+    this.emitDiagnosticEvent('diagnostic-copy');
   }
 
   /**
@@ -1081,6 +1222,46 @@ export class ConfigPanel extends LitElement {
 
     .sync-retry:hover {
       text-decoration: underline;
+    }
+
+    .diagnostic-prompt {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid var(--cdr-warning-border, #ffd591);
+      background: var(--cdr-warning-bg, #fffbe6);
+    }
+
+    .diagnostic-prompt.exported {
+      border-color: var(--cdr-success-border, #b7eb8f);
+      background: var(--cdr-success-bg, #f6ffed);
+    }
+
+    .diagnostic-prompt.error {
+      border-color: var(--cdr-danger-border, #ffa39e);
+      background: var(--cdr-danger-bg, #fff1f0);
+    }
+
+    .diagnostic-prompt-message {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--cdr-text-secondary, #595959);
+    }
+
+    .diagnostic-file-name {
+      font-size: 12px;
+      color: var(--cdr-text, #262626);
+      word-break: break-all;
+    }
+
+    .diagnostic-prompt-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .execution-actions {

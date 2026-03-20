@@ -1,4 +1,6 @@
 import { logger } from '../utils/logger';
+import { diagnosticService } from './diagnostic-service';
+import { RUNTIME_MESSAGE_TYPES } from '../types/runtime-message';
 
 /**
  * Service Worker (Background Script)
@@ -70,6 +72,39 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       });
       sendResponse({ success: true });
       break;
+
+    case RUNTIME_MESSAGE_TYPES.APPEND_DIAGNOSTIC_LOG:
+      void diagnosticService
+        .appendLog(message.entry)
+        .then(() => sendResponse({ success: true }))
+        .catch((error) => {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.warn('Failed to append diagnostic log:', errorMessage);
+          sendResponse({ success: false, error: errorMessage });
+        });
+      return true;
+
+    case RUNTIME_MESSAGE_TYPES.GET_DIAGNOSTIC_EXPORT:
+      void diagnosticService
+        .getExportPayload()
+        .then((payload) => sendResponse({ payload }))
+        .catch((error) => {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.warn('Failed to build diagnostic export:', errorMessage);
+          sendResponse({ success: false, error: errorMessage });
+        });
+      return true;
+
+    case RUNTIME_MESSAGE_TYPES.OPEN_EXTERNAL_URL:
+      void diagnosticService
+        .openExternalUrl(message.url)
+        .then(() => sendResponse({ success: true }))
+        .catch((error) => {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.warn('Failed to open external url:', errorMessage);
+          sendResponse({ success: false, error: errorMessage });
+        });
+      return true;
 
     default:
       logger.warn('Unknown message type:', message.type);
