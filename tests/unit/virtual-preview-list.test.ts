@@ -149,4 +149,47 @@ describe('VirtualPreviewList pending preview mapping', () => {
     warnSpy.mockRestore();
     element.remove();
   });
+
+  it('locks preview-item/preview-content structure with secondary/primary name classes and truncation styles', async () => {
+    const element = new VirtualPreviewList();
+    element.items = [
+      {
+        file: {
+          id: 'file-structure',
+          name: 'old-very-long-name-that-should-truncate.mkv',
+          ext: 'mkv',
+          size: 1,
+          mtime: Date.now(),
+          isDir: false,
+        },
+        newName: 'new-very-long-name-that-should-also-truncate.mkv',
+        conflict: false,
+      },
+    ];
+
+    document.body.appendChild(element);
+    await element.updateComplete;
+
+    const previewItem = element.shadowRoot?.querySelector('.preview-item[data-preview-item="true"]');
+    expect(previewItem).toBeTruthy();
+
+    const previewContent = previewItem?.querySelector('.preview-content[data-preview-content="true"]');
+    expect(previewContent).toBeTruthy();
+
+    const oldName = previewContent?.querySelector('.old-name.old-name-secondary');
+    expect(oldName).toBeTruthy();
+
+    const newName = previewContent?.querySelector('.new-name.new-name-primary');
+    expect(newName).toBeTruthy();
+    const newNameText = newName?.querySelector('.new-name-text');
+    expect(newNameText).toBeTruthy();
+    const styleContent = Array.from(element.shadowRoot?.querySelectorAll('style') ?? [])
+      .map((style) => style.textContent ?? '')
+      .join(' ');
+    expect(styleContent).toContain('overflow: hidden');
+    expect(styleContent).toContain('text-overflow: ellipsis');
+    expect(styleContent).toContain('white-space: nowrap');
+
+    element.remove();
+  });
 });

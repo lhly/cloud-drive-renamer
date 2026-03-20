@@ -117,17 +117,19 @@ export class VirtualPreviewList extends LitElement {
     const conflictHint = item.conflict
       ? html`<span class="conflict-hint">${I18nService.t('error_api_conflict')}</span>`
       : '';
+    const previewItemClasses = ['preview-item', statusClass].filter(Boolean).join(' ');
+    const newNameClasses = ['new-name', 'new-name-primary', statusClass].filter(Boolean).join(' ');
 
     return html`
-      <div class="preview-item ${statusClass}">
-        <div class="preview-content">
+      <div class="${previewItemClasses}" data-preview-item="true">
+        <div class="preview-content" data-preview-content="true">
           <div class="old-name-row">
-            <div class="old-name" title=${item.file.name}>
+            <div class="old-name old-name-secondary" title=${item.file.name}>
               ${item.file.name}
             </div>
             ${statusBadge}
           </div>
-          <div class="new-name ${statusClass}" title=${item.newName}>
+          <div class="${newNameClasses}" title=${item.newName}>
             <span class="new-name-text">${item.newName}</span>
             ${conflictHint}
           </div>
