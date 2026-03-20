@@ -150,7 +150,7 @@ describe('VirtualPreviewList pending preview mapping', () => {
     element.remove();
   });
 
-  it('locks preview-item/preview-content structure with secondary/primary name classes and truncation styles', async () => {
+  it('locks preview-item structure with semantic classes and target-specific truncation rules', async () => {
     const element = new VirtualPreviewList();
     element.items = [
       {
@@ -170,25 +170,39 @@ describe('VirtualPreviewList pending preview mapping', () => {
     document.body.appendChild(element);
     await element.updateComplete;
 
-    const previewItem = element.shadowRoot?.querySelector('.preview-item[data-preview-item="true"]');
+
+    const previewItem = element.shadowRoot?.querySelector('.preview-item');
     expect(previewItem).toBeTruthy();
 
-    const previewContent = previewItem?.querySelector('.preview-content[data-preview-content="true"]');
+    const previewContent = previewItem?.querySelector('.preview-content');
     expect(previewContent).toBeTruthy();
 
     const oldName = previewContent?.querySelector('.old-name.old-name-secondary');
     expect(oldName).toBeTruthy();
 
-    const newName = previewContent?.querySelector('.new-name.new-name-primary');
-    expect(newName).toBeTruthy();
-    const newNameText = newName?.querySelector('.new-name-text');
+    const newNameText = previewContent?.querySelector('.new-name-text');
     expect(newNameText).toBeTruthy();
+
     const styleContent = Array.from(element.shadowRoot?.querySelectorAll('style') ?? [])
       .map((style) => style.textContent ?? '')
       .join(' ');
-    expect(styleContent).toContain('overflow: hidden');
-    expect(styleContent).toContain('text-overflow: ellipsis');
-    expect(styleContent).toContain('white-space: nowrap');
+    const extractBlock = (selector: string) => {
+      const start = styleContent.indexOf(selector);
+      expect(start, `missing ${selector}`).toBeGreaterThan(-1);
+      const braceOpen = styleContent.indexOf('{', start);
+      const braceClose = styleContent.indexOf('}', braceOpen);
+      return styleContent.slice(braceOpen + 1, braceClose);
+    };
+
+    const oldNameDeclarations = extractBlock('.old-name.old-name-secondary');
+    expect(oldNameDeclarations).toContain('overflow: hidden');
+    expect(oldNameDeclarations).toContain('text-overflow: ellipsis');
+    expect(oldNameDeclarations).toContain('white-space: nowrap');
+
+    const newNameDeclarations = extractBlock('.new-name.new-name-primary .new-name-text');
+    expect(newNameDeclarations).toContain('overflow: hidden');
+    expect(newNameDeclarations).toContain('text-overflow: ellipsis');
+    expect(newNameDeclarations).toContain('white-space: nowrap');
 
     element.remove();
   });
