@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { PreviewPanel } from '../../src/content/components/preview-panel';
 import { VirtualPreviewList } from '../../src/content/components/virtual-preview-list';
 import { I18nService } from '../../src/utils/i18n';
 
@@ -183,27 +184,126 @@ describe('VirtualPreviewList pending preview mapping', () => {
     const newNameText = previewContent?.querySelector('.new-name-text');
     expect(newNameText).toBeTruthy();
 
-    const styleContent = Array.from(element.shadowRoot?.querySelectorAll('style') ?? [])
-      .map((style) => style.textContent ?? '')
+    const stylesArray = Array.isArray(VirtualPreviewList.styles)
+      ? VirtualPreviewList.styles
+      : [VirtualPreviewList.styles];
+    const staticCss = stylesArray
+      .map((result) => ('cssText' in result ? (result as any).cssText : result.toString()))
       .join(' ');
-    const extractBlock = (selector: string) => {
-      const start = styleContent.indexOf(selector);
-      expect(start, `missing ${selector}`).toBeGreaterThan(-1);
-      const braceOpen = styleContent.indexOf('{', start);
-      const braceClose = styleContent.indexOf('}', braceOpen);
-      return styleContent.slice(braceOpen + 1, braceClose);
+    const selectorBlock = (selector: string) => {
+      const escaped = selector.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+      const regex = new RegExp(`${escaped}\\s*\\{([^}]*)\\}`, 's');
+      const match = regex.exec(staticCss);
+      expect(match, `missing ${selector}`).toBeTruthy();
+      return match![1];
     };
 
-    const oldNameDeclarations = extractBlock('.old-name.old-name-secondary');
+    const oldNameDeclarations = selectorBlock('.old-name.old-name-secondary');
     expect(oldNameDeclarations).toContain('overflow: hidden');
     expect(oldNameDeclarations).toContain('text-overflow: ellipsis');
     expect(oldNameDeclarations).toContain('white-space: nowrap');
 
-    const newNameDeclarations = extractBlock('.new-name.new-name-primary .new-name-text');
+    const baseOldNameDeclarations = selectorBlock('.old-name');
+    expect(baseOldNameDeclarations).toContain('font-size: 12px');
+    expect(baseOldNameDeclarations).toContain('color: var(--cdr-text-secondary, #595959)');
+    expect(baseOldNameDeclarations).not.toContain('overflow: hidden');
+    expect(baseOldNameDeclarations).not.toContain('text-overflow: ellipsis');
+    expect(baseOldNameDeclarations).not.toContain('white-space: nowrap');
+
+    const newNameDeclarations = selectorBlock('.new-name-primary .new-name-text');
     expect(newNameDeclarations).toContain('overflow: hidden');
     expect(newNameDeclarations).toContain('text-overflow: ellipsis');
     expect(newNameDeclarations).toContain('white-space: nowrap');
 
+    const baseNewNameDeclarations = selectorBlock('.new-name-text');
+    expect(baseNewNameDeclarations).not.toContain('overflow: hidden');
+    expect(baseNewNameDeclarations).not.toContain('text-overflow: ellipsis');
+    expect(baseNewNameDeclarations).not.toContain('white-space: nowrap');
+
     element.remove();
+  });
+});
+
+describe('PreviewPanel integration with VirtualPreviewList', () => {
+  it('passes mixed preview items and status mode through while keeping stats accurate', async () => {
+    const items = [
+      {
+        file: {
+          id: 'file-done',
+          name: 'done-old.txt',
+          ext: 'txt',
+          size: 1,
+          mtime: Date.now(),
+          isDir: false,
+        },
+        newName: 'done-new.txt',
+        conflict: false,
+        done: true,
+      },
+      {
+        file: {
+          id: 'file-error',
+          name: 'error-old.txt',
+          ext: 'txt',
+          size: 1,
+          mtime: Date.now(),
+          isDir: false,
+        },
+        newName: 'error-new.txt',
+        conflict: false,
+        error: 'extract_episode_not_found',
+      },
+      {
+        file: {
+          id: 'file-pending',
+          name: 'pending-old.txt',
+          ext: 'txt',
+          size: 1,
+          mtime: Date.now(),
+          isDir: false,
+        },
+        newName: 'pending-new.txt',
+        conflict: false,
+        done: false,
+      },
+    ];
+
+    const panel = new PreviewPanel();
+    panel.items = items;
+    panel.conflictCount = 1;
+    panel.showStatus = true;
+
+    document.body.appendChild(panel);
+    await panel.updateComplete;
+
+    const stats = new Map(
+      Array.from(panel.shadowRoot?.querySelectorAll('.panel-stats .stat-item') ?? []).map((item) => [
+        item.querySelector('.stat-label')?.textContent?.trim() ?? '',
+        item.querySelector('.stat-value')?.textContent?.trim() ?? '',
+      ])
+    );
+
+    expect(stats.get(I18nService.t('preview_items'))).toBe('3');
+    expect(stats.get(I18nService.t('progress_remaining'))).toBe('1');
+    expect(stats.get(I18nService.t('progress_success'))).toBe('1');
+    expect(stats.get(I18nService.t('progress_failed'))).toBe('1');
+    expect(stats.get(I18nService.t('preview_summary_conflict'))).toBe('1');
+
+    const previewList = panel.shadowRoot?.querySelector('virtual-preview-list') as VirtualPreviewList | null;
+    expect(previewList).toBeTruthy();
+    expect(previewList?.items).toBe(items);
+    expect(previewList?.showStatus).toBe(true);
+
+    await previewList?.updateComplete;
+
+    const previewText = previewList?.shadowRoot?.textContent ?? '';
+    expect(previewText).toContain('done-old.txt');
+    expect(previewText).toContain('done-new.txt');
+    expect(previewText).toContain('error-old.txt');
+    expect(previewText).toContain('error-new.txt');
+    expect(previewText).toContain('pending-old.txt');
+    expect(previewText).toContain('pending-new.txt');
+
+    panel.remove();
   });
 });

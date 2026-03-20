@@ -121,8 +121,8 @@ export class VirtualPreviewList extends LitElement {
     const newNameClasses = ['new-name', 'new-name-primary', statusClass].filter(Boolean).join(' ');
 
     return html`
-      <div class="${previewItemClasses}" data-preview-item="true">
-        <div class="preview-content" data-preview-content="true">
+      <div class="${previewItemClasses}">
+        <div class="preview-content">
           <div class="old-name-row">
             <div class="old-name old-name-secondary" title=${item.file.name}>
               ${item.file.name}
@@ -270,12 +270,11 @@ export class VirtualPreviewList extends LitElement {
     .old-name {
       font-size: 12px;
       color: var(--cdr-text-secondary, #595959);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     .old-name.old-name-secondary {
+      flex: 1 1 0;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -293,10 +292,12 @@ export class VirtualPreviewList extends LitElement {
       gap: 8px;
     }
 
-    .new-name-text,
-    .new-name.new-name-primary .new-name-text {
-      flex: 1;
+    .new-name-text {
+      flex: 1 1 0;
       min-width: 0;
+    }
+
+    .new-name-primary .new-name-text {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
