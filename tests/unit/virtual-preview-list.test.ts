@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { VirtualPreviewList } from '../../src/content/components/virtual-preview-list';
 import { I18nService } from '../../src/utils/i18n';
 
@@ -116,6 +116,37 @@ describe('VirtualPreviewList pending preview mapping', () => {
     const badge = element.shadowRoot?.querySelector('.old-name-row .status-badge.pending');
     expect(badge).toBeTruthy();
 
+    element.remove();
+  });
+
+  it('renders raw error text without warning when given a network error message', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const element = new VirtualPreviewList();
+    element.items = [
+      {
+        file: {
+          id: 'file-network',
+          name: 'old-network.mkv',
+          ext: 'mkv',
+          size: 1,
+          mtime: Date.now(),
+          isDir: false,
+        },
+        newName: 'new-network.mkv',
+        conflict: false,
+        error: 'Network error',
+      },
+    ];
+
+    document.body.appendChild(element);
+    await element.updateComplete;
+
+    const textContent = element.shadowRoot?.textContent ?? '';
+    expect(textContent).toContain('Network error');
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
     element.remove();
   });
 });

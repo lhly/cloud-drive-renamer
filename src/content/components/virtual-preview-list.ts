@@ -74,8 +74,16 @@ export class VirtualPreviewList extends LitElement {
    * Render a single preview item
    * @private
    */
+  private isTranslationCandidate(error: string): boolean {
+    return /^[a-z0-9_]+$/.test(error);
+  }
+
   private resolveErrorText(error?: string): string | undefined {
     if (!error) return undefined;
+
+    if (!this.isTranslationCandidate(error)) {
+      return error;
+    }
 
     const translationKey = `error_${error}`;
     const translated = I18nService.t(translationKey);
