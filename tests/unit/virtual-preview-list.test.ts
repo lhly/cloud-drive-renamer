@@ -189,7 +189,7 @@ describe('VirtualPreviewList pending preview mapping', () => {
     const staticCss = stylesArray
       .map((result) => ('cssText' in result ? (result as any).cssText : result.toString()))
       .join(' ');
-    const extractBlock = (selector: string) => {
+    const selectorBlock = (selector: string) => {
       const start = staticCss.indexOf(selector);
       expect(start, `missing ${selector}`).toBeGreaterThan(-1);
       const braceOpen = staticCss.indexOf('{', start);
@@ -197,15 +197,25 @@ describe('VirtualPreviewList pending preview mapping', () => {
       return staticCss.slice(braceOpen + 1, braceClose);
     };
 
-    const oldNameDeclarations = extractBlock('.old-name.old-name-secondary');
-    expect(oldNameDeclarations).toContain('flex: 1 1 0');
-    expect(oldNameDeclarations).toContain('min-width: 0');
+    const oldNameDeclarations = selectorBlock('.old-name.old-name-secondary');
     expect(oldNameDeclarations).toContain('overflow: hidden');
+    expect(oldNameDeclarations).toContain('text-overflow: ellipsis');
+    expect(oldNameDeclarations).toContain('white-space: nowrap');
 
-    const newNameDeclarations = extractBlock('.new-name-primary .new-name-text');
-    expect(newNameDeclarations).toContain('flex: 1 1 0');
-    expect(newNameDeclarations).toContain('min-width: 0');
+    const baseOldNameDeclarations = selectorBlock('.old-name');
+    expect(baseOldNameDeclarations).not.toContain('overflow: hidden');
+    expect(baseOldNameDeclarations).not.toContain('text-overflow: ellipsis');
+    expect(baseOldNameDeclarations).not.toContain('white-space: nowrap');
+
+    const newNameDeclarations = selectorBlock('.new-name-primary .new-name-text');
     expect(newNameDeclarations).toContain('overflow: hidden');
+    expect(newNameDeclarations).toContain('text-overflow: ellipsis');
+    expect(newNameDeclarations).toContain('white-space: nowrap');
+
+    const baseNewNameDeclarations = selectorBlock('.new-name-text');
+    expect(baseNewNameDeclarations).not.toContain('overflow: hidden');
+    expect(baseNewNameDeclarations).not.toContain('text-overflow: ellipsis');
+    expect(baseNewNameDeclarations).not.toContain('white-space: nowrap');
 
     element.remove();
   });
