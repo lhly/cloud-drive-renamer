@@ -190,11 +190,11 @@ describe('VirtualPreviewList pending preview mapping', () => {
       .map((result) => ('cssText' in result ? (result as any).cssText : result.toString()))
       .join(' ');
     const selectorBlock = (selector: string) => {
-      const start = staticCss.indexOf(selector);
-      expect(start, `missing ${selector}`).toBeGreaterThan(-1);
-      const braceOpen = staticCss.indexOf('{', start);
-      const braceClose = staticCss.indexOf('}', braceOpen);
-      return staticCss.slice(braceOpen + 1, braceClose);
+      const escaped = selector.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+      const regex = new RegExp(`${escaped}\\s*\\{([^}]*)\\}`, 's');
+      const match = regex.exec(staticCss);
+      expect(match, `missing ${selector}`).toBeTruthy();
+      return match![1];
     };
 
     const oldNameDeclarations = selectorBlock('.old-name.old-name-secondary');
@@ -203,6 +203,8 @@ describe('VirtualPreviewList pending preview mapping', () => {
     expect(oldNameDeclarations).toContain('white-space: nowrap');
 
     const baseOldNameDeclarations = selectorBlock('.old-name');
+    expect(baseOldNameDeclarations).toContain('font-size: 12px');
+    expect(baseOldNameDeclarations).toContain('color: var(--cdr-text-secondary, #595959)');
     expect(baseOldNameDeclarations).not.toContain('overflow: hidden');
     expect(baseOldNameDeclarations).not.toContain('text-overflow: ellipsis');
     expect(baseOldNameDeclarations).not.toContain('white-space: nowrap');
