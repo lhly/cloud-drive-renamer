@@ -98,6 +98,9 @@ export class VirtualPreviewList extends LitElement {
     return html`
       <div class="preview-item ${statusClass}">
         <div class="preview-content">
+          <div class="old-name" title=${item.file.name}>
+            ${item.file.name}
+          </div>
           <div class="new-name ${statusClass}" title=${item.newName}>
             ${item.newName}
             ${statusBadge}
@@ -227,6 +230,15 @@ export class VirtualPreviewList extends LitElement {
     .preview-content {
       flex: 1;
       min-width: 0;
+    }
+
+    .old-name {
+      font-size: 12px;
+      color: var(--cdr-text-secondary, #595959);
+      margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .new-name {
