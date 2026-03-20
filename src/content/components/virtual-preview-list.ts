@@ -74,6 +74,15 @@ export class VirtualPreviewList extends LitElement {
    * Render a single preview item
    * @private
    */
+  private resolveErrorText(error?: string): string | undefined {
+    if (!error) return undefined;
+
+    const translationKey = `error_${error}`;
+    const translated = I18nService.t(translationKey);
+
+    return translated === translationKey ? error : translated;
+  }
+
   private renderPreviewItem(item: PreviewItem): any {
     const statusClass = item.conflict
       ? 'conflict'
@@ -95,19 +104,28 @@ export class VirtualPreviewList extends LitElement {
             ? html`<span class="status-badge pending">${I18nService.t('status_pending')}</span>`
             : '';
 
+    const errorText = this.resolveErrorText(item.error);
+    const errorTitle = item.error ?? errorText ?? '';
+    const conflictHint = item.conflict
+      ? html`<span class="conflict-hint">${I18nService.t('error_api_conflict')}</span>`
+      : '';
+
     return html`
       <div class="preview-item ${statusClass}">
         <div class="preview-content">
-          <div class="old-name" title=${item.file.name}>
-            ${item.file.name}
-          </div>
-          <div class="new-name ${statusClass}" title=${item.newName}>
-            ${item.newName}
+          <div class="old-name-row">
+            <div class="old-name" title=${item.file.name}>
+              ${item.file.name}
+            </div>
             ${statusBadge}
           </div>
+          <div class="new-name ${statusClass}" title=${item.newName}>
+            <span class="new-name-text">${item.newName}</span>
+            ${conflictHint}
+          </div>
           ${
-            item.error
-              ? html`<div class="error-message" title=${item.error}>${item.error}</div>`
+            errorText
+              ? html`<div class="error-message" title=${errorTitle}>${errorText}</div>`
               : ''
           }
         </div>
@@ -232,10 +250,16 @@ export class VirtualPreviewList extends LitElement {
       min-width: 0;
     }
 
+    .old-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
     .old-name {
       font-size: 12px;
       color: var(--cdr-text-secondary, #595959);
-      margin-bottom: 4px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -253,6 +277,14 @@ export class VirtualPreviewList extends LitElement {
       gap: 8px;
     }
 
+    .new-name-text {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .new-name.conflict {
       color: var(--cdr-warning-text, #fa8c16);
     }
@@ -267,6 +299,12 @@ export class VirtualPreviewList extends LitElement {
 
     .new-name.pending {
       color: var(--cdr-text-secondary, #595959);
+    }
+
+    .conflict-hint {
+      font-size: 12px;
+      color: var(--cdr-warning-text, #fa8c16);
+      flex-shrink: 0;
     }
 
     .error-message {
