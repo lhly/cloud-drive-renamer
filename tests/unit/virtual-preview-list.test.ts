@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { PreviewPanel } from '../../src/content/components/preview-panel';
 import { VirtualPreviewList } from '../../src/content/components/virtual-preview-list';
 import { I18nService } from '../../src/utils/i18n';
 
@@ -220,5 +221,89 @@ describe('VirtualPreviewList pending preview mapping', () => {
     expect(baseNewNameDeclarations).not.toContain('white-space: nowrap');
 
     element.remove();
+  });
+});
+
+describe('PreviewPanel integration with VirtualPreviewList', () => {
+  it('passes mixed preview items and status mode through while keeping stats accurate', async () => {
+    const items = [
+      {
+        file: {
+          id: 'file-done',
+          name: 'done-old.txt',
+          ext: 'txt',
+          size: 1,
+          mtime: Date.now(),
+          isDir: false,
+        },
+        newName: 'done-new.txt',
+        conflict: false,
+        done: true,
+      },
+      {
+        file: {
+          id: 'file-error',
+          name: 'error-old.txt',
+          ext: 'txt',
+          size: 1,
+          mtime: Date.now(),
+          isDir: false,
+        },
+        newName: 'error-new.txt',
+        conflict: false,
+        error: 'extract_episode_not_found',
+      },
+      {
+        file: {
+          id: 'file-pending',
+          name: 'pending-old.txt',
+          ext: 'txt',
+          size: 1,
+          mtime: Date.now(),
+          isDir: false,
+        },
+        newName: 'pending-new.txt',
+        conflict: false,
+        done: false,
+      },
+    ];
+
+    const panel = new PreviewPanel();
+    panel.items = items;
+    panel.conflictCount = 1;
+    panel.showStatus = true;
+
+    document.body.appendChild(panel);
+    await panel.updateComplete;
+
+    const stats = new Map(
+      Array.from(panel.shadowRoot?.querySelectorAll('.panel-stats .stat-item') ?? []).map((item) => [
+        item.querySelector('.stat-label')?.textContent?.trim() ?? '',
+        item.querySelector('.stat-value')?.textContent?.trim() ?? '',
+      ])
+    );
+
+    expect(stats.get(I18nService.t('preview_items'))).toBe('3');
+    expect(stats.get(I18nService.t('progress_remaining'))).toBe('1');
+    expect(stats.get(I18nService.t('progress_success'))).toBe('1');
+    expect(stats.get(I18nService.t('progress_failed'))).toBe('1');
+    expect(stats.get(I18nService.t('preview_summary_conflict'))).toBe('1');
+
+    const previewList = panel.shadowRoot?.querySelector('virtual-preview-list') as VirtualPreviewList | null;
+    expect(previewList).toBeTruthy();
+    expect(previewList?.items).toBe(items);
+    expect(previewList?.showStatus).toBe(true);
+
+    await previewList?.updateComplete;
+
+    const previewText = previewList?.shadowRoot?.textContent ?? '';
+    expect(previewText).toContain('done-old.txt');
+    expect(previewText).toContain('done-new.txt');
+    expect(previewText).toContain('error-old.txt');
+    expect(previewText).toContain('error-new.txt');
+    expect(previewText).toContain('pending-old.txt');
+    expect(previewText).toContain('pending-new.txt');
+
+    panel.remove();
   });
 });
