@@ -39,6 +39,21 @@ import { parseFileName } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 import { storage } from '../../utils/storage';
 import { recordUsageStatsDelta } from '../../utils/usage-stats';
+import {
+  DEFAULT_EPISODE_EXTRACT_ASSIST_STATE,
+  type EpisodeExtractAssistState,
+  type EpisodeExtractFillMode,
+  type EpisodeExtractFillTarget,
+  type RulePresetRecord,
+} from '../../types/rule-preset';
+import {
+  deleteTemplateRulePreset,
+  getRulePresetById,
+  getRecentRulePresets,
+  getTemplateRulePresets,
+  recordRecentRulePreset,
+  saveTemplateRulePreset,
+} from '../../utils/rule-presets';
 import './config-panel';
 import './file-list-panel';
 import './preview-panel';
@@ -205,6 +220,17 @@ export class FileSelectorPanel extends LitElement {
   @state()
   private diagnosticErrorMessage: string | null = null;
 
+  @state()
+  private recentRulePresets: RulePresetRecord[] = [];
+
+  @state()
+  private templateRulePresets: RulePresetRecord[] = [];
+
+  @state()
+  private episodeExtractAssistState: EpisodeExtractAssistState = {
+    ...DEFAULT_EPISODE_EXTRACT_ASSIST_STATE,
+  };
+
   private executor: BatchExecutor | null = null;
   private recoveryChecked = false;
   private operationIndexByFileId: Map<string, number> | null = null;
@@ -331,6 +357,7 @@ export class FileSelectorPanel extends LitElement {
 
       // Update preview
       this.updatePreview();
+      await this.loadRulePresets();
     } catch (error) {
       const errorObj = error instanceof Error ? error : new Error(String(error));
       this.error = errorObj.message;
@@ -351,6 +378,21 @@ export class FileSelectorPanel extends LitElement {
     } catch (error) {
       const errorObj = error instanceof Error ? error : new Error(String(error));
       logger.warn('[FileSelectorPanel] Crash recovery check failed:', errorObj);
+    }
+  }
+
+  private async loadRulePresets(): Promise<void> {
+    try {
+      const [recent, templates] = await Promise.all([
+        getRecentRulePresets(),
+        getTemplateRulePresets(),
+      ]);
+      this.recentRulePresets = recent;
+      this.templateRulePresets = templates;
+    } catch (error) {
+      logger.warn('[FileSelectorPanel] Failed to load rule presets:', error instanceof Error ? error : new Error(String(error)));
+      this.recentRulePresets = [];
+      this.templateRulePresets = [];
     }
   }
 
@@ -466,7 +508,151 @@ export class FileSelectorPanel extends LitElement {
    */
   private handleConfigChange(e: CustomEvent): void {
     this.ruleConfig = e.detail;
+    if (this.ruleConfig.type !== 'episodeExtract') {
+      this.episodeExtractAssistState = {
+        ...DEFAULT_EPISODE_EXTRACT_ASSIST_STATE,
+      };
+    }
     this.updatePreview();
+  }
+
+  private applyAssistValue(target: EpisodeExtractFillTarget, value: string): void {
+    this.ruleConfig = {
+      ...this.ruleConfig,
+      params: {
+        ...this.ruleConfig.params,
+        [target]: value,
+      },
+    };
+    this.updatePreview();
+  }
+
+  private setAssistState(patch: Partial<EpisodeExtractAssistState>): void {
+    this.episodeExtractAssistState = {
+      ...this.episodeExtractAssistState,
+      ...patch,
+    };
+  }
+
+  private handleAssistChangeTarget(e: CustomEvent<{ target: EpisodeExtractFillTarget }>): void {
+    this.setAssistState({ fillTarget: e.detail.target });
+  }
+
+  private handleAssistChangeMode(e: CustomEvent<{ mode: EpisodeExtractFillMode }>): void {
+    this.setAssistState({ fillMode: e.detail.mode });
+  }
+
+  private handleAssistUseRandomSample(): void {
+    const candidates = this.selectedFiles.length > 0 ? this.selectedFiles : this.filteredFiles;
+    const sample = candidates[Math.floor(Math.random() * Math.max(1, candidates.length))];
+    if (!sample) return;
+    this.setAssistState({ sampleFileId: sample.id, sampleFileName: sample.name });
+  }
+
+  private handleAssistUseFirstFailure(): void {
+    const firstFailure = this.previewList.find((item) => item.error);
+    if (!firstFailure) return;
+    this.setAssistState({
+      sampleFileId: firstFailure.file.id,
+      sampleFileName: firstFailure.file.name,
+      suggestedFailureFileId: firstFailure.file.id,
+    });
+  }
+
+  private handleAssistClearSample(): void {
+    this.setAssistState({
+      sampleFileId: null,
+      sampleFileName: null,
+      suggestedFailureFileId: null,
+    });
+  }
+
+  private handleAssistApplyFullName(e: CustomEvent<{ fileId: string; fileName: string }>): void {
+    this.applyAssistValue(this.episodeExtractAssistState.fillTarget, e.detail.fileName);
+    this.setAssistState({ sampleFileId: e.detail.fileId, sampleFileName: e.detail.fileName });
+  }
+
+  private handleAssistApplySegment(e: CustomEvent<{ fileId: string; segment: string }>): void {
+    this.applyAssistValue(this.episodeExtractAssistState.fillTarget, e.detail.segment);
+    this.setAssistState({ sampleFileId: e.detail.fileId });
+  }
+
+  private handleAssistUseItemAsSample(e: CustomEvent<{ fileId: string; fileName: string }>): void {
+    this.setAssistState({
+      sampleFileId: e.detail.fileId,
+      sampleFileName: e.detail.fileName,
+      suggestedFailureFileId: e.detail.fileId,
+    });
+  }
+
+  private handleAssistUsePrefixFromItem(e: CustomEvent<{ fileId: string; fileName: string }>): void {
+    const raw = e.detail.fileName.trim();
+    const segments = raw
+      .split(/[\s._-]+/)
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+    const episodeTokenIndex = segments.findIndex((segment) => /^(s\d+e\d+|ep?\d+|第?\d+[集话話]|\d{1,4})$/i.test(segment));
+
+    const prefixCandidate = episodeTokenIndex > 0
+      ? segments.slice(0, episodeTokenIndex).join(' ')
+      : segments.length > 1
+        ? segments.slice(0, Math.ceil(segments.length / 2)).join(' ')
+        : raw.replace(/[._-]+$/g, '');
+
+    this.applyAssistValue('prefix', prefixCandidate);
+    this.setAssistState({
+      sampleFileId: e.detail.fileId,
+      sampleFileName: raw,
+      fillTarget: 'prefix',
+    });
+  }
+
+  private handleAssistFocusSegmentMode(e: CustomEvent<{ fileId: string }>): void {
+    const file = this.selectedFiles.find((item) => item.id === e.detail.fileId) || this.filteredFiles.find((item) => item.id === e.detail.fileId);
+    this.setAssistState({
+      fillMode: 'segment',
+      suggestedFailureFileId: e.detail.fileId,
+      sampleFileId: file?.id ?? null,
+      sampleFileName: file?.name ?? null,
+    });
+  }
+
+  private async handleApplyRulePreset(e: CustomEvent<{ presetId: string }>): Promise<void> {
+    const record = await getRulePresetById(e.detail.presetId);
+    if (!record) {
+      return;
+    }
+
+    this.ruleConfig = record.config;
+    this.episodeExtractAssistState = {
+      ...DEFAULT_EPISODE_EXTRACT_ASSIST_STATE,
+      fillTarget: 'prefix',
+      fillMode: 'full-name',
+    };
+    this.updatePreview();
+  }
+
+  private async handleSaveRuleTemplate(e: CustomEvent<{ name: string }>): Promise<void> {
+    const trimmed = e.detail.name.trim();
+    if (!trimmed) return;
+
+    const duplicate = this.templateRulePresets.find((preset) => preset.name === trimmed);
+    if (duplicate) {
+      const confirmed = confirm(I18nService.t('rule_preset_overwrite_confirm', [trimmed]));
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    const { records } = await saveTemplateRulePreset(trimmed, this.ruleConfig, {
+      overwriteName: true,
+      overwriteId: duplicate?.id,
+    });
+    this.templateRulePresets = records;
+  }
+
+  private async handleDeleteRuleTemplate(e: CustomEvent<{ presetId: string }>): Promise<void> {
+    this.templateRulePresets = await deleteTemplateRulePreset(e.detail.presetId);
   }
 
   /**
@@ -1021,6 +1207,9 @@ export class FileSelectorPanel extends LitElement {
         success: results.success.length,
         failed: results.failed.length,
       });
+      if (results.success.length > 0) {
+        this.recentRulePresets = await recordRecentRulePreset(this.ruleConfig);
+      }
 
       this.applyExecutionResults(results);
       this.updateLastRenameOperationFromExecute(results);
@@ -1405,7 +1594,20 @@ export class FileSelectorPanel extends LitElement {
               .diagnosticFailureCount=${this.diagnosticFailureCount}
               .diagnosticFileName=${this.diagnosticFileName}
               .diagnosticErrorMessage=${this.diagnosticErrorMessage}
+              .activeRuleConfig=${this.ruleConfig}
+              .recentRulePresets=${this.recentRulePresets}
+              .templateRulePresets=${this.templateRulePresets}
+              .episodeExtractAssistState=${this.episodeExtractAssistState}
+              .episodeExtractFailureCount=${this.previewList.filter((item) => Boolean(item.error)).length}
               @config-change=${this.handleConfigChange}
+              @apply-rule-preset=${this.handleApplyRulePreset}
+              @save-rule-template=${this.handleSaveRuleTemplate}
+              @delete-rule-template=${this.handleDeleteRuleTemplate}
+              @episode-assist-change-target=${this.handleAssistChangeTarget}
+              @episode-assist-change-mode=${this.handleAssistChangeMode}
+              @episode-assist-use-random-sample=${this.handleAssistUseRandomSample}
+              @episode-assist-use-first-failure=${this.handleAssistUseFirstFailure}
+              @episode-assist-clear-sample=${this.handleAssistClearSample}
               @execute=${this.handleExecute}
               @pause=${this.handlePause}
               @cancel=${this.handleCancel}
@@ -1441,7 +1643,14 @@ export class FileSelectorPanel extends LitElement {
               .items=${this.executionItems.length > 0 ? this.executionItems : this.previewList}
               .conflictCount=${this.conflictIds.size}
               .showStatus=${this.executing || this.executionFinished}
+              .episodeExtractAssistEnabled=${this.ruleConfig.type === 'episodeExtract'}
+              .episodeExtractAssistState=${this.episodeExtractAssistState}
               ?loading=${false}
+              @episode-assist-apply-full-name=${this.handleAssistApplyFullName}
+              @episode-assist-apply-segment=${this.handleAssistApplySegment}
+              @episode-assist-use-item-as-sample=${this.handleAssistUseItemAsSample}
+              @episode-assist-use-prefix-from-item=${this.handleAssistUsePrefixFromItem}
+              @episode-assist-focus-segment-mode=${this.handleAssistFocusSegmentMode}
             ></preview-panel>
           </div>
 

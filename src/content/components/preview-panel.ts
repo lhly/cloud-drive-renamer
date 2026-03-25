@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { PreviewItem } from '../../types/file-selector';
+import { DEFAULT_EPISODE_EXTRACT_ASSIST_STATE, type EpisodeExtractAssistState } from '../../types/rule-preset';
 import { I18nService } from '../../utils/i18n';
 import './virtual-preview-list';
 
@@ -41,6 +42,12 @@ export class PreviewPanel extends LitElement {
    */
   @property({ type: Boolean })
   showStatus = false;
+
+  @property({ type: Boolean })
+  episodeExtractAssistEnabled = false;
+
+  @property({ attribute: false })
+  episodeExtractAssistState: EpisodeExtractAssistState = DEFAULT_EPISODE_EXTRACT_ASSIST_STATE;
 
   render() {
     const hasConflicts = this.conflictCount > 0;
@@ -106,7 +113,12 @@ export class PreviewPanel extends LitElement {
                 </div>
               `
             : html`
-                <virtual-preview-list .items=${this.items} .showStatus=${this.showStatus}></virtual-preview-list>
+                <virtual-preview-list
+                  .items=${this.items}
+                  .showStatus=${this.showStatus}
+                  .episodeExtractAssistEnabled=${this.episodeExtractAssistEnabled}
+                  .episodeExtractAssistState=${this.episodeExtractAssistState}
+                ></virtual-preview-list>
               `}
         </div>
       </div>

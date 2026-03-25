@@ -1,8 +1,15 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { RuleType, RuleConfig } from '../../types/rule';
 import { ProgressEvent } from '../../types/core';
 import { type DiagnosticPromptState } from '../../types/diagnostic';
+import {
+  DEFAULT_EPISODE_EXTRACT_ASSIST_STATE,
+  type EpisodeExtractAssistState,
+  type EpisodeExtractFillMode,
+  type EpisodeExtractFillTarget,
+  type RulePresetRecord,
+} from '../../types/rule-preset';
 import { I18nService } from '../../utils/i18n';
 
 /**
@@ -107,6 +114,21 @@ export class ConfigPanel extends LitElement {
   @property({ attribute: false })
   diagnosticErrorMessage: string | null = null;
 
+  @property({ attribute: false })
+  activeRuleConfig: RuleConfig | null = null;
+
+  @property({ attribute: false })
+  recentRulePresets: RulePresetRecord[] = [];
+
+  @property({ attribute: false })
+  templateRulePresets: RulePresetRecord[] = [];
+
+  @property({ attribute: false })
+  episodeExtractAssistState: EpisodeExtractAssistState = DEFAULT_EPISODE_EXTRACT_ASSIST_STATE;
+
+  @property({ type: Number })
+  episodeExtractFailureCount = 0;
+
   /**
    * Current selected rule type
    */
@@ -126,6 +148,23 @@ export class ConfigPanel extends LitElement {
 
   @state()
   private regexValidationError: string | null = null;
+
+  protected willUpdate(changedProperties: PropertyValues<this>): void {
+    super.willUpdate(changedProperties);
+
+    if (changedProperties.has('activeRuleConfig') && this.activeRuleConfig) {
+      const nextType = this.activeRuleConfig.type;
+      const nextParams = this.activeRuleConfig.params || {};
+      if (
+        this.selectedRuleType !== nextType ||
+        JSON.stringify(this.ruleParams) !== JSON.stringify(nextParams)
+      ) {
+        this.selectedRuleType = nextType;
+        this.ruleParams = { ...nextParams };
+        this.validateRegexIfNeeded();
+      }
+    }
+  }
 
   /**
    * Handle rule type change
@@ -183,6 +222,62 @@ export class ConfigPanel extends LitElement {
 
     this.validateRegexIfNeeded();
     this.emitConfigChange();
+  }
+
+  private handleApplyPreset(record: RulePresetRecord): void {
+    this.dispatchEvent(
+      new CustomEvent('apply-rule-preset', {
+        detail: { presetId: record.id, source: record.source },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private handleDeleteTemplate(record: RulePresetRecord): void {
+    this.dispatchEvent(
+      new CustomEvent('delete-rule-template', {
+        detail: { presetId: record.id },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private handleSaveTemplate(): void {
+    const suggestedName = this.selectedRuleType === 'episodeExtract'
+      ? I18nService.t('rule_preset_default_episode_template_name')
+      : '';
+    const name = prompt(I18nService.t('rule_preset_save_prompt'), suggestedName)?.trim();
+    if (!name) {
+      return;
+    }
+
+    this.dispatchEvent(
+      new CustomEvent('save-rule-template', {
+        detail: { name },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private emitAssistEvent(name: string, detail?: Record<string, unknown>): void {
+    this.dispatchEvent(
+      new CustomEvent(name, {
+        detail,
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private handleAssistTargetChange(target: EpisodeExtractFillTarget): void {
+    this.emitAssistEvent('episode-assist-change-target', { target });
+  }
+
+  private handleAssistModeChange(mode: EpisodeExtractFillMode): void {
+    this.emitAssistEvent('episode-assist-change-mode', { mode });
   }
 
   /**
@@ -321,7 +416,9 @@ export class ConfigPanel extends LitElement {
         </div>
 
         <div class="panel-body">
-          ${showExecutionView ? this.renderExecutionView() : html`${this.renderRuleSelector()}${this.renderRuleConfig()}`}
+          ${showExecutionView
+            ? this.renderExecutionView()
+            : html`${this.renderRuleSelector()}${this.renderRuleConfig()}${this.renderEpisodeExtractAssist()}${this.renderRulePresets()}`}
         </div>
 
         <div class="panel-footer">
@@ -687,6 +784,161 @@ export class ConfigPanel extends LitElement {
       <div class="rule-config">
         <div class="section-title">${I18nService.t('rule_config_title')}</div>
         ${this.renderRuleParams()}
+      </div>
+    `;
+  }
+
+  private renderRulePresets() {
+    return html`
+      <div class="rule-presets">
+        <div class="section-title">${I18nService.t('rule_preset_section_title')}</div>
+        <div class="preset-group">
+          <div class="preset-group-header">
+            <span class="preset-group-title">${I18nService.t('rule_preset_recent_title')}</span>
+          </div>
+          ${this.recentRulePresets.length
+            ? this.recentRulePresets.slice(0, 5).map((record) => this.renderPresetItem(record, false))
+            : html`<div class="preset-empty">${I18nService.t('rule_preset_recent_empty')}</div>`}
+        </div>
+
+        <div class="preset-group">
+          <div class="preset-group-header">
+            <span class="preset-group-title">${I18nService.t('rule_preset_templates_title')}</span>
+            <button class="text-action-button" data-role="save-template-button" @click=${this.handleSaveTemplate}>
+              ${I18nService.t('rule_preset_save_button')}
+            </button>
+          </div>
+          ${this.templateRulePresets.length
+            ? this.templateRulePresets.map((record) => this.renderPresetItem(record, true))
+            : html`<div class="preset-empty">${I18nService.t('rule_preset_templates_empty')}</div>`}
+        </div>
+      </div>
+    `;
+  }
+
+  private renderPresetItem(record: RulePresetRecord, deletable: boolean) {
+    const summary = this.buildPresetSummary(record);
+    return html`
+      <div class="preset-item" data-preset-id=${record.id}>
+        <div class="preset-content">
+          <div class="preset-name">${record.name || summary}</div>
+          <div class="preset-summary">${summary}</div>
+        </div>
+        <div class="preset-actions">
+          <button
+            class="text-action-button"
+            data-role="apply-rule-preset"
+            @click=${() => this.handleApplyPreset(record)}
+          >
+            ${I18nService.t('rule_preset_apply_button')}
+          </button>
+          ${deletable
+            ? html`
+                <button
+                  class="text-action-button danger"
+                  data-role="delete-rule-template"
+                  @click=${() => this.handleDeleteTemplate(record)}
+                >
+                  ${I18nService.t('rule_preset_delete_button')}
+                </button>
+              `
+            : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  private buildPresetSummary(record: RulePresetRecord): string {
+    switch (record.config.type) {
+      case 'replace':
+        return `${I18nService.t('rule_replace')}: ${String(record.config.params.search || '')} → ${String(record.config.params.replace || '')}`;
+      case 'regex':
+        return `${I18nService.t('rule_regex')}: ${String(record.config.params.pattern || '')}`;
+      case 'prefix':
+        return `${I18nService.t('rule_prefix')}: ${String(record.config.params.prefix || '')}`;
+      case 'suffix':
+        return `${I18nService.t('rule_suffix')}: ${String(record.config.params.suffix || '')}`;
+      case 'numbering':
+        return `${I18nService.t('rule_numbering')}: ${String(record.config.params.format || '{num}')}`;
+      case 'sanitize':
+        return `${I18nService.t('rule_sanitize')}: ${String(record.config.params.removeChars || I18nService.t('param_remove_illegal'))}`;
+      case 'episodeExtract':
+        return `${I18nService.t('rule_episode_extract')}: ${String(record.config.params.template || '{prefix}.S{season}E{episode}{ext}')}`;
+      default:
+        return record.config.type;
+    }
+  }
+
+  private renderEpisodeExtractAssist() {
+    if (this.selectedRuleType !== 'episodeExtract') {
+      return null;
+    }
+
+    const assist = this.episodeExtractAssistState || DEFAULT_EPISODE_EXTRACT_ASSIST_STATE;
+    const hasFailures = this.episodeExtractFailureCount > 0;
+
+    return html`
+      <div class="episode-assist">
+        <div class="section-title">${I18nService.t('episode_assist_section_title')}</div>
+        <div class="assist-card">
+          <div class="assist-subtitle">${I18nService.t('episode_assist_sample_title')}</div>
+          <div class="assist-sample-name">
+            ${assist.sampleFileName || I18nService.t('episode_assist_no_sample')}
+          </div>
+          <div class="assist-actions">
+            <button class="button button-default assist-button" data-role="episode-assist-random" @click=${() => this.emitAssistEvent('episode-assist-use-random-sample')}>
+              ${I18nService.t('episode_assist_random_sample')}
+            </button>
+            <button class="button button-default assist-button" data-role="episode-assist-first-failure" ?disabled=${!hasFailures} @click=${() => this.emitAssistEvent('episode-assist-use-first-failure')}>
+              ${I18nService.t('episode_assist_first_failure')}
+            </button>
+            <button class="button button-default assist-button" data-role="episode-assist-clear-sample" @click=${() => this.emitAssistEvent('episode-assist-clear-sample')}>
+              ${I18nService.t('episode_assist_clear_sample')}
+            </button>
+          </div>
+        </div>
+
+        <div class="assist-card">
+          <div class="assist-subtitle">${I18nService.t('episode_assist_fill_target_title')}</div>
+          <div class="assist-chip-group">
+            ${(['prefix', 'helperPre', 'helperPost'] as EpisodeExtractFillTarget[]).map(
+              (target) => html`
+                <button
+                  class="assist-chip ${assist.fillTarget === target ? 'selected' : ''}"
+                  data-role="episode-assist-target-${target}"
+                  @click=${() => this.handleAssistTargetChange(target)}
+                >
+                  ${I18nService.t(`episode_assist_target_${target}`)}
+                </button>
+              `
+            )}
+          </div>
+        </div>
+
+        <div class="assist-card">
+          <div class="assist-subtitle">${I18nService.t('episode_assist_fill_mode_title')}</div>
+          <div class="assist-chip-group">
+            ${(['full-name', 'segment'] as EpisodeExtractFillMode[]).map(
+              (mode) => html`
+                <button
+                  class="assist-chip ${assist.fillMode === mode ? 'selected' : ''}"
+                  data-role="episode-assist-mode-${mode}"
+                  @click=${() => this.handleAssistModeChange(mode)}
+                >
+                  ${I18nService.t(`episode_assist_mode_${mode.replace('-', '_')}`)}
+                </button>
+              `
+            )}
+          </div>
+        </div>
+
+        ${hasFailures
+          ? html`
+              <div class="assist-warning" data-role="episode-assist-failures">
+                ${I18nService.t('episode_assist_failure_summary', [String(this.episodeExtractFailureCount)])}
+              </div>
+            `
+          : ''}
       </div>
     `;
   }
@@ -1400,6 +1652,102 @@ export class ConfigPanel extends LitElement {
       color: var(--cdr-warning-text, #fa8c16);
       font-size: 13px;
       margin-bottom: 12px;
+    }
+
+    .rule-presets,
+    .episode-assist {
+      margin-bottom: 20px;
+    }
+
+    .preset-group,
+    .assist-card {
+      border: 1px solid var(--cdr-border, #f0f0f0);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--cdr-surface-muted, #fafafa);
+      margin-bottom: 12px;
+    }
+
+    .preset-group-header,
+    .assist-actions,
+    .preset-actions,
+    .assist-chip-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .preset-group-header {
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .preset-group-title,
+    .assist-subtitle,
+    .preset-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--cdr-text, #262626);
+    }
+
+    .preset-item + .preset-item {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--cdr-border, #f0f0f0);
+    }
+
+    .preset-summary,
+    .preset-empty,
+    .assist-sample-name,
+    .assist-warning {
+      font-size: 12px;
+      color: var(--cdr-text-secondary, #595959);
+    }
+
+    .assist-sample-name {
+      margin: 6px 0 10px;
+      word-break: break-word;
+    }
+
+    .assist-button {
+      width: auto;
+      min-width: 0;
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    .assist-chip,
+    .text-action-button {
+      border: 1px solid var(--cdr-border-strong, #d9d9d9);
+      background: var(--cdr-surface, #fff);
+      color: var(--cdr-text-secondary, #595959);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .assist-chip.selected,
+    .assist-chip:hover,
+    .text-action-button:hover {
+      color: var(--cdr-primary, #1890ff);
+      border-color: var(--cdr-primary, #1890ff);
+    }
+
+    .text-action-button.danger:hover {
+      color: var(--cdr-danger, #ff4d4f);
+      border-color: var(--cdr-danger, #ff4d4f);
+    }
+
+    .assist-warning {
+      padding: 8px 10px;
+      border: 1px solid var(--cdr-warning-border, #ffd591);
+      background: var(--cdr-warning-bg, #fff7e6);
+      color: var(--cdr-warning-text, #fa8c16);
+      border-radius: 8px;
     }
 
     .button {

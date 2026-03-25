@@ -1,11 +1,13 @@
 # Progress
 
-- 2026-03-20：接手 Task 5 验证，明确需运行 `npx vitest run`、`npm run lint`、`npm run typecheck` 并复核 Playwright 是否必要。
-- 2026-03-20：根据规划指令阅读 `planning-with-files` 技能、执行 session catchup、确认 `/Users/lhly/chromeex/cloud-drive-renamer/.worktrees/preview-panel-option-a` 以及 `vibe/preview-panel-option-a`。 
-- 2026-03-20：查看 `tests/e2e/batch-rename.spec.ts`，确认它依赖 `https://pan.quark.cn` 页面、shadow DOM 交互，意味着 Playwright 测试在一般环境中需要真实扩展注入与登录凭据。
-- 2026-03-20：更新 `task_plan.md`/`findings.md`/`progress.md` 以匹配 Task 5 的目标和执行流程，准备后续验证步骤。
-- 2026-03-20：执行 `npx vitest run`，31 个测试文件、249 个测试通过，完整运行耗时约 15.16 秒（未出现失败）。
-- 2026-03-20：运行 `npm run lint`，命令成功返回但报告 270 条 warning（以 `@typescript-eslint/no-explicit-any` 为主，也包含 `no-console` 与 `@typescript-eslint/no-unused-vars`）；未列出错误。
-- 2026-03-20：运行 `npm run typecheck`（`tsc --noEmit`）成功，未发现类型错误。
-- 2026-03-20：评估 `npx playwright test tests/e2e/batch-rename.spec.ts`；由于测试需要访问 `https://pan.quark.cn`、等待扩展注入并登入，本地/CI 无法提供，因此决定跳过执行并在输出中说明原因。
-- 2026-03-20：主控再次复核 `npx vitest run` / `npm run lint` / `npm run typecheck`，确认验证结果成立，并修正 planning files 中早先写大的测试计数。
+- 2026-03-25：收到新任务——参考 `docs/renamer.js` 分析当前项目是否仍有可优化空间。
+- 2026-03-25：按 `planning-with-files` 要求执行 session catchup，确认项目根目录已有 planning files，可直接复用。
+- 2026-03-25：阅读 `docs/renamer.js`、`README.md`、`manifest.json`，确认油猴脚本的平台范围更广，而当前扩展的工程化实现更强。
+- 2026-03-25：查看 `src/rules/rule-factory.ts` / `src/types/rule.ts` / `src/rules/episode-extract.ts` / `src/core/executor.ts` / `src/content/components/file-selector-panel.ts` / `src/content/components/config-panel.ts`，整理当前项目的规则能力、执行器能力与 UI 能力。
+- 2026-03-25：识别对比重点：平台覆盖、剧集提取交互、版本更新通知、页面注入适配策略、可恢复性与产品化细节。
+- 2026-03-25：记录一个工具异常：Serena `find_symbol` 错误指向旧路径 `/Users/lhly/WebstormProjects/panku`，本次分析已改用文件读取与符号概览方式继续推进。
+- 2026-03-25：完成 `src/types/rule-preset.ts` 与 `src/utils/rule-presets.ts`，实现最近使用与命名模板的数据结构、存储、覆盖/删除逻辑，并补充 `tests/unit/rule-presets.test.ts`。
+- 2026-03-25：完成 `config-panel` 的规则模板区与剧集提取辅助区，实现应用模板、保存模板、删除模板、样本选择、目标字段切换、整段/片段回填模式切换等交互事件。
+- 2026-03-25：完成 `preview-panel` / `virtual-preview-list` / `file-selector-panel` 的辅助回填接线，实现从预览项整段回填、片段点选、失败项快捷修正、执行成功后自动记录 recent preset。
+- 2026-03-25：补齐 `zh_CN` / `zh_TW` / `en` 新文案，并新增 4 个单测文件覆盖 config-panel、preview-panel、file-selector-panel 的新交互。
+- 2026-03-25：完成验证：`npm run typecheck` ✅，`npx vitest run` ✅，`npm run lint` ✅（仅剩历史 warning）。

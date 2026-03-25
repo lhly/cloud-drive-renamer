@@ -2,6 +2,7 @@ import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { virtualize, virtualizerRef } from '@lit-labs/virtualizer/virtualize.js';
 import { PreviewItem } from '../../types/file-selector';
+import { DEFAULT_EPISODE_EXTRACT_ASSIST_STATE, type EpisodeExtractAssistState } from '../../types/rule-preset';
 import { I18nService } from '../../utils/i18n';
 
 /**
@@ -30,6 +31,12 @@ export class VirtualPreviewList extends LitElement {
    */
   @property({ type: Boolean })
   showStatus = false;
+
+  @property({ type: Boolean })
+  episodeExtractAssistEnabled = false;
+
+  @property({ attribute: false })
+  episodeExtractAssistState: EpisodeExtractAssistState = DEFAULT_EPISODE_EXTRACT_ASSIST_STATE;
 
   /**
    * Track if virtualizer has been initialized for current data
@@ -138,9 +145,103 @@ export class VirtualPreviewList extends LitElement {
               ? html`<div class="error-message" title=${errorTitle}>${errorText}</div>`
               : ''
           }
+          ${this.renderAssistActions(item)}
         </div>
       </div>
     `;
+  }
+
+  private renderAssistActions(item: PreviewItem) {
+    if (!this.episodeExtractAssistEnabled) {
+      return null;
+    }
+
+    const fileNameWithoutExt = item.file.name.replace(new RegExp(`${item.file.ext.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), '');
+    const segments = fileNameWithoutExt
+      .split(/[\s._-]+/)
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+
+    return html`
+      <div class="assist-actions" data-role="episode-assist-actions">
+        <button
+          class="assist-action-button"
+          data-role="episode-assist-apply-full-name"
+          @click=${() => this.emitAssistEvent('episode-assist-apply-full-name', { fileId: item.file.id, fileName: fileNameWithoutExt })}
+        >
+          ${I18nService.t('episode_assist_apply_full_name')}
+        </button>
+
+        ${this.episodeExtractAssistState.fillMode === 'segment'
+          ? html`
+              <div class="segment-list" data-role="episode-assist-segments">
+                ${segments.map(
+                  (segment, index) => html`
+                    <button
+                      class="segment-chip"
+                      data-role="episode-assist-segment"
+                      @click=${() =>
+                        this.emitAssistEvent('episode-assist-apply-segment', {
+                          fileId: item.file.id,
+                          segment,
+                          index,
+                        })}
+                    >
+                      ${segment}
+                    </button>
+                  `
+                )}
+              </div>
+            `
+          : null}
+
+        ${item.error
+          ? html`
+              <div class="assist-actions assist-actions-secondary" data-role="episode-assist-error-actions">
+                <button
+                  class="assist-action-button"
+                  data-role="episode-assist-use-item-as-sample"
+                  @click=${() =>
+                    this.emitAssistEvent('episode-assist-use-item-as-sample', {
+                      fileId: item.file.id,
+                      fileName: item.file.name,
+                    })}
+                >
+                  ${I18nService.t('episode_assist_use_item_as_sample')}
+                </button>
+                <button
+                  class="assist-action-button"
+                  data-role="episode-assist-use-prefix-from-item"
+                  @click=${() =>
+                    this.emitAssistEvent('episode-assist-use-prefix-from-item', {
+                      fileId: item.file.id,
+                      fileName: fileNameWithoutExt,
+                    })}
+                >
+                  ${I18nService.t('episode_assist_use_prefix_from_item')}
+                </button>
+                <button
+                  class="assist-action-button"
+                  data-role="episode-assist-focus-segment-mode"
+                  @click=${() => this.emitAssistEvent('episode-assist-focus-segment-mode', { fileId: item.file.id })}
+                >
+                  ${I18nService.t('episode_assist_focus_segment_mode')}
+                </button>
+              </div>
+            `
+          : null}
+      </div>
+    `;
+  }
+
+  private emitAssistEvent(name: string, detail: Record<string, unknown>) {
+    this.dispatchEvent(
+      new CustomEvent(name, {
+        detail,
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 
   /**
@@ -331,6 +432,41 @@ export class VirtualPreviewList extends LitElement {
       line-height: 1.4;
       color: var(--cdr-danger-text, #cf1322);
       word-break: break-word;
+    }
+
+    .assist-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .assist-actions-secondary {
+      margin-top: 6px;
+    }
+
+    .assist-action-button,
+    .segment-chip {
+      border: 1px solid var(--cdr-border-strong, #d9d9d9);
+      background: var(--cdr-surface, #fff);
+      color: var(--cdr-text-secondary, #595959);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .assist-action-button:hover,
+    .segment-chip:hover {
+      border-color: var(--cdr-primary, #1890ff);
+      color: var(--cdr-primary, #1890ff);
+    }
+
+    .segment-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
     }
 
     .status-badge {
