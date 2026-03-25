@@ -237,5 +237,8 @@
   "episode_assist_apply_full_name": "Fill current field with full text",
   "episode_assist_use_item_as_sample": "Use this item as sample",
   "episode_assist_use_prefix_from_item": "Try using this as prefix",
-  "episode_assist_focus_segment_mode": "Switch to segment mode"
+  "episode_assist_focus_segment_mode": "Switch to segment mode",
+  "rule_preset_invalid": "This template is incompatible with the current version. Please delete and save it again.",
+  "rule_preset_invalid_badge": "Invalid",
+  "rule_preset_invalid_hint": "This template config is no longer valid and cannot be applied."
 }

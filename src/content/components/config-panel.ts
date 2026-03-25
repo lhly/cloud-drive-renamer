@@ -11,6 +11,7 @@ import {
   type RulePresetRecord,
 } from '../../types/rule-preset';
 import { I18nService } from '../../utils/i18n';
+import { buildRulePresetSummary, isRulePresetConfigValid } from '../../utils/rule-presets';
 
 /**
  * Config Panel Component
@@ -225,6 +226,10 @@ export class ConfigPanel extends LitElement {
   }
 
   private handleApplyPreset(record: RulePresetRecord): void {
+    if (!isRulePresetConfigValid(record.config)) {
+      return;
+    }
+
     this.dispatchEvent(
       new CustomEvent('apply-rule-preset', {
         detail: { presetId: record.id, source: record.source },
@@ -818,16 +823,26 @@ export class ConfigPanel extends LitElement {
 
   private renderPresetItem(record: RulePresetRecord, deletable: boolean) {
     const summary = this.buildPresetSummary(record);
+    const isValid = isRulePresetConfigValid(record.config);
     return html`
-      <div class="preset-item" data-preset-id=${record.id}>
+      <div class="preset-item ${isValid ? '' : 'is-invalid'}" data-preset-id=${record.id}>
         <div class="preset-content">
-          <div class="preset-name">${record.name || summary}</div>
+          <div class="preset-name">
+            ${record.name || summary}
+            ${isValid
+              ? ''
+              : html`<span class="preset-invalid-badge">${I18nService.t('rule_preset_invalid_badge')}</span>`}
+          </div>
           <div class="preset-summary">${summary}</div>
+          ${isValid
+            ? ''
+            : html`<div class="preset-invalid-hint">${I18nService.t('rule_preset_invalid_hint')}</div>`}
         </div>
         <div class="preset-actions">
           <button
             class="text-action-button"
             data-role="apply-rule-preset"
+            ?disabled=${!isValid}
             @click=${() => this.handleApplyPreset(record)}
           >
             ${I18nService.t('rule_preset_apply_button')}
@@ -849,24 +864,7 @@ export class ConfigPanel extends LitElement {
   }
 
   private buildPresetSummary(record: RulePresetRecord): string {
-    switch (record.config.type) {
-      case 'replace':
-        return `${I18nService.t('rule_replace')}: ${String(record.config.params.search || '')} → ${String(record.config.params.replace || '')}`;
-      case 'regex':
-        return `${I18nService.t('rule_regex')}: ${String(record.config.params.pattern || '')}`;
-      case 'prefix':
-        return `${I18nService.t('rule_prefix')}: ${String(record.config.params.prefix || '')}`;
-      case 'suffix':
-        return `${I18nService.t('rule_suffix')}: ${String(record.config.params.suffix || '')}`;
-      case 'numbering':
-        return `${I18nService.t('rule_numbering')}: ${String(record.config.params.format || '{num}')}`;
-      case 'sanitize':
-        return `${I18nService.t('rule_sanitize')}: ${String(record.config.params.removeChars || I18nService.t('param_remove_illegal'))}`;
-      case 'episodeExtract':
-        return `${I18nService.t('rule_episode_extract')}: ${String(record.config.params.template || '{prefix}.S{season}E{episode}{ext}')}`;
-      default:
-        return record.config.type;
-    }
+    return buildRulePresetSummary(record.config);
   }
 
   private renderEpisodeExtractAssist() {
@@ -1697,12 +1695,30 @@ export class ConfigPanel extends LitElement {
       border-top: 1px solid var(--cdr-border, #f0f0f0);
     }
 
+    .preset-item.is-invalid {
+      opacity: 0.88;
+    }
+
     .preset-summary,
     .preset-empty,
     .assist-sample-name,
-    .assist-warning {
+    .assist-warning,
+    .preset-invalid-hint {
       font-size: 12px;
       color: var(--cdr-text-secondary, #595959);
+    }
+
+    .preset-invalid-badge {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 6px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: var(--cdr-warning-bg, #fff7e6);
+      border: 1px solid var(--cdr-warning-border, #ffd591);
+      color: var(--cdr-warning-text, #fa8c16);
+      font-size: 11px;
+      font-weight: 500;
     }
 
     .assist-sample-name {

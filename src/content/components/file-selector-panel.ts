@@ -51,6 +51,7 @@ import {
   getRulePresetById,
   getRecentRulePresets,
   getTemplateRulePresets,
+  isRulePresetConfigValid,
   recordRecentRulePreset,
   saveTemplateRulePreset,
 } from '../../utils/rule-presets';
@@ -620,6 +621,11 @@ export class FileSelectorPanel extends LitElement {
   private async handleApplyRulePreset(e: CustomEvent<{ presetId: string }>): Promise<void> {
     const record = await getRulePresetById(e.detail.presetId);
     if (!record) {
+      return;
+    }
+
+    if (!isRulePresetConfigValid(record.config)) {
+      alert(I18nService.t('rule_preset_invalid'));
       return;
     }
 

@@ -21,6 +21,37 @@ describe('ConfigPanel rule preset interactions', () => {
     vi.stubGlobal('prompt', vi.fn(() => '剧集模板'));
   });
 
+  it('marks invalid presets as disabled and does not dispatch apply events', async () => {
+    const panel = new ConfigPanel();
+    panel.recentRulePresets = [
+      createPreset({
+        id: 'invalid-1',
+        source: 'recent',
+        name: '失效模板',
+        config: { type: 'replace', params: { search: '', replace: '' } },
+      }),
+    ];
+
+    const applyEvents: Array<Event> = [];
+    panel.addEventListener('apply-rule-preset', (event) => applyEvents.push(event));
+
+    document.body.appendChild(panel);
+    await panel.updateComplete;
+
+    const applyButton = panel.shadowRoot?.querySelector<HTMLButtonElement>(
+      '[data-preset-id="invalid-1"] [data-role="apply-rule-preset"]'
+    );
+    const badgeText = panel.shadowRoot?.querySelector('[data-preset-id="invalid-1"] .preset-invalid-badge')?.textContent ?? '';
+
+    expect(applyButton?.disabled).toBe(true);
+    expect(badgeText).toContain('失效');
+
+    applyButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+    expect(applyEvents).toHaveLength(0);
+
+    panel.remove();
+  });
+
   it('renders recent/templates and dispatches apply, save, delete events', async () => {
     const panel = new ConfigPanel();
     panel.activeRuleConfig = {

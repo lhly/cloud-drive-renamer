@@ -132,6 +132,34 @@ describe('FileSelectorPanel rule preset integration', () => {
     expect(panel.episodeExtractAssistState.fillMode).toBe('full-name');
   });
 
+
+  it('blocks invalid preset application and shows alert', async () => {
+    const panel = new FileSelectorPanel() as FileSelectorPanelPresetHarness;
+    const alertSpy = vi.spyOn(window, 'alert');
+    vi.spyOn(rulePresets, 'getRulePresetById').mockResolvedValue({
+      id: 'invalid-template',
+      name: '失效模板',
+      source: 'template',
+      createdAt: 1,
+      updatedAt: 1,
+      config: {
+        type: 'replace',
+        params: { search: '', replace: '' },
+      },
+    });
+
+    panel.ruleConfig = {
+      type: 'prefix',
+      params: { prefix: 'Keep', separator: '.' },
+    };
+
+    await panel.handleApplyRulePreset(new CustomEvent('apply-rule-preset', { detail: { presetId: 'invalid-template' } }));
+
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    expect(panel.ruleConfig.type).toBe('prefix');
+    expect(panel.ruleConfig.params.prefix).toBe('Keep');
+  });
+
   it('records recent presets after a successful execution', async () => {
     const panel = new FileSelectorPanel() as FileSelectorPanelPresetHarness;
     panel.adapter = new PresetTestAdapter();

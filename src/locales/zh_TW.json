@@ -237,5 +237,8 @@
   "episode_assist_apply_full_name": "整段回填到目前欄位",
   "episode_assist_use_item_as_sample": "將此項設為樣本",
   "episode_assist_use_prefix_from_item": "嘗試提取劇名到 prefix",
-  "episode_assist_focus_segment_mode": "切換到片段點選模式"
+  "episode_assist_focus_segment_mode": "切換到片段點選模式",
+  "rule_preset_invalid": "此模板與目前版本不相容，請刪除後重新儲存。",
+  "rule_preset_invalid_badge": "已失效",
+  "rule_preset_invalid_hint": "此模板設定已失效，暫時無法套用。"
 }
