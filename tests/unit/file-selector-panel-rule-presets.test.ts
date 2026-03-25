@@ -15,6 +15,7 @@ type FileSelectorPanelPresetHarness = FileSelectorPanel & {
   recentRulePresets: any[];
   handleApplyRulePreset(event: CustomEvent<{ presetId: string }>): Promise<void>;
   handleExecute(): Promise<void>;
+  handleAssistFocusFailure(event: CustomEvent<{ fileId: string }>): void;
 };
 
 class PresetTestAdapter implements PlatformAdapter {
@@ -208,4 +209,43 @@ describe('FileSelectorPanel rule preset integration', () => {
     expect(panel.recentRulePresets).toHaveLength(1);
     expect(panel.recentRulePresets[0].id).toBe('recent-1');
   });
+
+  it('focuses the target failure item from preview navigation', async () => {
+    const panel = new FileSelectorPanel() as FileSelectorPanelPresetHarness;
+    panel.allFiles = [
+      {
+        id: 'file-1',
+        name: 'Show.S01E01.mkv',
+        ext: '.mkv',
+        parentId: 'root',
+        size: 1,
+        mtime: 1,
+      },
+      {
+        id: 'file-2',
+        name: 'Show.S01E02.mkv',
+        ext: '.mkv',
+        parentId: 'root',
+        size: 1,
+        mtime: 2,
+      },
+    ];
+    panel.uncheckList = new Set();
+    panel.episodeExtractAssistState = {
+      sampleFileId: null,
+      sampleFileName: null,
+      fillTarget: 'prefix',
+      fillMode: 'segment',
+      suggestedFailureFileId: null,
+    };
+
+    panel.handleAssistFocusFailure(
+      new CustomEvent('episode-assist-focus-failure', { detail: { fileId: 'file-2' } })
+    );
+
+    expect(panel.episodeExtractAssistState.sampleFileId).toBe('file-2');
+    expect(panel.episodeExtractAssistState.sampleFileName).toBe('Show.S01E02.mkv');
+    expect(panel.episodeExtractAssistState.suggestedFailureFileId).toBe('file-2');
+  });
+
 });

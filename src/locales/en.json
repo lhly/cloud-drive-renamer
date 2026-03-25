@@ -241,5 +241,8 @@
   "rule_preset_invalid": "This template is incompatible with the current version. Please delete and save it again.",
   "rule_preset_invalid_badge": "Invalid",
   "rule_preset_invalid_hint": "This template config is no longer valid and cannot be applied.",
+  "episode_assist_failure_nav_label": "Failed items",
+  "episode_assist_prev_failure": "Previous",
+  "episode_assist_next_failure": "Next",
   "episode_assist_focus_hint": "The failed item is highlighted. Fill from the full text or a segment, then preview again."
 }

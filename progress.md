@@ -13,3 +13,8 @@
 - 2026-03-25：完成验证：`npm run typecheck` ✅，`npx vitest run` ✅，`npm run lint` ✅（仅剩历史 warning）。
 - 2026-03-25：完成下一批失败态增强：右侧预览支持根据 `suggestedFailureFileId` 自动高亮并滚动定位失败项，且在整段/片段回填成功后清除聚焦态，避免提示残留。
 - 2026-03-25：补充失败态引导文案与测试，验证通过：`typecheck` ✅，`vitest` 全量 266 tests ✅，`lint` ✅（仅历史 warning）。
+- 2026-03-25：已提交第三批改动 `2559ef1 feat: 增强剧集提取失败项定位与引导`，准备进入下一批优化设计。
+- 2026-03-25：与用户确认下一批方案：右侧预览区顶部增加失败导航条，采用非循环边界禁用策略，并继续复用 `suggestedFailureFileId` 做高亮与滚动。
+- 2026-03-25：实现右侧预览区顶部失败导航条，支持显示失败总数、当前序号，并通过上一个/下一个按钮切换失败聚焦项。
+- 2026-03-25：完成接线：`preview-panel` 负责计算 prev/next 目标并派发 `episode-assist-focus-failure`，`file-selector-panel` 统一更新 sample 与 `suggestedFailureFileId`。
+- 2026-03-25：完成验证：`npm run typecheck` ✅，`npx vitest run` ✅（36 files / 268 tests），`npm run lint` ✅（仅历史 warning）。

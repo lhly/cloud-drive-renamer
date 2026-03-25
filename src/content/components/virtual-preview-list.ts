@@ -270,7 +270,9 @@ export class VirtualPreviewList extends LitElement {
       this._lastFocusedFailureId = suggestedFailureFileId;
       requestAnimationFrame(() => {
         const target = this.renderRoot.querySelector<HTMLElement>(`[data-file-id="${suggestedFailureFileId}"]`);
-        target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        if (target && typeof target.scrollIntoView === 'function') {
+          target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
       });
     }
 

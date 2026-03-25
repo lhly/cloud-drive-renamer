@@ -19,6 +19,31 @@ import './virtual-preview-list';
  */
 @customElement('preview-panel')
 export class PreviewPanel extends LitElement {
+  private getFailureNavigationState() {
+    const failureItems = this.items.filter((item) => Boolean(item.error));
+    const currentId = this.episodeExtractAssistState.suggestedFailureFileId;
+    const currentIndex = failureItems.findIndex((item) => item.file.id === currentId);
+    const normalizedIndex = failureItems.length === 0 ? -1 : currentIndex >= 0 ? currentIndex : 0;
+
+    return {
+      failureItems,
+      normalizedIndex,
+      currentItem: normalizedIndex >= 0 ? failureItems[normalizedIndex] : null,
+      previousItem: normalizedIndex > 0 ? failureItems[normalizedIndex - 1] : null,
+      nextItem: normalizedIndex >= 0 && normalizedIndex < failureItems.length - 1 ? failureItems[normalizedIndex + 1] : null,
+    };
+  }
+
+  private emitAssistFocusFailure(fileId: string): void {
+    this.dispatchEvent(
+      new CustomEvent('episode-assist-focus-failure', {
+        detail: { fileId },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
   /**
    * Array of preview items
    */
@@ -48,6 +73,47 @@ export class PreviewPanel extends LitElement {
 
   @property({ attribute: false })
   episodeExtractAssistState: EpisodeExtractAssistState = DEFAULT_EPISODE_EXTRACT_ASSIST_STATE;
+
+  private renderFailureNavigation() {
+    if (!this.episodeExtractAssistEnabled) {
+      return null;
+    }
+
+    const { failureItems, normalizedIndex, previousItem, nextItem } = this.getFailureNavigationState();
+    if (failureItems.length === 0) {
+      return null;
+    }
+
+    const currentPosition = normalizedIndex >= 0 ? normalizedIndex + 1 : 0;
+
+    return html`
+      <div class="failure-nav" data-role="episode-assist-failure-nav">
+        <div class="failure-nav-summary" data-role="episode-assist-failure-nav-summary">
+          <span class="failure-nav-label">${I18nService.t('episode_assist_failure_nav_label')}</span>
+          <span class="failure-nav-count">${failureItems.length}</span>
+          <span class="failure-nav-position">${currentPosition} / ${failureItems.length}</span>
+        </div>
+        <div class="failure-nav-actions">
+          <button
+            class="failure-nav-button"
+            data-role="episode-assist-prev-failure"
+            ?disabled=${!previousItem}
+            @click=${() => previousItem && this.emitAssistFocusFailure(previousItem.file.id)}
+          >
+            ${I18nService.t('episode_assist_prev_failure')}
+          </button>
+          <button
+            class="failure-nav-button"
+            data-role="episode-assist-next-failure"
+            ?disabled=${!nextItem}
+            @click=${() => nextItem && this.emitAssistFocusFailure(nextItem.file.id)}
+          >
+            ${I18nService.t('episode_assist_next_failure')}
+          </button>
+        </div>
+      </div>
+    `;
+  }
 
   render() {
     const hasConflicts = this.conflictCount > 0;
@@ -103,6 +169,8 @@ export class PreviewPanel extends LitElement {
               `
             : ''}
         </div>
+
+        ${this.renderFailureNavigation()}
 
         <div class="list-container">
           ${this.loading
@@ -206,6 +274,65 @@ export class PreviewPanel extends LitElement {
 
     .stat-value.failed {
       color: #ff4d4f;
+    }
+
+    .failure-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--cdr-info-bg, #e6f4ff);
+      border-bottom: 1px solid var(--cdr-info-border, #91caff);
+      flex-shrink: 0;
+    }
+
+    .failure-nav-summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      color: var(--cdr-info-text, #0958d9);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .failure-nav-label {
+      color: var(--cdr-text, #262626);
+    }
+
+    .failure-nav-count,
+    .failure-nav-position {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(9, 88, 217, 0.18);
+      white-space: nowrap;
+    }
+
+    .failure-nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .failure-nav-button {
+      border: 1px solid var(--cdr-border, #d9d9d9);
+      background: var(--cdr-surface, #fff);
+      color: var(--cdr-text, #262626);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .failure-nav-button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
 
     .list-container {

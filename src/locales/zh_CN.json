@@ -241,5 +241,8 @@
   "rule_preset_invalid": "该模板与当前版本不兼容，请删除后重新保存。",
   "rule_preset_invalid_badge": "已失效",
   "rule_preset_invalid_hint": "该模板配置已失效，暂时无法应用。",
+  "episode_assist_failure_nav_label": "失败项",
+  "episode_assist_prev_failure": "上一个",
+  "episode_assist_next_failure": "下一个",
   "episode_assist_focus_hint": "已为你定位失败项，可直接点整段或片段回填后继续预览。"
 }

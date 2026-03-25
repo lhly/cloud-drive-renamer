@@ -543,6 +543,17 @@ export class FileSelectorPanel extends LitElement {
     this.setAssistState({ fillMode: e.detail.mode });
   }
 
+  private focusAssistFailure(fileId: string): void {
+    const file = this.selectedFiles.find((item) => item.id === fileId) || this.filteredFiles.find((item) => item.id === fileId);
+    if (!file) return;
+
+    this.setAssistState({
+      sampleFileId: file.id,
+      sampleFileName: file.name,
+      suggestedFailureFileId: file.id,
+    });
+  }
+
   private handleAssistUseRandomSample(): void {
     const candidates = this.selectedFiles.length > 0 ? this.selectedFiles : this.filteredFiles;
     const sample = candidates[Math.floor(Math.random() * Math.max(1, candidates.length))];
@@ -553,11 +564,7 @@ export class FileSelectorPanel extends LitElement {
   private handleAssistUseFirstFailure(): void {
     const firstFailure = this.previewList.find((item) => item.error);
     if (!firstFailure) return;
-    this.setAssistState({
-      sampleFileId: firstFailure.file.id,
-      sampleFileName: firstFailure.file.name,
-      suggestedFailureFileId: firstFailure.file.id,
-    });
+    this.focusAssistFailure(firstFailure.file.id);
   }
 
   private handleAssistClearSample(): void {
@@ -611,6 +618,10 @@ export class FileSelectorPanel extends LitElement {
       fillTarget: 'prefix',
       suggestedFailureFileId: null,
     });
+  }
+
+  private handleAssistFocusFailure(e: CustomEvent<{ fileId: string }>): void {
+    this.focusAssistFailure(e.detail.fileId);
   }
 
   private handleAssistFocusSegmentMode(e: CustomEvent<{ fileId: string }>): void {
@@ -1662,6 +1673,7 @@ export class FileSelectorPanel extends LitElement {
               @episode-assist-use-item-as-sample=${this.handleAssistUseItemAsSample}
               @episode-assist-use-prefix-from-item=${this.handleAssistUsePrefixFromItem}
               @episode-assist-focus-segment-mode=${this.handleAssistFocusSegmentMode}
+              @episode-assist-focus-failure=${this.handleAssistFocusFailure}
             ></preview-panel>
           </div>
 

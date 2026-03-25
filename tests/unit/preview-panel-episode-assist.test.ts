@@ -78,4 +78,84 @@ describe('PreviewPanel episode assist bridge', () => {
 
     panel.remove();
   });
+
+  it('renders failure navigation in preview header and dispatches focus events', async () => {
+    const panel = new PreviewPanel();
+    panel.episodeExtractAssistEnabled = true;
+    panel.episodeExtractAssistState = {
+      sampleFileId: 'file-2',
+      sampleFileName: 'My.Show.S01E02',
+      fillTarget: 'prefix',
+      fillMode: 'segment',
+      suggestedFailureFileId: 'file-2',
+    };
+    panel.items = [
+      {
+        file: {
+          id: 'file-1',
+          name: 'My.Show.S01E01.mkv',
+          ext: '.mkv',
+          parentId: 'root',
+          size: 1,
+          mtime: Date.now(),
+        },
+        newName: 'My.Show.S01E01.mkv',
+        conflict: false,
+        error: 'extract_episode_not_found',
+      },
+      {
+        file: {
+          id: 'file-2',
+          name: 'My.Show.S01E02.mkv',
+          ext: '.mkv',
+          parentId: 'root',
+          size: 1,
+          mtime: Date.now(),
+        },
+        newName: 'My.Show.S01E02.mkv',
+        conflict: false,
+        error: 'extract_episode_not_found',
+      },
+      {
+        file: {
+          id: 'file-3',
+          name: 'My.Show.S01E03.mkv',
+          ext: '.mkv',
+          parentId: 'root',
+          size: 1,
+          mtime: Date.now(),
+        },
+        newName: 'My.Show.S01E03.mkv',
+        conflict: false,
+        error: 'extract_episode_not_found',
+      },
+    ];
+
+    const focusEvents: Array<CustomEvent<{ fileId: string }>> = [];
+    panel.addEventListener('episode-assist-focus-failure', (event) => {
+      focusEvents.push(event as CustomEvent<{ fileId: string }>);
+    });
+
+    document.body.appendChild(panel);
+    await panel.updateComplete;
+
+    const summary = panel.shadowRoot?.querySelector('[data-role="episode-assist-failure-nav-summary"]');
+    const prevButton = panel.shadowRoot?.querySelector<HTMLButtonElement>('[data-role="episode-assist-prev-failure"]');
+    const nextButton = panel.shadowRoot?.querySelector<HTMLButtonElement>('[data-role="episode-assist-next-failure"]');
+
+    expect(summary?.textContent).toContain('3');
+    expect(summary?.textContent).toContain('2 / 3');
+    expect(prevButton?.disabled).toBe(false);
+    expect(nextButton?.disabled).toBe(false);
+
+    prevButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+    nextButton?.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+
+    expect(focusEvents).toHaveLength(2);
+    expect(focusEvents[0].detail.fileId).toBe('file-1');
+    expect(focusEvents[1].detail.fileId).toBe('file-3');
+
+    panel.remove();
+  });
+
 });
