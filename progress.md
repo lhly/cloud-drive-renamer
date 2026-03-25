@@ -11,3 +11,5 @@
 - 2026-03-25：完成 `preview-panel` / `virtual-preview-list` / `file-selector-panel` 的辅助回填接线，实现从预览项整段回填、片段点选、失败项快捷修正、执行成功后自动记录 recent preset。
 - 2026-03-25：补齐 `zh_CN` / `zh_TW` / `en` 新文案，并新增 4 个单测文件覆盖 config-panel、preview-panel、file-selector-panel 的新交互。
 - 2026-03-25：完成验证：`npm run typecheck` ✅，`npx vitest run` ✅，`npm run lint` ✅（仅剩历史 warning）。
+- 2026-03-25：完成下一批失败态增强：右侧预览支持根据 `suggestedFailureFileId` 自动高亮并滚动定位失败项，且在整段/片段回填成功后清除聚焦态，避免提示残留。
+- 2026-03-25：补充失败态引导文案与测试，验证通过：`typecheck` ✅，`vitest` 全量 266 tests ✅，`lint` ✅（仅历史 warning）。

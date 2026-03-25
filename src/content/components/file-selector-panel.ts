@@ -570,12 +570,16 @@ export class FileSelectorPanel extends LitElement {
 
   private handleAssistApplyFullName(e: CustomEvent<{ fileId: string; fileName: string }>): void {
     this.applyAssistValue(this.episodeExtractAssistState.fillTarget, e.detail.fileName);
-    this.setAssistState({ sampleFileId: e.detail.fileId, sampleFileName: e.detail.fileName });
+    this.setAssistState({
+      sampleFileId: e.detail.fileId,
+      sampleFileName: e.detail.fileName,
+      suggestedFailureFileId: null,
+    });
   }
 
   private handleAssistApplySegment(e: CustomEvent<{ fileId: string; segment: string }>): void {
     this.applyAssistValue(this.episodeExtractAssistState.fillTarget, e.detail.segment);
-    this.setAssistState({ sampleFileId: e.detail.fileId });
+    this.setAssistState({ sampleFileId: e.detail.fileId, suggestedFailureFileId: null });
   }
 
   private handleAssistUseItemAsSample(e: CustomEvent<{ fileId: string; fileName: string }>): void {
@@ -605,6 +609,7 @@ export class FileSelectorPanel extends LitElement {
       sampleFileId: e.detail.fileId,
       sampleFileName: raw,
       fillTarget: 'prefix',
+      suggestedFailureFileId: null,
     });
   }
 

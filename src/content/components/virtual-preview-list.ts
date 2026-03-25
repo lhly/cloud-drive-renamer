@@ -44,6 +44,7 @@ export class VirtualPreviewList extends LitElement {
    */
   private _virtualizerInitialized = false;
   private _itemsKey: string | null = null;
+  private _lastFocusedFailureId: string | null = null;
 
   private shouldVirtualize(): boolean {
     return this.items.length > VirtualPreviewList.VIRTUALIZE_MIN_ITEMS;
@@ -124,11 +125,16 @@ export class VirtualPreviewList extends LitElement {
     const conflictHint = item.conflict
       ? html`<span class="conflict-hint">${I18nService.t('error_api_conflict')}</span>`
       : '';
-    const previewItemClasses = ['preview-item', statusClass].filter(Boolean).join(' ');
+    const isSuggestedFailure =
+      this.episodeExtractAssistEnabled &&
+      this.episodeExtractAssistState.suggestedFailureFileId === item.file.id;
+    const previewItemClasses = ['preview-item', statusClass, isSuggestedFailure ? 'assist-focus' : '']
+      .filter(Boolean)
+      .join(' ');
     const newNameClasses = ['new-name', 'new-name-primary', statusClass].filter(Boolean).join(' ');
 
     return html`
-      <div class="${previewItemClasses}">
+      <div class="${previewItemClasses}" data-file-id=${item.file.id}>
         <div class="preview-content">
           <div class="old-name-row">
             <div class="old-name old-name-secondary" title=${item.file.name}>
@@ -145,6 +151,9 @@ export class VirtualPreviewList extends LitElement {
               ? html`<div class="error-message" title=${errorTitle}>${errorText}</div>`
               : ''
           }
+          ${isSuggestedFailure
+            ? html`<div class="assist-focus-hint" data-role="episode-assist-focus-hint">${I18nService.t('episode_assist_focus_hint')}</div>`
+            : ''}
           ${this.renderAssistActions(item)}
         </div>
       </div>
@@ -251,6 +260,24 @@ export class VirtualPreviewList extends LitElement {
   protected updated(changedProperties: PropertyValues<this>): void {
     super.updated(changedProperties);
 
+    const suggestedFailureFileId = this.episodeExtractAssistState.suggestedFailureFileId;
+    if (
+      this.episodeExtractAssistEnabled &&
+      suggestedFailureFileId &&
+      suggestedFailureFileId !== this._lastFocusedFailureId &&
+      (changedProperties.has('episodeExtractAssistState') || changedProperties.has('items'))
+    ) {
+      this._lastFocusedFailureId = suggestedFailureFileId;
+      requestAnimationFrame(() => {
+        const target = this.renderRoot.querySelector<HTMLElement>(`[data-file-id="${suggestedFailureFileId}"]`);
+        target?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      });
+    }
+
+    if (!suggestedFailureFileId) {
+      this._lastFocusedFailureId = null;
+    }
+
     if (changedProperties.has('items') && this.items.length > 0) {
       const nextKey = this.computeItemsKey(this.items);
       if (nextKey !== this._itemsKey) {
@@ -356,6 +383,10 @@ export class VirtualPreviewList extends LitElement {
       border-left: 3px solid var(--cdr-border-strong, #d9d9d9);
     }
 
+    .preview-item.assist-focus {
+      box-shadow: inset 0 0 0 1px var(--cdr-primary, #1890ff), 0 0 0 2px rgba(24, 144, 255, 0.12);
+    }
+
     .preview-content {
       flex: 1;
       min-width: 0;
@@ -432,6 +463,16 @@ export class VirtualPreviewList extends LitElement {
       line-height: 1.4;
       color: var(--cdr-danger-text, #cf1322);
       word-break: break-word;
+    }
+
+    .assist-focus-hint {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--cdr-info-text, #0958d9);
+      background: var(--cdr-info-bg, #e6f4ff);
+      border: 1px solid var(--cdr-info-border, #91caff);
+      border-radius: 8px;
+      padding: 6px 8px;
     }
 
     .assist-actions {

@@ -240,5 +240,6 @@
   "episode_assist_focus_segment_mode": "切換到片段點選模式",
   "rule_preset_invalid": "此模板與目前版本不相容，請刪除後重新儲存。",
   "rule_preset_invalid_badge": "已失效",
-  "rule_preset_invalid_hint": "此模板設定已失效，暫時無法套用。"
+  "rule_preset_invalid_hint": "此模板設定已失效，暫時無法套用。",
+  "episode_assist_focus_hint": "已為你定位失敗項，可直接點整段或片段回填後繼續預覽。"
 }

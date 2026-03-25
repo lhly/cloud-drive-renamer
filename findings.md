@@ -12,3 +12,5 @@
 - 2026-03-25：`config-panel` 将 `activeRuleConfig` 的同步逻辑从 `updated()` 调整到 `willUpdate()`，避免 Lit 在测试与运行时发出“update completed 后又触发 update”的低效更新警告。
 - 2026-03-25：多语言文案已补齐到 `zh_CN` / `zh_TW` / `en`，并确认占位符必须使用 Chrome i18n 兼容的 `$1` 形式，不能写成 `{0}`。
 - 2026-03-25：完整验证结果：`npm run typecheck` 通过，`npx vitest run` 通过（36 files / 263 tests）；`npm run lint` 通过但仓库内仍存在大量历史 warning，本次未扩散为新的 lint error。
+- 2026-03-25：继续完成“剧集提取失败态增强”：`suggestedFailureFileId` 现在真正用于右侧预览的失败项高亮与自动滚动定位，避免“点了首个失败项但用户还要自己找”的断层体验。
+- 2026-03-25：为失败项增加内联引导文案 `episode_assist_focus_hint`，明确告诉用户可以直接点整段/片段继续修正，再次预览。

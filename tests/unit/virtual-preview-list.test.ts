@@ -151,6 +151,51 @@ describe('VirtualPreviewList pending preview mapping', () => {
     element.remove();
   });
 
+  it('highlights and scrolls to the suggested failure item in assist mode', async () => {
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const scrollSpy = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollSpy;
+
+    const element = new VirtualPreviewList();
+    element.episodeExtractAssistEnabled = true;
+    element.episodeExtractAssistState = {
+      sampleFileId: 'file-error',
+      sampleFileName: 'Show.S01E01',
+      fillTarget: 'prefix',
+      fillMode: 'segment',
+      suggestedFailureFileId: 'file-error',
+    };
+    element.items = [
+      {
+        file: {
+          id: 'file-error',
+          name: 'Show.S01E01.mkv',
+          ext: '.mkv',
+          size: 1,
+          mtime: Date.now(),
+          isDir: false,
+        },
+        newName: 'Show.S01E01.mkv',
+        conflict: false,
+        error: 'extract_episode_not_found',
+      },
+    ];
+
+    document.body.appendChild(element);
+    await element.updateComplete;
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+
+    const focusedItem = element.shadowRoot?.querySelector('[data-file-id="file-error"]');
+    const hint = element.shadowRoot?.querySelector('[data-role="episode-assist-focus-hint"]');
+
+    expect(focusedItem?.className).toContain('assist-focus');
+    expect(hint?.textContent).toContain(I18nService.t('episode_assist_focus_hint'));
+    expect(scrollSpy).toHaveBeenCalled();
+
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    element.remove();
+  });
+
   it('locks preview-item structure with semantic classes and target-specific truncation rules', async () => {
     const element = new VirtualPreviewList();
     element.items = [

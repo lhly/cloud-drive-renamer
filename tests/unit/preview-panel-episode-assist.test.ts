@@ -71,6 +71,11 @@ describe('PreviewPanel episode assist bridge', () => {
     expect(prefixEvents).toHaveLength(1);
     expect(modeEvents).toHaveLength(1);
 
+    const focusedItem = previewList?.shadowRoot?.querySelector('[data-file-id="file-1"]');
+    const focusHint = previewList?.shadowRoot?.querySelector('[data-role="episode-assist-focus-hint"]');
+    expect(focusedItem?.className).toContain('assist-focus');
+    expect(focusHint?.textContent).toContain('定位');
+
     panel.remove();
   });
 });
