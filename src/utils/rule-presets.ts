@@ -168,6 +168,30 @@ export async function saveTemplateRulePreset(
   return { records: next, record: nextRecord, replaced };
 }
 
+export async function renameTemplateRulePreset(
+  id: string,
+  name: string,
+  options?: { overwriteName?: boolean }
+): Promise<{ records: RulePresetRecord[]; record: RulePresetRecord; replaced: boolean }> {
+  const existing = await getTemplateRulePresets();
+  const target = existing.find((record) => record.id === id);
+
+  if (!target) {
+    throw new Error('Template preset not found');
+  }
+
+  const duplicate = existing.find((record) => record.name === name.trim() && record.id !== id) ?? null;
+  const result = await saveTemplateRulePreset(name, target.config, {
+    overwriteId: target.id,
+    overwriteName: options?.overwriteName,
+  });
+
+  return {
+    ...result,
+    replaced: Boolean(duplicate),
+  };
+}
+
 export async function deleteTemplateRulePreset(id: string): Promise<RulePresetRecord[]> {
   const existing = await getTemplateRulePresets();
   const next = existing.filter((record) => record.id !== id);

@@ -239,6 +239,25 @@ export class ConfigPanel extends LitElement {
     );
   }
 
+  private handleRenameTemplate(record: RulePresetRecord): void {
+    if (record.source !== 'template') {
+      return;
+    }
+
+    const nextName = prompt(I18nService.t('rule_preset_rename_prompt'), record.name || '')?.trim();
+    if (!nextName || nextName === record.name) {
+      return;
+    }
+
+    this.dispatchEvent(
+      new CustomEvent('rename-rule-template', {
+        detail: { presetId: record.id, name: nextName },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
   private handleDeleteTemplate(record: RulePresetRecord): void {
     this.dispatchEvent(
       new CustomEvent('delete-rule-template', {
@@ -849,6 +868,13 @@ export class ConfigPanel extends LitElement {
           </button>
           ${deletable
             ? html`
+                <button
+                  class="text-action-button"
+                  data-role="rename-rule-template"
+                  @click=${() => this.handleRenameTemplate(record)}
+                >
+                  ${I18nService.t('rule_preset_rename_button')}
+                </button>
                 <button
                   class="text-action-button danger"
                   data-role="delete-rule-template"

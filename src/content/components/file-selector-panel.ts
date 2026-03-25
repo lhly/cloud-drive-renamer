@@ -53,6 +53,7 @@ import {
   getTemplateRulePresets,
   isRulePresetConfigValid,
   recordRecentRulePreset,
+  renameTemplateRulePreset,
   saveTemplateRulePreset,
 } from '../../utils/rule-presets';
 import './config-panel';
@@ -675,6 +676,24 @@ export class FileSelectorPanel extends LitElement {
 
   private async handleDeleteRuleTemplate(e: CustomEvent<{ presetId: string }>): Promise<void> {
     this.templateRulePresets = await deleteTemplateRulePreset(e.detail.presetId);
+  }
+
+  private async handleRenameRuleTemplate(e: CustomEvent<{ presetId: string; name: string }>): Promise<void> {
+    const trimmed = e.detail.name.trim();
+    if (!trimmed) return;
+
+    const duplicate = this.templateRulePresets.find((preset) => preset.name === trimmed && preset.id !== e.detail.presetId);
+    if (duplicate) {
+      const confirmed = confirm(I18nService.t('rule_preset_overwrite_confirm', [trimmed]));
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    const { records } = await renameTemplateRulePreset(e.detail.presetId, trimmed, {
+      overwriteName: Boolean(duplicate),
+    });
+    this.templateRulePresets = records;
   }
 
   /**
@@ -1624,6 +1643,7 @@ export class FileSelectorPanel extends LitElement {
               @config-change=${this.handleConfigChange}
               @apply-rule-preset=${this.handleApplyRulePreset}
               @save-rule-template=${this.handleSaveRuleTemplate}
+              @rename-rule-template=${this.handleRenameRuleTemplate}
               @delete-rule-template=${this.handleDeleteRuleTemplate}
               @episode-assist-change-target=${this.handleAssistChangeTarget}
               @episode-assist-change-mode=${this.handleAssistChangeMode}

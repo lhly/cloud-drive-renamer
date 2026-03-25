@@ -19,6 +19,7 @@ function createPreset(overrides: Partial<RulePresetRecord>): RulePresetRecord {
 describe('ConfigPanel rule preset interactions', () => {
   beforeEach(() => {
     vi.stubGlobal('prompt', vi.fn(() => '剧集模板'));
+    vi.stubGlobal('confirm', vi.fn(() => true));
   });
 
   it('marks invalid presets as disabled and does not dispatch apply events', async () => {
@@ -82,9 +83,11 @@ describe('ConfigPanel rule preset interactions', () => {
 
     const applyEvents: Array<CustomEvent<{ presetId: string }>> = [];
     const saveEvents: Array<CustomEvent<{ name: string }>> = [];
+    const renameEvents: Array<CustomEvent<{ presetId: string; name: string }>> = [];
     const deleteEvents: Array<CustomEvent<{ presetId: string }>> = [];
     panel.addEventListener('apply-rule-preset', (event) => applyEvents.push(event as CustomEvent<{ presetId: string }>));
     panel.addEventListener('save-rule-template', (event) => saveEvents.push(event as CustomEvent<{ name: string }>));
+    panel.addEventListener('rename-rule-template', (event) => renameEvents.push(event as CustomEvent<{ presetId: string; name: string }>));
     panel.addEventListener('delete-rule-template', (event) => deleteEvents.push(event as CustomEvent<{ presetId: string }>));
 
     panel.shadowRoot
@@ -92,6 +95,10 @@ describe('ConfigPanel rule preset interactions', () => {
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
     panel.shadowRoot
       ?.querySelector<HTMLElement>('[data-role="save-template-button"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+    vi.mocked(prompt).mockReturnValueOnce('重命名模板');
+    panel.shadowRoot
+      ?.querySelector<HTMLElement>('[data-preset-id="template-1"] [data-role="rename-rule-template"]')
       ?.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
     panel.shadowRoot
       ?.querySelector<HTMLElement>('[data-preset-id="template-1"] [data-role="delete-rule-template"]')
@@ -101,9 +108,29 @@ describe('ConfigPanel rule preset interactions', () => {
     expect(applyEvents[0].detail.presetId).toBe('recent-1');
     expect(saveEvents).toHaveLength(1);
     expect(saveEvents[0].detail.name).toBe('剧集模板');
+    expect(renameEvents).toHaveLength(1);
+    expect(renameEvents[0].detail.presetId).toBe('template-1');
+    expect(renameEvents[0].detail.name).toBe('重命名模板');
     expect(deleteEvents).toHaveLength(1);
     expect(deleteEvents[0].detail.presetId).toBe('template-1');
 
     panel.remove();
   });
+
+  it('does not render rename action for recent presets', async () => {
+    const panel = new ConfigPanel();
+    panel.recentRulePresets = [
+      createPreset({ id: 'recent-only', source: 'recent', name: '最近规则' }),
+    ];
+
+    document.body.appendChild(panel);
+    await panel.updateComplete;
+
+    expect(
+      panel.shadowRoot?.querySelector('[data-preset-id="recent-only"] [data-role="rename-rule-template"]')
+    ).toBeNull();
+
+    panel.remove();
+  });
+
 });

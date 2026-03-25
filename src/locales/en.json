@@ -216,6 +216,8 @@
   "rule_preset_templates_empty": "No saved templates yet.",
   "rule_preset_save_button": "Save current rule",
   "rule_preset_apply_button": "Apply",
+  "rule_preset_rename_button": "Rename",
+  "rule_preset_rename_prompt": "Enter a new template name",
   "rule_preset_delete_button": "Delete",
   "rule_preset_save_prompt": "Enter a template name",
   "rule_preset_overwrite_confirm": "Template \"$1\" already exists. Overwrite it?",

@@ -24,3 +24,4 @@
 | P0-3：规则模板 / 最近使用（B） | complete | 已实现 recent 自动记录、模板保存/删除、同名覆盖确认。 |
 | 验证与回归 | complete | `typecheck` / `vitest` / `lint` 已跑通；lint 仅剩仓库历史 warning。 |
 | 后续批次：继续优化剧集提取失败修正体验 | complete | 已完成右侧预览区顶部失败导航（B1）：失败总数 + 当前序号 + 上一个/下一个失败项，并完成验证。 |
+| 后续批次：规则模板重命名 | complete | 已完成模板项“重命名”按钮 + prompt 输入，仅支持 template，不支持 recent，并完成验证。 |

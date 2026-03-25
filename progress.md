@@ -18,3 +18,7 @@
 - 2026-03-25：实现右侧预览区顶部失败导航条，支持显示失败总数、当前序号，并通过上一个/下一个按钮切换失败聚焦项。
 - 2026-03-25：完成接线：`preview-panel` 负责计算 prev/next 目标并派发 `episode-assist-focus-failure`，`file-selector-panel` 统一更新 sample 与 `suggestedFailureFileId`。
 - 2026-03-25：完成验证：`npm run typecheck` ✅，`npx vitest run` ✅（36 files / 268 tests），`npm run lint` ✅（仅历史 warning）。
+- 2026-03-25：与用户确认本批方案：规则模板支持重命名，采用模板项按钮 + `prompt` 的轻量交互，并沿用现有同名覆盖确认风格。
+- 2026-03-25：实现规则模板重命名：配置面板模板项新增“重命名”按钮，点击后通过 `prompt` 输入新名称并派发 `rename-rule-template`。
+- 2026-03-25：完成接线：`file-selector-panel` 统一处理模板重命名、同名覆盖确认与模板列表刷新。
+- 2026-03-25：完成验证：`npm run typecheck` ✅，`npx vitest run` ✅（36 files / 271 tests），`npm run lint` ✅（仅历史 warning）。

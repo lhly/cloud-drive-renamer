@@ -19,3 +19,7 @@
 - 2026-03-25：本批已完成右侧预览区失败导航条：显示失败总数、当前序号、上一个/下一个失败项，并通过 `episode-assist-focus-failure` 事件复用既有失败聚焦逻辑。
 - 2026-03-25：额外补了一层 `scrollIntoView` 守卫，避免测试环境或部分宿主环境缺少该方法时抛出异常。
 - 2026-03-25：本批验证结果：`npm run typecheck` 通过，`npx vitest run` 通过（36 files / 268 tests），`npm run lint` 通过但仍仅存在仓库历史 warning。
+- 2026-03-25：已确认下一批做规则模板重命名：模板项直接提供“重命名”按钮，使用 `prompt` 输入新名称，仅支持 `template`，不支持 `recent`。
+- 2026-03-25：本批已完成规则模板重命名：仅对 `template` 模板显示“重命名”按钮，使用 `prompt` 输入新名称，`recent` 不提供该入口。
+- 2026-03-25：新增 `renameTemplateRulePreset` 存储层能力；普通改名不视为 replaced，只有真正覆盖其他同名模板时才标记为 replaced。
+- 2026-03-25：本批验证结果：`npm run typecheck` 通过，`npx vitest run` 通过（36 files / 271 tests），`npm run lint` 通过但仍仅存在仓库历史 warning。

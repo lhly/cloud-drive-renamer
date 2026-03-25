@@ -8,6 +8,7 @@ import {
   getTemplateRulePresets,
   isRulePresetConfigValid,
   recordRecentRulePreset,
+  renameTemplateRulePreset,
   RULE_PRESET_STORAGE_KEYS,
   saveTemplateRulePreset,
 } from '../../src/utils/rule-presets';
@@ -117,6 +118,29 @@ describe('rule preset utilities', () => {
     expect(templates).toHaveLength(1);
     expect(templates[0].id).toBe(first.record.id);
     expect(templates[0].config.params.prefix).toBe('Show-Updated');
+  });
+
+
+  it('renames template presets and supports overwrite by target id', async () => {
+    const first = await saveTemplateRulePreset('旧模板名', createConfig());
+    await saveTemplateRulePreset('已存在模板', createConfig({ params: { prefix: 'Other', separator: '-' } }));
+
+    const renamed = await renameTemplateRulePreset(first.record.id, '新模板名');
+    expect(renamed.record.id).toBe(first.record.id);
+    expect(renamed.record.name).toBe('新模板名');
+    expect(renamed.replaced).toBe(false);
+
+    await expect(renameTemplateRulePreset(first.record.id, '已存在模板')).rejects.toThrow('Template name already exists');
+
+    const overwritten = await renameTemplateRulePreset(first.record.id, '已存在模板', { overwriteName: true });
+    expect(overwritten.record.id).toBe(first.record.id);
+    expect(overwritten.record.name).toBe('已存在模板');
+    expect(overwritten.replaced).toBe(true);
+
+    const templates = await getTemplateRulePresets();
+    expect(templates).toHaveLength(1);
+    expect(templates[0].id).toBe(first.record.id);
+    expect(templates[0].name).toBe('已存在模板');
   });
 
   it('rejects duplicate template names unless overwrite is explicitly enabled', async () => {

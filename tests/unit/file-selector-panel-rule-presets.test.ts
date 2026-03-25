@@ -13,9 +13,11 @@ type FileSelectorPanelPresetHarness = FileSelectorPanel & {
   extractErrorMap: Map<string, string>;
   episodeExtractAssistState: any;
   recentRulePresets: any[];
+  templateRulePresets: any[];
   handleApplyRulePreset(event: CustomEvent<{ presetId: string }>): Promise<void>;
   handleExecute(): Promise<void>;
   handleAssistFocusFailure(event: CustomEvent<{ fileId: string }>): void;
+  handleRenameRuleTemplate(event: CustomEvent<{ presetId: string; name: string }>): Promise<void>;
 };
 
 class PresetTestAdapter implements PlatformAdapter {
@@ -246,6 +248,59 @@ describe('FileSelectorPanel rule preset integration', () => {
     expect(panel.episodeExtractAssistState.sampleFileId).toBe('file-2');
     expect(panel.episodeExtractAssistState.sampleFileName).toBe('Show.S01E02.mkv');
     expect(panel.episodeExtractAssistState.suggestedFailureFileId).toBe('file-2');
+  });
+
+
+  it('renames template presets and refreshes template list', async () => {
+    const panel = new FileSelectorPanel() as FileSelectorPanelPresetHarness;
+    panel.templateRulePresets = [
+      {
+        id: 'template-1',
+        name: '旧模板',
+        source: 'template',
+        createdAt: 1,
+        updatedAt: 1,
+        config: {
+          type: 'prefix',
+          params: { prefix: 'Show', separator: '.' },
+        },
+      },
+    ];
+
+    vi.spyOn(rulePresets, 'renameTemplateRulePreset').mockResolvedValue({
+      replaced: false,
+      record: {
+        id: 'template-1',
+        name: '新模板',
+        source: 'template',
+        createdAt: 1,
+        updatedAt: 2,
+        config: {
+          type: 'prefix',
+          params: { prefix: 'Show', separator: '.' },
+        },
+      },
+      records: [
+        {
+          id: 'template-1',
+          name: '新模板',
+          source: 'template',
+          createdAt: 1,
+          updatedAt: 2,
+          config: {
+            type: 'prefix',
+            params: { prefix: 'Show', separator: '.' },
+          },
+        },
+      ],
+    });
+
+    await panel.handleRenameRuleTemplate(
+      new CustomEvent('rename-rule-template', { detail: { presetId: 'template-1', name: '新模板' } })
+    );
+
+    expect(panel.templateRulePresets).toHaveLength(1);
+    expect(panel.templateRulePresets[0].name).toBe('新模板');
   });
 
 });

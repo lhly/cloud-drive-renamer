@@ -216,6 +216,8 @@
   "rule_preset_templates_empty": "还没有保存的模板。",
   "rule_preset_save_button": "保存当前规则",
   "rule_preset_apply_button": "应用",
+  "rule_preset_rename_button": "重命名",
+  "rule_preset_rename_prompt": "请输入新的模板名称",
   "rule_preset_delete_button": "删除",
   "rule_preset_save_prompt": "请输入模板名称",
   "rule_preset_overwrite_confirm": "模板“$1”已存在，是否覆盖？",
