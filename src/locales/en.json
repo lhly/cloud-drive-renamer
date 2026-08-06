@@ -1,6 +1,6 @@
 {
   "extName": "CloudDrive Renamer",
-  "extDescription": "Powerful batch renaming tool for Quark Drive, Aliyun Drive, and Baidu Cloud Drive",
+  "extDescription": "Powerful batch renaming tool for 115 Drive, 123Pan, Aliyun Drive, Baidu Cloud Drive, CMCC Drive, Esurfing Cloud, Quark Drive, and UC Drive",
   "rename_dialog_title": "Batch Rename",
   "file_selector_title": "Batch Rename",
   "config_panel_title": "Configuration",
@@ -183,6 +183,10 @@
   "platform_aliyun": "Aliyun Drive",
   "platform_baidu": "Baidu Cloud Drive",
   "platform_uc": "UC Drive",
+  "platform_115": "115 Drive",
+  "platform_123": "123Pan",
+  "platform_cmcc": "CMCC Drive",
+  "platform_esurfing": "Esurfing Cloud",
   "popup_language_label": "Language",
   "toast_language_changed": "Language changed to $1",
   "toast_language_change_failed": "Failed to change language, please try again",

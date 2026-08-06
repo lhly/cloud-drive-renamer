@@ -34,6 +34,10 @@ const PLATFORM_LABELS: Record<PlatformName, string> = {
   aliyun: '阿里云盘',
   baidu: '百度网盘',
   uc: 'UC网盘',
+  '115': '115网盘',
+  '123': '123云盘',
+  cmcc: '移动云盘',
+  esurfing: '天翼云盘',
 };
 
 function buildSummary(input: BuildLastFailureDiagnosticSnapshotInput): DiagnosticSummary {

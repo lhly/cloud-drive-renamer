@@ -83,6 +83,38 @@ export function detectPlatformFromUrl(url: string, pathname?: string): PlatformN
     return 'aliyun';
   }
 
+  // 115网盘
+  if (url.includes('115.com')) {
+    const pathToCheck = pathname ?? extractPathnameFromUrl(url);
+    let mode: string | null = null;
+    try {
+      mode = new URL(url).searchParams.get('mode');
+    } catch {
+      mode = null;
+    }
+    if ((pathToCheck === '/storage/netdisk' || pathToCheck === '/storage/allfiles') && mode === 'wangpan') {
+      return '115';
+    }
+    return null;
+  }
+
+  // 123云盘
+  if (url.includes('www.123pan.com')) {
+    const pathToCheck = pathname ?? extractPathnameFromUrl(url);
+    return pathToCheck === '/' ? '123' : null;
+  }
+
+  // 移动云盘
+  if (url.includes('yun.139.com')) {
+    return url.includes('/w/#/main') || url.includes('/w/#/index') ? 'cmcc' : null;
+  }
+
+  // 天翼云盘
+  if (url.includes('cloud.189.cn')) {
+    const pathToCheck = pathname ?? extractPathnameFromUrl(url);
+    return pathToCheck.startsWith('/web/main/file') ? 'esurfing' : null;
+  }
+
   // UC网盘
   if (url.includes('drive.uc.cn') || url.includes('pan.uc.cn')) {
     return 'uc';

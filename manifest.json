@@ -16,7 +16,13 @@
     "https://pan.baidu.com/*",
     "https://drive.uc.cn/*",
     "https://pan.uc.cn/*",
-    "https://pc-api.uc.cn/*"
+    "https://pc-api.uc.cn/*",
+    "https://115.com/*",
+    "https://webapi.115.com/*",
+    "https://www.123pan.com/*",
+    "https://yun.139.com/*",
+    "https://personal-kd-njs.yun.139.com/*",
+    "https://cloud.189.cn/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -60,6 +66,42 @@
         "src/content/index.ts"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://115.com/*"
+      ],
+      "js": [
+        "src/content/index.ts"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.123pan.com/*"
+      ],
+      "js": [
+        "src/content/index.ts"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://yun.139.com/*"
+      ],
+      "js": [
+        "src/content/index.ts"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://cloud.189.cn/*"
+      ],
+      "js": [
+        "src/content/index.ts"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
@@ -74,7 +116,11 @@
         "src/adapters/aliyun/page-script.js",
         "src/adapters/baidu/page-script.js",
         "src/adapters/quark/page-script.js",
-        "src/adapters/uc/page-script.js"
+        "src/adapters/uc/page-script.js",
+        "src/adapters/115/page-script.js",
+        "src/adapters/123/page-script.js",
+        "src/adapters/cmcc/page-script.js",
+        "src/adapters/esurfing/page-script.js"
       ],
       "matches": [
         "https://pan.quark.cn/*",
@@ -82,7 +128,11 @@
         "https://www.alipan.com/*",
         "https://pan.baidu.com/*",
         "https://drive.uc.cn/*",
-        "https://pan.uc.cn/*"
+        "https://pan.uc.cn/*",
+        "https://115.com/*",
+        "https://www.123pan.com/*",
+        "https://yun.139.com/*",
+        "https://cloud.189.cn/*"
       ]
     }
   ],

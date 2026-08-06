@@ -14,6 +14,10 @@ export default defineConfig({
         'page-script-baidu': 'src/adapters/baidu/page-script.ts',
         'page-script-quark': 'src/adapters/quark/page-script.ts',
         'page-script-uc': 'src/adapters/uc/page-script.ts',
+        'page-script-115': 'src/adapters/115/page-script.ts',
+        'page-script-123': 'src/adapters/123/page-script.ts',
+        'page-script-cmcc': 'src/adapters/cmcc/page-script.ts',
+        'page-script-esurfing': 'src/adapters/esurfing/page-script.ts',
       },
       output: {
         entryFileNames: (chunkInfo) => {

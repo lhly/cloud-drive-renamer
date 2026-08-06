@@ -178,6 +178,46 @@ describe('Platform Detection - Unified Utils', () => {
         expect(result).toBe('uc');
       });
 
+      it('should detect 115 Drive on supported netdisk page', () => {
+        const result = detectPlatformFromUrl(
+          'https://115.com/storage/netdisk?mode=wangpan&cid=folder115',
+          '/storage/netdisk'
+        );
+        expect(result).toBe('115');
+      });
+
+      it('should ignore unsupported 115 pages', () => {
+        const result = detectPlatformFromUrl(
+          'https://115.com/',
+          '/'
+        );
+        expect(result).toBeNull();
+      });
+
+      it('should detect 123 Drive', () => {
+        const result = detectPlatformFromUrl(
+          'https://www.123pan.com/',
+          '/'
+        );
+        expect(result).toBe('123');
+      });
+
+      it('should detect CMCC Drive', () => {
+        const result = detectPlatformFromUrl(
+          'https://yun.139.com/w/#/main',
+          '/w/'
+        );
+        expect(result).toBe('cmcc');
+      });
+
+      it('should detect Esurfing Drive', () => {
+        const result = detectPlatformFromUrl(
+          'https://cloud.189.cn/web/main/file/folder/folder189',
+          '/web/main/file/folder/folder189'
+        );
+        expect(result).toBe('esurfing');
+      });
+
       it('should detect Aliyun Drive', () => {
         const result = detectPlatformFromUrl(
           'https://www.aliyundrive.com/drive/file/all',

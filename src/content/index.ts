@@ -5,6 +5,10 @@ import { AliyunAdapter } from '../adapters/aliyun/aliyun-adapter';
 import { BaiduAdapter } from '../adapters/baidu/baidu-adapter';
 import { QuarkAdapter } from '../adapters/quark/quark';
 import { UCAdapter } from '../adapters/uc/uc-adapter';
+import { Drive115Adapter } from '../adapters/115/adapter';
+import { Drive123Adapter } from '../adapters/123/adapter';
+import { CMCCAdapter } from '../adapters/cmcc/adapter';
+import { EsurfingAdapter } from '../adapters/esurfing/adapter';
 import { storage } from '../utils/storage';
 import { STORAGE_KEYS } from '../types/stats';
 import { I18nService } from '../utils/i18n';
@@ -188,9 +192,9 @@ function cleanupOldInstances(): void {
  * 背景: @crxjs/vite-plugin 不支持在 manifest.json 中直接配置 world: "MAIN" 的 TypeScript 文件
  * 解决方案: 在 content script (ISOLATED world) 中动态创建 <script> 标签注入到页面
  *
- * @param platform - 平台名称 (aliyun/baidu/quark)
+ * @param platform - 平台名称 (aliyun/baidu/quark/uc/115/123/cmcc/esurfing)
  */
-async function injectPageScriptToMainWorld(platform: 'aliyun' | 'baidu' | 'quark' | 'uc'): Promise<void> {
+async function injectPageScriptToMainWorld(platform: PlatformName): Promise<void> {
   // ✅ 引用编译后的 .js 文件（Vite 会将 TypeScript 编译为 JavaScript）
   const scriptPath = `src/adapters/${platform}/page-script.js`;
   const scriptURL = chrome.runtime.getURL(scriptPath);
@@ -258,6 +262,14 @@ function createPlatformAdapter(platform: PlatformName): PlatformAdapter {
       return new QuarkAdapter();
     case 'uc':
       return new UCAdapter();
+    case '115':
+      return new Drive115Adapter();
+    case '123':
+      return new Drive123Adapter();
+    case 'cmcc':
+      return new CMCCAdapter();
+    case 'esurfing':
+      return new EsurfingAdapter();
   }
 }
 
@@ -359,11 +371,8 @@ async function injectUI(platform: PlatformName) {
   // 清理旧实例，确保没有残留的DOM和事件监听器
   cleanupOldInstances();
 
-  // 为所有平台动态注入 page-script 到 MAIN world
-  // 原因: @crxjs/vite-plugin 不支持在 manifest 中直接配置 world: "MAIN" 的 TypeScript 文件
-  if (platform === 'aliyun' || platform === 'baidu' || platform === 'quark' || platform === 'uc') {
-    await injectPageScriptToMainWorld(platform);
-  }
+  // 所有支持的平台都需要 MAIN world page-script 来携带站点登录态请求平台 API。
+  await injectPageScriptToMainWorld(platform);
 
   try {
     // ✅ 修复：在创建任何UI组件前，先初始化语言
