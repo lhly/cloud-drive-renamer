@@ -10,7 +10,7 @@ mkdir -p screenshots
 cp your-images/* screenshots/
 
 # 2. 运行 npm 命令处理（商店截图 1280x800）
-npm run resize screenshot
+pnpm run resize screenshot
 
 # 3. 获取结果
 ls screenshots/store/
@@ -50,23 +50,23 @@ screenshots/
 
 ```bash
 # 商店截图 (1280x800)
-npm run resize screenshot
+pnpm run resize screenshot
 
 # 小尺寸截图 (640x400)
-npm run resize screenshot-small
+pnpm run resize screenshot-small
 
 # Logo (300x300)
-npm run resize logo
+pnpm run resize logo
 
 # 小促销图 (440x280)
-npm run resize small-promo
+pnpm run resize small-promo
 
 # 大促销图 (1400x560)
-npm run resize large-promo
+pnpm run resize large-promo
 
 # 一次生成所有尺寸（示例）
 for preset in screenshot screenshot-small logo small-promo large-promo; do
-  npm run resize $preset
+  pnpm run resize $preset
 done
 ```
 
@@ -95,16 +95,16 @@ node scripts/resize-screenshots.js screenshot-small
 
 ```bash
 # 白色背景
-npm run resize logo -- --background=white
+pnpm run resize logo -- --background=white
 
 # 顶部对齐
-npm run resize screenshot -- --position=top
+pnpm run resize screenshot -- --position=top
 
 # 自定义背景色
-npm run resize screenshot -- --background=#F5F5F5
+pnpm run resize screenshot -- --background=#F5F5F5
 
 # 组合选项
-npm run resize logo -- --background=white --position=center
+pnpm run resize logo -- --background=white --position=center
 ```
 
 ### 直接运行脚本
@@ -126,22 +126,22 @@ node scripts/resize-screenshots.js screenshot --background=#F5F5F5
 
 ## ✨ 可用的 npm 命令
 
-项目已配置统一的 `npm run resize` 命令（通过参数选择预设）：
+项目已配置统一的 `pnpm run resize` 命令（通过参数选择预设）：
 
 | 命令 | 说明 | 输出目录 |
 |------|------|----------|
-| `npm run resize screenshot` | 商店截图 (1280x800) | `screenshots/store/` |
-| `npm run resize screenshot-small` | 小尺寸截图 (640x400) | `screenshots/small/` |
-| `npm run resize logo` | Logo (300x300) | `screenshots/logo/` |
-| `npm run resize small-promo` | 小促销图 (440x280) | `screenshots/promo-small/` |
-| `npm run resize large-promo` | 大促销图 (1400x560) | `screenshots/promo-large/` |
+| `pnpm run resize screenshot` | 商店截图 (1280x800) | `screenshots/store/` |
+| `pnpm run resize screenshot-small` | 小尺寸截图 (640x400) | `screenshots/small/` |
+| `pnpm run resize logo` | Logo (300x300) | `screenshots/logo/` |
+| `pnpm run resize small-promo` | 小促销图 (440x280) | `screenshots/promo-small/` |
+| `pnpm run resize large-promo` | 大促销图 (1400x560) | `screenshots/promo-large/` |
 
 ### 高级用法示例
 
 ```bash
 # 生成白色背景的 Logo
-npm run resize logo -- --background=white
+pnpm run resize logo -- --background=white
 
 # 生成顶部对齐的商店截图
-npm run resize screenshot -- --position=top
+pnpm run resize screenshot -- --position=top
 ```

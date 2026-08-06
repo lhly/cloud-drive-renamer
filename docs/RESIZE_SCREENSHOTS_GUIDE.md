@@ -15,7 +15,7 @@
 ## 安装依赖
 
 ```bash
-npm install sharp --save-dev
+pnpm add -D sharp
 ```
 
 ## 预设尺寸
@@ -215,26 +215,26 @@ node scripts/resize-screenshots.js small-promo --position=top
 
 ## 已内置的 npm 命令（推荐）
 
-本项目已在 `package.json` 中内置参数化脚本 `npm run resize`，无需再添加多个 `resize:*` 命令：
+本项目已在 `package.json` 中内置参数化脚本 `pnpm run resize`，无需再添加多个 `resize:*` 命令：
 
 ```bash
 # 商店截图 (1280x800)
-npm run resize screenshot
+pnpm run resize screenshot
 
 # 小尺寸截图 (640x400)
-npm run resize screenshot-small
+pnpm run resize screenshot-small
 
 # Logo (300x300)
-npm run resize logo
+pnpm run resize logo
 
 # 小促销图 (440x280)
-npm run resize small-promo
+pnpm run resize small-promo
 
 # 大促销图 (1400x560)
-npm run resize large-promo
+pnpm run resize large-promo
 
 # 查看所有可用预设
-npm run resize
+pnpm run resize
 ```
 
 更多参数（输入/输出目录、背景色、位置等）请参考 `docs/SCRIPTS.md`。

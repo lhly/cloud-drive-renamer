@@ -33,6 +33,7 @@ const PLATFORM_LABELS: Record<PlatformName, string> = {
   quark: '夸克网盘',
   aliyun: '阿里云盘',
   baidu: '百度网盘',
+  uc: 'UC网盘',
 };
 
 function buildSummary(input: BuildLastFailureDiagnosticSnapshotInput): DiagnosticSummary {

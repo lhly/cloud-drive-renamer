@@ -186,12 +186,12 @@ English:
 
 ```bash
 # 1. 确保所有测试通过
-npm run typecheck
-npm run lint
+pnpm run typecheck
+pnpm run lint
 npm test
 
 # 2. 构建生产版本
-npm run build
+pnpm run build
 
 # 3. 创建扩展包
 VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
@@ -291,7 +291,7 @@ git push origin main
 
 可以使用以下命令同步版本号:
 ```bash
-npm run sync:version
+pnpm run sync:version
 ```
 
 ### 隐私政策要求

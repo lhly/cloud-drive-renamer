@@ -13,6 +13,7 @@ export default defineConfig({
         'page-script-aliyun': 'src/adapters/aliyun/page-script.ts',
         'page-script-baidu': 'src/adapters/baidu/page-script.ts',
         'page-script-quark': 'src/adapters/quark/page-script.ts',
+        'page-script-uc': 'src/adapters/uc/page-script.ts',
       },
       output: {
         entryFileNames: (chunkInfo) => {

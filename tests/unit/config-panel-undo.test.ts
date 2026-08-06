@@ -55,6 +55,29 @@ describe('ConfigPanel undo action', () => {
     panel.remove();
   });
 
+  it('keeps the execute button disabled without showing cancel before progress starts', async () => {
+    const panel = new ConfigPanel();
+    panel.finished = false;
+    panel.executing = true;
+    panel.progress = null;
+    panel.selectedCount = 2;
+    panel.renameCount = 2;
+
+    document.body.appendChild(panel);
+    await panel.updateComplete;
+
+    const executeButton = panel.shadowRoot?.querySelector<HTMLButtonElement>('.button-execute');
+    const executionView = panel.shadowRoot?.querySelector('.execution-view');
+    const cancelButton = panel.shadowRoot?.querySelector('.button-danger');
+
+    expect(executeButton).toBeTruthy();
+    expect(executeButton?.hasAttribute('disabled')).toBe(true);
+    expect(executionView).toBeNull();
+    expect(cancelButton).toBeNull();
+
+    panel.remove();
+  });
+
   it('renders undo button in normal config view when a valid undo record exists', async () => {
     const panel = new ConfigPanel();
     panel.finished = false;

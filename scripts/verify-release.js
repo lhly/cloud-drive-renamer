@@ -16,7 +16,7 @@
  *
  * 使用方式：
  *   node scripts/verify-release.js
- *   npm run verify:release (如果添加到 package.json)
+ *   pnpm run verify:release (如果添加到 package.json)
  */
 
 import fs from 'fs';
@@ -123,7 +123,7 @@ async function verifyRelease() {
     if (version !== manifest.version) {
       error('Version mismatch detected!');
       info('Running sync-version script...');
-      exec('npm run sync:version');
+      exec('pnpm run sync:version');
       success('Versions synchronized');
     } else {
       success(`Versions are consistent: ${version}`);
@@ -135,7 +135,7 @@ async function verifyRelease() {
     step('Step 2: Running Tests');
 
     try {
-      exec('npm run test');
+      exec('pnpm run test');
       success('All tests passed');
     } catch (err) {
       error('Tests failed');
@@ -148,7 +148,7 @@ async function verifyRelease() {
     step('Step 3: Type Checking');
 
     try {
-      exec('npm run typecheck');
+      exec('pnpm run typecheck');
       success('Type checking passed');
     } catch (err) {
       error('Type checking failed');
@@ -161,7 +161,7 @@ async function verifyRelease() {
     step('Step 4: Linting');
 
     try {
-      exec('npm run lint');
+      exec('pnpm run lint');
       success('Linting passed');
     } catch (err) {
       error('Linting failed');
@@ -174,7 +174,7 @@ async function verifyRelease() {
     step('Step 5: Building Extension');
 
     try {
-      exec('npm run build');
+      exec('pnpm run build');
       success('Build completed');
     } catch (err) {
       error('Build failed');

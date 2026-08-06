@@ -8,12 +8,12 @@
  * 2. src/shared/version.ts（运行时常量）
  *
  * 触发时机：
- * - npm run build 之前（prebuild hook）
- * - npm run dev 之前（predev hook）
+ * - pnpm run build 之前（prebuild hook）
+ * - pnpm run dev 之前（predev hook）
  *
  * 使用方式：
- * - 自动：通过 npm 生命周期 hooks 自动触发
- * - 手动：npm run sync:version
+ * - 自动：通过 pnpm scripts 自动触发
+ * - 手动：pnpm run sync:version
  */
 
 import fs from 'fs';
@@ -105,7 +105,7 @@ function syncVersion() {
  *
  * To update version:
  * 1. Edit version in package.json
- * 2. Run: npm run sync:version (or automatically via prebuild/predev)
+ * 2. Run: pnpm run sync:version (or automatically via prebuild/predev)
  *
  * Generated at: ${new Date().toISOString()}
  */

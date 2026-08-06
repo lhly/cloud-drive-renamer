@@ -1,7 +1,7 @@
 /**
  * 云盘平台类型
  */
-export type PlatformName = 'quark' | 'aliyun' | 'baidu';
+export type PlatformName = 'quark' | 'aliyun' | 'baidu' | 'uc';
 
 /**
  * 文件项接口

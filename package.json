@@ -4,8 +4,8 @@
   "description": "批量重命名工具，支持夸克网盘、阿里云盘、百度网盘",
   "type": "module",
   "scripts": {
-    "dev": "npm run sync:version && vite",
-    "build": "npm run sync:version && npm run lint && npm run typecheck && npm run test:ci && tsc && vite build",
+    "dev": "pnpm run sync:version && vite",
+    "build": "pnpm run sync:version && pnpm run lint && pnpm run typecheck && pnpm run test:ci && tsc && vite build",
     "preview": "vite preview",
     "sync:version": "node scripts/sync-version.js",
     "lint": "eslint . --ext .ts,.tsx",
@@ -16,8 +16,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "typecheck": "tsc --noEmit",
-    "validate": "npm run lint && npm run typecheck && npm run test:ci",
-    "ci": "npm run validate && npm run build",
+    "validate": "pnpm run lint && pnpm run typecheck && pnpm run test:ci",
+    "ci": "pnpm run validate && pnpm run build",
     "resize": "node scripts/resize-screenshots.js",
     "verify:release": "node scripts/verify-release.js"
   },

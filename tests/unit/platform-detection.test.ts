@@ -162,6 +162,22 @@ describe('Platform Detection - Unified Utils', () => {
     });
 
     describe('Other Platforms - Unchanged Behavior', () => {
+      it('should detect UC Drive from drive.uc.cn', () => {
+        const result = detectPlatformFromUrl(
+          'https://drive.uc.cn/#/list/all',
+          '/'
+        );
+        expect(result).toBe('uc');
+      });
+
+      it('should detect UC Drive from pan.uc.cn', () => {
+        const result = detectPlatformFromUrl(
+          'https://pan.uc.cn/#/list/all/abc123-folder',
+          '/'
+        );
+        expect(result).toBe('uc');
+      });
+
       it('should detect Aliyun Drive', () => {
         const result = detectPlatformFromUrl(
           'https://www.aliyundrive.com/drive/file/all',

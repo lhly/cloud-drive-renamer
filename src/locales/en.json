@@ -182,6 +182,7 @@
   "platform_quark": "Quark Drive",
   "platform_aliyun": "Aliyun Drive",
   "platform_baidu": "Baidu Cloud Drive",
+  "platform_uc": "UC Drive",
   "popup_language_label": "Language",
   "toast_language_changed": "Language changed to $1",
   "toast_language_change_failed": "Failed to change language, please try again",

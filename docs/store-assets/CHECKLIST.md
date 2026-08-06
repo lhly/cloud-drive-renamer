@@ -8,7 +8,7 @@
   - 创建方法:
     ```bash
     VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")
-    npm run build && cd dist && zip -r ../cloud-drive-renamer-v${VERSION}.zip . && cd ..
+    pnpm run build && cd dist && zip -r ../cloud-drive-renamer-v${VERSION}.zip . && cd ..
     ```
 
 ### 图标
@@ -113,12 +113,12 @@ identify screenshots/store/*.png
 
 ```bash
 # 1. 确保项目无错误
-npm run typecheck
-npm run lint
+pnpm run typecheck
+pnpm run lint
 npm test
 
 # 2. 构建生产版本
-npm run build
+pnpm run build
 
 # 3. 检查dist目录内容
 ls -la dist/

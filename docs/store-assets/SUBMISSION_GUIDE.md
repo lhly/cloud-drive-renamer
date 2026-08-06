@@ -21,11 +21,11 @@
 ```bash
 # 确保所有测试通过
 npm test
-npm run typecheck
-npm run lint
+pnpm run typecheck
+pnpm run lint
 
 # 构建生产版本
-npm run build
+pnpm run build
 
 # 验证构建结果
 ls -la dist/
@@ -347,12 +347,12 @@ cd ..
    ```bash
    # 更新package.json和manifest.json中的版本号
    npm version patch  # 或 minor, major
-   npm run sync:version
+   pnpm run sync:version
    ```
 
 2. **构建和打包**
    ```bash
-   npm run build
+   pnpm run build
    cd dist
    zip -r ../cloud-drive-renamer-v[新版本号].zip .
    cd ..

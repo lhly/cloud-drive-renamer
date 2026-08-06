@@ -22,7 +22,7 @@ git push origin --tags
 
 ```bash
 # 运行完整的发布验证流程
-npm run verify:release
+pnpm run verify:release
 
 # 包含：测试 + 类型检查 + 代码检查 + 构建 + 打包
 ```

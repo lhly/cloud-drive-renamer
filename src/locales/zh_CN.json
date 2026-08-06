@@ -182,6 +182,7 @@
   "platform_quark": "夸克网盘",
   "platform_aliyun": "阿里云盘",
   "platform_baidu": "百度网盘",
+  "platform_uc": "UC网盘",
   "popup_language_label": "语言 / Language",
   "toast_language_changed": "语言已更改为$1",
   "toast_language_change_failed": "语言切换失败,请重试",

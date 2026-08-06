@@ -97,11 +97,11 @@ env:
 
 ### 缓存策略
 
-启用了 npm 缓存以加速构建：
+启用了 pnpm 缓存以加速构建：
 ```yaml
 - uses: actions/setup-node@v4
   with:
-    cache: 'npm'
+    cache: 'pnpm'
 ```
 
 ### 并发控制
@@ -122,11 +122,11 @@ concurrency:
 1. **查看日志**：点击失败的工作流查看详细错误
 2. **本地重现**：按照相同步骤本地执行
    ```bash
-   npm ci
-   npm run test:coverage
-   npm run typecheck
-   npm run lint
-   npm run build
+   pnpm install --frozen-lockfile
+   pnpm run test:coverage
+   pnpm run typecheck
+   pnpm run lint
+   pnpm run build
    ```
 3. **修复问题**：根据错误信息修复代码
 4. **重新推送**：推送修复后会自动重新运行
@@ -142,7 +142,7 @@ concurrency:
 ## 📝 最佳实践
 
 1. **频繁推送**：小步快跑，每次提交都经过 CI 验证
-2. **遵循语义化版本**：使用 `npm version` 管理版本号
+2. **遵循语义化版本**：使用 `pnpm version` 管理版本号
 3. **编写测试**：提高测试覆盖率，保证代码质量
 4. **及时修复**：CI 失败立即修复，不要累积问题
 

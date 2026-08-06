@@ -431,7 +431,7 @@ export class ConfigPanel extends LitElement {
   render() {
     const canExecute = this.renameCount > 0 && !this.disabled && !this.executing;
     const hasConflicts = this.conflictCount > 0;
-    const showExecutionView = this.executing || this.finished;
+    const showExecutionView = this.finished || (this.executing && Boolean(this.progress));
 
     return html`
       <div class="config-panel">

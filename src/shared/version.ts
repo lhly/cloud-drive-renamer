@@ -8,7 +8,7 @@
  *
  * To update version:
  * 1. Edit version in package.json
- * 2. Run: npm run sync:version (or automatically via prebuild/predev)
+ * 2. Run: pnpm run sync:version (or automatically via prebuild/predev)
  *
  * Generated at: 2026-03-20T02:24:40.460Z
  */

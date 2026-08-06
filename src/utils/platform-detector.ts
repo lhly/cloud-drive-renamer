@@ -83,6 +83,11 @@ export function detectPlatformFromUrl(url: string, pathname?: string): PlatformN
     return 'aliyun';
   }
 
+  // UC网盘
+  if (url.includes('drive.uc.cn') || url.includes('pan.uc.cn')) {
+    return 'uc';
+  }
+
   // 百度网盘
   if (url.includes('pan.baidu.com')) {
     return 'baidu';

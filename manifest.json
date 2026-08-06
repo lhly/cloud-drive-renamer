@@ -13,7 +13,10 @@
     "https://www.aliyundrive.com/*",
     "https://www.alipan.com/*",
     "https://api.aliyundrive.com/*",
-    "https://pan.baidu.com/*"
+    "https://pan.baidu.com/*",
+    "https://drive.uc.cn/*",
+    "https://pan.uc.cn/*",
+    "https://pc-api.uc.cn/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -47,6 +50,16 @@
         "src/content/index.ts"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://drive.uc.cn/*",
+        "https://pan.uc.cn/*"
+      ],
+      "js": [
+        "src/content/index.ts"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
@@ -60,13 +73,16 @@
         "*.css",
         "src/adapters/aliyun/page-script.js",
         "src/adapters/baidu/page-script.js",
-        "src/adapters/quark/page-script.js"
+        "src/adapters/quark/page-script.js",
+        "src/adapters/uc/page-script.js"
       ],
       "matches": [
         "https://pan.quark.cn/*",
         "https://www.aliyundrive.com/*",
         "https://www.alipan.com/*",
-        "https://pan.baidu.com/*"
+        "https://pan.baidu.com/*",
+        "https://drive.uc.cn/*",
+        "https://pan.uc.cn/*"
       ]
     }
   ],

@@ -1116,154 +1116,156 @@ export class FileSelectorPanel extends LitElement {
       return;
     }
 
-    const selectedFiles = this.selectedFiles;
-    const previewPlan = this.previewList;
-
-    if (previewPlan.length === 0) {
-      alert(I18nService.t('no_rename_needed'));
-      return;
-    }
-
-    const renameCandidates = selectedFiles
-      .map((file, index) => ({
-        file,
-        newName: this.newNameMap.get(file.id) || file.name,
-        index,
-      }))
-      .filter((candidate) => candidate.newName !== candidate.file.name);
-
-    if (renameCandidates.length === 0) {
-      alert(I18nService.t('no_rename_needed'));
-      return;
-    }
-
-    const candidateFiles = renameCandidates.map((candidate) => candidate.file);
-    const candidateNewNames = renameCandidates.map((candidate) => candidate.newName);
-
-    let conflicts: Map<string, ConflictResult> | null = null;
-    let resolution: ConflictResolution | null = null;
-
+    this.executing = true;
     try {
-      const detector = new ConflictDetector(this.adapter);
-      conflicts = await detector.detectConflicts(candidateFiles, candidateNewNames);
+      const selectedFiles = this.selectedFiles;
+      const previewPlan = this.previewList;
 
-      const conflictCount = Array.from(conflicts.values()).filter((result) => result.hasConflict).length;
-      if (conflictCount > 0) {
-        resolution = await this.openConflictResolutionDialog(
-          buildConflictDetails(candidateFiles, candidateNewNames, conflicts)
-        );
-        if (!resolution) {
+      if (previewPlan.length === 0) {
+        alert(I18nService.t('no_rename_needed'));
+        return;
+      }
+
+      const renameCandidates = selectedFiles
+        .map((file, index) => ({
+          file,
+          newName: this.newNameMap.get(file.id) || file.name,
+          index,
+        }))
+        .filter((candidate) => candidate.newName !== candidate.file.name);
+
+      if (renameCandidates.length === 0) {
+        alert(I18nService.t('no_rename_needed'));
+        return;
+      }
+
+      const candidateFiles = renameCandidates.map((candidate) => candidate.file);
+      const candidateNewNames = renameCandidates.map((candidate) => candidate.newName);
+
+      let conflicts: Map<string, ConflictResult> | null = null;
+      let resolution: ConflictResolution | null = null;
+
+      try {
+        const detector = new ConflictDetector(this.adapter);
+        conflicts = await detector.detectConflicts(candidateFiles, candidateNewNames);
+
+        const conflictCount = Array.from(conflicts.values()).filter((result) => result.hasConflict).length;
+        if (conflictCount > 0) {
+          resolution = await this.openConflictResolutionDialog(
+            buildConflictDetails(candidateFiles, candidateNewNames, conflicts)
+          );
+          if (!resolution) {
+            return;
+          }
+        }
+      } catch (error) {
+        const errorObj = error instanceof Error ? error : new Error(String(error));
+        logger.error('[FileSelectorPanel] Conflict detection failed:', errorObj);
+        const confirmed = confirm(I18nService.t('conflict_check_failed_confirm'));
+        if (!confirmed) {
           return;
         }
       }
-    } catch (error) {
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      logger.error('[FileSelectorPanel] Conflict detection failed:', errorObj);
-      const confirmed = confirm(I18nService.t('conflict_check_failed_confirm'));
-      if (!confirmed) {
+
+      const executionPlan = buildExecutionPlan({
+        files: candidateFiles,
+        newNames: candidateNewNames,
+        conflicts: conflicts ?? undefined,
+        resolution,
+        skipUnchanged: true,
+      });
+
+      if (executionPlan.tasks.length === 0) {
+        alert(I18nService.t('no_rename_needed'));
         return;
       }
-    }
 
-    const executionPlan = buildExecutionPlan({
-      files: candidateFiles,
-      newNames: candidateNewNames,
-      conflicts: conflicts ?? undefined,
-      resolution,
-      skipUnchanged: true,
-    });
-
-    if (executionPlan.tasks.length === 0) {
-      alert(I18nService.t('no_rename_needed'));
-      return;
-    }
-
-    const resolvedNameMap = new Map<string, string>();
-    selectedFiles.forEach((file) => {
-      resolvedNameMap.set(file.id, this.newNameMap.get(file.id) || file.name);
-    });
-    renameCandidates.forEach((candidate, index) => {
-      resolvedNameMap.set(candidate.file.id, executionPlan.resolvedNames[index] || candidate.file.name);
-    });
-    this.newNameMap = resolvedNameMap;
-    this.conflictIds = new Set();
-
-    try {
-      this.resetExecutionState();
-      this.executing = true;
-      this.executorState = ExecutorState.RUNNING;
-      this.diagnosticExecutionStartedAt = Date.now();
-      this.diagnosticRetryCount = 0;
-
-      this.executionItems = executionPlan.tasks.map((task) => ({
-        file: task.file,
-        newName: task.newName,
-        conflict: false,
-        done: undefined,
-        error: undefined,
-      }));
-      this.progress = {
-        completed: 0,
-        total: this.executionItems.length,
-        currentFile: '',
-        success: 0,
-        failed: 0,
-      };
-
-      this.operationIndexByFileId = new Map(
-        executionPlan.tasks.map((task) => [task.file.id, task.index])
-      );
-
-      await crashRecovery.saveOperationState({
-        platform: this.adapter.platform,
-        files: executionPlan.tasks.map((task) => task.file),
-        rule: this.ruleConfig,
-        completed: [],
-        failed: [],
-        tasks: executionPlan.tasks,
+      const resolvedNameMap = new Map<string, string>();
+      selectedFiles.forEach((file) => {
+        resolvedNameMap.set(file.id, this.newNameMap.get(file.id) || file.name);
       });
+      renameCandidates.forEach((candidate, index) => {
+        resolvedNameMap.set(candidate.file.id, executionPlan.resolvedNames[index] || candidate.file.name);
+      });
+      this.newNameMap = resolvedNameMap;
+      this.conflictIds = new Set();
 
-      // Execute batch rename
-      const executor = new BatchExecutor(
-        executionPlan.tasks.map((task) => task.file),
-        this.ruleConfig,
-        this.adapter,
-        {
-          requestInterval: this.adapter.getConfig().requestInterval,
-          maxConcurrent: this.adapter.getConfig().maxConcurrent,
-          skipUnchanged: true,
+      try {
+        this.resetExecutionState();
+        this.executorState = ExecutorState.RUNNING;
+        this.diagnosticExecutionStartedAt = Date.now();
+        this.diagnosticRetryCount = 0;
+
+        this.executionItems = executionPlan.tasks.map((task) => ({
+          file: task.file,
+          newName: task.newName,
+          conflict: false,
+          done: undefined,
+          error: undefined,
+        }));
+        this.progress = {
+          completed: 0,
+          total: this.executionItems.length,
+          currentFile: '',
+          success: 0,
+          failed: 0,
+        };
+
+        this.operationIndexByFileId = new Map(
+          executionPlan.tasks.map((task) => [task.file.id, task.index])
+        );
+
+        await crashRecovery.saveOperationState({
+          platform: this.adapter.platform,
+          files: executionPlan.tasks.map((task) => task.file),
+          rule: this.ruleConfig,
+          completed: [],
+          failed: [],
           tasks: executionPlan.tasks,
-          onProgress: (progress) => {
-            this.handleProgress(progress);
-          },
+        });
+
+        // Execute batch rename
+        const executor = new BatchExecutor(
+          executionPlan.tasks.map((task) => task.file),
+          this.ruleConfig,
+          this.adapter,
+          {
+            requestInterval: this.adapter.getConfig().requestInterval,
+            maxConcurrent: this.adapter.getConfig().maxConcurrent,
+            skipUnchanged: true,
+            tasks: executionPlan.tasks,
+            onProgress: (progress) => {
+              this.handleProgress(progress);
+            },
+          }
+        );
+        this.executor = executor;
+
+        const results = await executor.execute();
+        this.executionResults = results;
+        this.executorState = executor.getState();
+
+        await recordUsageStatsDelta(this.adapter.platform, {
+          success: results.success.length,
+          failed: results.failed.length,
+        });
+        if (results.success.length > 0) {
+          this.recentRulePresets = await recordRecentRulePreset(this.ruleConfig);
         }
-      );
-      this.executor = executor;
 
-      const results = await executor.execute();
-      this.executionResults = results;
-      this.executorState = executor.getState();
+        this.applyExecutionResults(results);
+        this.updateLastRenameOperationFromExecute(results);
+        await this.syncDiagnosticSnapshotFromExecution();
+        void this.syncAfterRename();
 
-      await recordUsageStatsDelta(this.adapter.platform, {
-        success: results.success.length,
-        failed: results.failed.length,
-      });
-      if (results.success.length > 0) {
-        this.recentRulePresets = await recordRecentRulePreset(this.ruleConfig);
+        if (this.executorState !== ExecutorState.CANCELLED) {
+          await crashRecovery.clearOperationState();
+        }
+      } catch (error) {
+        const errorObj = error instanceof Error ? error : new Error(String(error));
+        this.error = errorObj.message;
+        logger.error('[FileSelectorPanel] Execution failed:', errorObj);
       }
-
-      this.applyExecutionResults(results);
-      this.updateLastRenameOperationFromExecute(results);
-      await this.syncDiagnosticSnapshotFromExecution();
-      void this.syncAfterRename();
-
-      if (this.executorState !== ExecutorState.CANCELLED) {
-        await crashRecovery.clearOperationState();
-      }
-    } catch (error) {
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      this.error = errorObj.message;
-      logger.error('[FileSelectorPanel] Execution failed:', errorObj);
     } finally {
       this.executing = false;
     }
@@ -1400,6 +1402,11 @@ export class FileSelectorPanel extends LitElement {
       this.syncMessage = null;
 
       const result = await this.adapter.syncAfterRename(renames);
+      if (result.success && result.method === 'none') {
+        this.syncStatus = 'idle';
+        this.syncMessage = null;
+        return;
+      }
       this.syncStatus = result.success ? 'success' : 'failed';
       this.syncMessage = result.success ? null : result.message || null;
     } catch (error) {

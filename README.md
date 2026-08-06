@@ -189,17 +189,17 @@ cd cloud-drive-renamer
 #### 2. 安装依赖
 
 ```bash
-npm install
+pnpm install
 ```
 
 #### 3. 构建扩展
 
 ```bash
 # 开发模式（支持热重载）
-npm run dev
+pnpm run dev
 
 # 生产构建
-npm run build
+pnpm run build
 ```
 
 #### 4. 加载到浏览器
@@ -447,13 +447,13 @@ src/
 #### 1. 安装依赖
 
 ```bash
-npm install
+pnpm install
 ```
 
 #### 2. 启动开发模式
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 开发模式支持热重载，修改代码后自动重新构建。
@@ -462,13 +462,13 @@ npm run dev
 
 ```bash
 # 代码规范检查
-npm run lint
+pnpm run lint
 
 # 自动修复代码问题
-npm run lint:fix
+pnpm run lint:fix
 
 # TypeScript 类型检查
-npm run typecheck
+pnpm run typecheck
 ```
 
 #### 4. 运行测试
@@ -478,13 +478,13 @@ npm run typecheck
 npm test
 
 # 测试覆盖率
-npm run test:coverage
+pnpm run test:coverage
 
 # E2E 测试
-npm run test:e2e
+pnpm run test:e2e
 
 # E2E 测试（可视化模式）
-npm run test:e2e:ui
+pnpm run test:e2e:ui
 ```
 
 ### 扩展新平台
@@ -737,7 +737,7 @@ test('should open file selector panel on Quark drive', async ({ page }) => {
 
 **PR 要求**：
 - 通过所有测试：`npm test`
-- 代码规范检查：`npm run lint`
+- 代码规范检查：`pnpm run lint`
 - 添加必要的测试用例
 - 更新相关文档
 

@@ -8,8 +8,8 @@
 #   - 推送格式为 v*.*.* 的 Git 标签（如 v0.1.0, v1.2.3）
 #
 # 工作流程：
-#   1. 环境准备：检出代码，设置 Node.js 环境
-#   2. 依赖安装：使用 npm ci 安装锁定版本的依赖
+#   1. 环境准备：检出代码，设置 Node.js / pnpm 环境
+#   2. 依赖安装：使用 pnpm install --frozen-lockfile 安装锁定版本的依赖
 #   3. 质量检查：运行测试、类型检查、代码检查
 #   4. 构建打包：编译扩展并创建 ZIP 发布包
 #   5. 发布分发：创建 GitHub Release 并附加发布文件
@@ -59,25 +59,33 @@ jobs:
           fetch-depth: 0  # 获取完整 Git 历史（用于生成变更日志）
 
       # ------------------------------------------
-      # 步骤 2: 设置 Node.js 环境
+      # 步骤 2: 设置 pnpm
+      # ------------------------------------------
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      # ------------------------------------------
+      # 步骤 3: 设置 Node.js 环境
       # ------------------------------------------
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'  # 启用 npm 缓存加速
+          cache: 'pnpm'  # 启用 pnpm 缓存加速
 
       # ------------------------------------------
-      # 步骤 3: 安装依赖
+      # 步骤 4: 安装依赖
       # ------------------------------------------
       - name: 📦 Install dependencies
-        run: npm ci  # 使用 ci 而非 install 确保可重现性
+        run: pnpm install --frozen-lockfile  # 使用 lockfile 确保可重现性
 
       # ------------------------------------------
-      # 步骤 4: 运行完整 CI 流程（质量检查 + 构建）
+      # 步骤 5: 运行完整 CI 流程（质量检查 + 构建）
       # ------------------------------------------
       - name: 🚀 Run complete CI pipeline
-        run: npm run ci
+        run: pnpm run ci
         continue-on-error: false  # 质量检查失败则中止发布
 
       # ------------------------------------------

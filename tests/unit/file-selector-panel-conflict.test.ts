@@ -11,6 +11,7 @@ type FileSelectorPanelConflictHarness = FileSelectorPanel & {
   uncheckList: Set<string>;
   extractErrorMap: Map<string, string>;
   handleExecute(): Promise<void>;
+  syncStatus: 'idle' | 'syncing' | 'success' | 'failed';
   executionItems: Array<{ file: FileItem; newName: string }>;
   open: boolean;
   updateComplete: Promise<void>;
@@ -145,6 +146,58 @@ describe('FileSelectorPanel conflict execution flow', () => {
 
     expect(adapter.checkNameConflict).toHaveBeenCalledTimes(1);
     expect(adapter.checkNameConflict).toHaveBeenCalledWith('TTTtile-board.png', 'root');
+  });
+
+  it('keeps sync status neutral when adapter reports no visible rows to sync', async () => {
+    const adapter = new ConflictTestAdapter();
+    adapter.syncAfterRename = vi.fn(async () => ({
+      success: true,
+      method: 'none' as const,
+      message: 'no visible rows',
+    }));
+
+    const panel = new FileSelectorPanel() as FileSelectorPanelConflictHarness;
+    panel.adapter = adapter;
+    panel.allFiles = [files[0]];
+    panel.uncheckList = new Set();
+    panel.extractErrorMap = new Map();
+    panel.newNameMap = new Map([['1', 'TTTtile-board.png']]);
+
+    await panel.handleExecute();
+
+    await vi.waitFor(() => {
+      expect(adapter.syncAfterRename).toHaveBeenCalledTimes(1);
+      expect(panel.syncStatus).toBe('idle');
+    });
+  });
+
+  it('prevents a second execute while conflict detection is still pending', async () => {
+    const adapter = new ConflictTestAdapter();
+    let resolveConflictCheck: ((value: boolean) => void) | undefined;
+    adapter.checkNameConflict.mockImplementationOnce(
+      () => new Promise<boolean>((resolve) => {
+        resolveConflictCheck = resolve;
+      })
+    );
+
+    const panel = new FileSelectorPanel() as FileSelectorPanelConflictHarness;
+    panel.adapter = adapter;
+    panel.allFiles = [files[0]];
+    panel.uncheckList = new Set();
+    panel.extractErrorMap = new Map();
+    panel.newNameMap = new Map([['1', 'TTTtile-board.png']]);
+
+    const firstExecute = panel.handleExecute();
+    await Promise.resolve();
+
+    const secondExecute = panel.handleExecute();
+    await Promise.resolve();
+
+    expect(adapter.checkNameConflict).toHaveBeenCalledTimes(1);
+
+    resolveConflictCheck?.(false);
+    await firstExecute;
+    await secondExecute;
   });
 
   it('continues execution when unchanged files would only conflict with themselves', async () => {
