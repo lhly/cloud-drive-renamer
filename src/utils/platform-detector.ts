@@ -92,6 +92,9 @@ export function detectPlatformFromUrl(url: string, pathname?: string): PlatformN
     } catch {
       mode = null;
     }
+    if (pathToCheck === '/') {
+      return '115';
+    }
     if ((pathToCheck === '/storage/netdisk' || pathToCheck === '/storage/allfiles') && mode === 'wangpan') {
       return '115';
     }

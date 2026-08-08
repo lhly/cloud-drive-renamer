@@ -186,10 +186,18 @@ describe('Platform Detection - Unified Utils', () => {
         expect(result).toBe('115');
       });
 
-      it('should ignore unsupported 115 pages', () => {
+      it('should detect 115 Drive entry pages so the floating button can initialize before SPA navigation', () => {
         const result = detectPlatformFromUrl(
           'https://115.com/',
           '/'
+        );
+        expect(result).toBe('115');
+      });
+
+      it('should ignore unsupported 115 pages', () => {
+        const result = detectPlatformFromUrl(
+          'https://115.com/account/settings',
+          '/account/settings'
         );
         expect(result).toBeNull();
       });

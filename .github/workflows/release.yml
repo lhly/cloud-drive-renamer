@@ -215,9 +215,14 @@ jobs:
           echo "" >> CHANGELOG.txt
           echo "## 🔗 Supported Cloud Drives" >> CHANGELOG.txt
           echo "" >> CHANGELOG.txt
-          echo "- 🌐 Quark (夸克网盘)" >> CHANGELOG.txt
+          echo "- 🗂️ 115 Drive (115网盘)" >> CHANGELOG.txt
+          echo "- 📦 123Pan (123云盘)" >> CHANGELOG.txt
           echo "- ☁️ Aliyun Drive (阿里云盘)" >> CHANGELOG.txt
           echo "- 🎯 Baidu Pan (百度网盘)" >> CHANGELOG.txt
+          echo "- 📱 CMCC Drive (移动云盘)" >> CHANGELOG.txt
+          echo "- 🌥️ Esurfing Cloud (天翼云盘)" >> CHANGELOG.txt
+          echo "- 🌐 Quark Drive (夸克网盘)" >> CHANGELOG.txt
+          echo "- 🧭 UC Drive (UC网盘)" >> CHANGELOG.txt
 
           cat CHANGELOG.txt
 

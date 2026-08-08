@@ -1,6 +1,6 @@
 # 隐私政策 / Privacy Policy
 
-**最后更新日期 / Last Updated**: 2025年12月16日 / December 16, 2025
+**最后更新日期 / Last Updated**: 2026年8月8日 / August 8, 2026
 
 **版本 / Version**: 1.0
 
@@ -14,9 +14,9 @@
 
 ### 核心原则
 
-**我们不收集、不存储、不传输任何用户数据。**
+**我们不会收集用户数据，也不会将您的文件名、账号信息或使用数据传输到开发者服务器。**
 
-本扩展的所有操作均在您的浏览器本地完成，不会与任何外部服务器通信。
+本扩展的所有配置、预览和任务状态处理均在您的浏览器本地完成，不会与开发者服务器通信。执行重命名时，扩展只会直接调用您正在使用的网盘平台官方 API。
 
 ### 信息收集
 
@@ -28,7 +28,7 @@
 - ❌ 云盘账号信息
 - ❌ 文件名或文件内容
 - ❌ 浏览历史或使用习惯
-- ❌ IP地址或设备信息
+- ❌ IP 地址或设备信息
 - ❌ 任何其他个人数据
 
 #### 本地存储的数据
@@ -69,19 +69,30 @@
 
 本扩展请求访问以下网站的权限：
 
-- `https://pan.quark.cn/*` - 夸克网盘
-- `https://www.aliyundrive.com/*` - 阿里云盘
-- `https://pan.baidu.com/*` - 百度网盘
+- `https://115.com/*` - 115 网盘页面
+- `https://webapi.115.com/*` - 115 网盘 API
+- `https://www.123pan.com/*` - 123 云盘页面与 API
+- `https://www.aliyundrive.com/*` - 阿里云盘页面
+- `https://www.alipan.com/*` - 阿里云盘页面
+- `https://api.aliyundrive.com/*` - 阿里云盘 API
+- `https://pan.baidu.com/*` - 百度网盘页面与 API
+- `https://yun.139.com/*` - 移动云盘页面
+- `https://personal-kd-njs.yun.139.com/*` - 移动云盘 API
+- `https://cloud.189.cn/*` - 天翼云盘页面与 API
+- `https://pan.quark.cn/*` - 夸克网盘页面与 API
+- `https://drive.uc.cn/*` - UC 网盘页面
+- `https://pan.uc.cn/*` - UC 网盘页面
+- `https://pc-api.uc.cn/*` - UC 网盘 API
 
 **用途**：
 - 在这些网站的页面中注入重命名工具的用户界面
-- 调用这些网站的API来执行重命名操作
+- 调用这些网站的 API 来执行重命名操作
 - 检测文件选择状态
 
 **限制**：
 - 不会访问您的文件内容
 - 不会读取您的账号信息
-- 仅在您主动使用重命名功能时才会调用API
+- 仅在您主动使用重命名功能时才会调用 API
 
 ### 数据安全
 
@@ -107,7 +118,7 @@
 
 ### 第三方服务
 
-本扩展**不使用任何第三方服务**，不会与任何外部服务器通信。
+本扩展**不使用任何第三方服务**，不会与开发者服务器或中间服务器通信。
 
 唯一的网络请求是直接调用云盘网站的官方API，这些请求：
 
@@ -163,9 +174,9 @@ CloudDrive Renamer ("the Extension") is committed to protecting user privacy. Th
 
 ### Core Principles
 
-**We do not collect, store, or transmit any user data.**
+**We do not collect user data or transmit your file names, account information, or usage data to developer servers.**
 
-All operations of the Extension are performed locally in your browser and do not communicate with any external servers.
+All configuration, preview, and task status processing is performed locally in your browser and does not communicate with developer servers. When you execute renaming, the Extension only calls the official API of the cloud drive platform you are using directly.
 
 ### Information Collection
 
@@ -218,9 +229,20 @@ The Extension requests the following permissions and explains their purposes:
 
 The Extension requests access to the following websites:
 
-- `https://pan.quark.cn/*` - Quark Drive
-- `https://www.aliyundrive.com/*` - Aliyun Drive (planned support)
-- `https://pan.baidu.com/*` - Baidu Cloud Drive (planned support)
+- `https://115.com/*` - 115 Drive pages
+- `https://webapi.115.com/*` - 115 Drive API
+- `https://www.123pan.com/*` - 123Pan pages and API
+- `https://www.aliyundrive.com/*` - Aliyun Drive pages
+- `https://www.alipan.com/*` - Aliyun Drive pages
+- `https://api.aliyundrive.com/*` - Aliyun Drive API
+- `https://pan.baidu.com/*` - Baidu Cloud Drive pages and API
+- `https://yun.139.com/*` - CMCC Drive pages
+- `https://personal-kd-njs.yun.139.com/*` - CMCC Drive API
+- `https://cloud.189.cn/*` - Esurfing Cloud pages and API
+- `https://pan.quark.cn/*` - Quark Drive pages and API
+- `https://drive.uc.cn/*` - UC Drive pages
+- `https://pan.uc.cn/*` - UC Drive pages
+- `https://pc-api.uc.cn/*` - UC Drive API
 
 **Purpose**:
 - Inject rename tool user interface into these website pages
@@ -256,7 +278,7 @@ The Extension **does not use** any of the following technologies:
 
 ### Third-Party Services
 
-The Extension **does not use any third-party services** and does not communicate with any external servers.
+The Extension **does not use any third-party services** and does not communicate with developer servers or intermediate servers.
 
 The only network requests are direct calls to cloud drive websites' official APIs. These requests:
 

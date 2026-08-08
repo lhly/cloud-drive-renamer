@@ -16,7 +16,7 @@
 
 **核心推荐**：
 ```
-rename, batch rename, file rename, cloud drive, quark drive, file management, productivity
+rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, quark drive, file management, productivity
 ```
 
 **完整列表**（可选择性使用）：
@@ -35,7 +35,7 @@ rename, batch rename, file rename, cloud drive, quark drive, file management, pr
 
 虽然Edge主要使用英文关键词，但如果支持中文商店，可以考虑：
 ```
-重命名, 批量重命名, 文件重命名, 云盘, 网盘, 夸克网盘, 文件管理, 批量操作, 效率工具
+重命名, 批量重命名, 文件重命名, 云盘, 网盘, 115网盘, 123云盘, 阿里云盘, 百度网盘, 移动云盘, 天翼云盘, 夸克网盘, UC网盘, 文件管理, 批量操作, 效率工具
 ```
 
 ### 关键词策略
@@ -89,7 +89,7 @@ Edge允许使用**短语关键词**：
 3. **覆盖不同搜索意图**
    - 功能词：rename, batch
    - 场景词：file management, productivity
-   - 平台词：cloud drive, quark
+   - 平台词：cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, quark drive
 
 #### ❌ 不应该做的
 
@@ -131,7 +131,7 @@ rename, batch rename, file rename, cloud drive, file management, productivity
 
 **备选方案**（如果需要更具体）：
 ```
-batch rename, cloud drive, quark drive, file management, bulk operations
+batch rename, cloud drive, 115 drive, 123pan, quark drive, file management, bulk operations
 ```
 
 ---
@@ -189,7 +189,7 @@ batch rename, cloud drive, quark drive, file management, bulk operations
 - 中国香港
 - 日本、韩国
 
-**理由**：夸克网盘主要用户群在亚太地区
+**理由**：扩展已覆盖多个国内主流网盘平台，全球发布可以覆盖更多使用 Chrome / Edge 的中文与英文用户。
 
 **注意**：全球发布可以覆盖所有用户，除非有特殊的合规或业务需求。
 
@@ -207,7 +207,7 @@ batch rename, cloud drive, quark drive, file management, bulk operations
 ```
 一款强大的云盘文件批量重命名工具，专为提升文件管理效率而设计。
 
-支持夸克网盘、阿里云盘、百度网盘，提供6种智能重命名规则：替换、正则替换、前缀、后缀、编号、清理。所有操作在本地完成，不收集任何数据。
+支持 115 网盘、123 云盘、阿里云盘、百度网盘、移动云盘、天翼云盘、夸克网盘、UC 网盘，提供 6 种智能重命名规则：替换、正则替换、前缀、后缀、编号、清理。所有操作在本地完成，不收集任何数据。
 ```
 
 **为什么好**：
@@ -224,9 +224,14 @@ batch rename, cloud drive, quark drive, file management, bulk operations
 ✨ 核心特性
 
 🎯 多平台支持
-• 夸克网盘 - 完全支持
-• 阿里云盘 - 完全支持
-• 百度网盘 - 完全支持
+• 115 网盘 - 支持文件批量重命名
+• 123 云盘 - 支持文件批量重命名
+• 阿里云盘 - 支持文件批量重命名
+• 百度网盘 - 支持文件批量重命名
+• 移动云盘 - 支持文件批量重命名
+• 天翼云盘 - 支持文件批量重命名
+• 夸克网盘 - 支持文件批量重命名
+• UC 网盘 - 支持文件批量重命名
 
 🔧 六大重命名规则
 1. 替换规则 - 批量替换特定文本
@@ -377,7 +382,7 @@ Productivity
 
 #### Search Terms（搜索关键词）
 ```
-rename, batch rename, file rename, cloud drive, file management, productivity
+rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, quark drive, file management, productivity
 ```
 
 #### Logo（图标）
@@ -394,7 +399,7 @@ rename, batch rename, file rename, cloud drive, file management, productivity
 
 #### Short Description（简短描述）
 ```
-强大的批量重命名工具，支持夸克网盘、阿里云盘、百度网盘文件批量重命名
+支持 115、123、阿里、百度、移动、天翼、夸克、UC 网盘的批量重命名工具
 ```
 
 #### Long Description（详细描述）

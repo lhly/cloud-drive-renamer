@@ -90,7 +90,7 @@ cd ..
 
 2. **Summary（简短描述）**
    ```
-   强大的批量重命名工具，支持夸克网盘、阿里云盘、百度网盘文件批量重命名
+   支持 115、123、阿里、百度、移动、天翼、夸克、UC 网盘的批量重命名工具
    ```
 
 3. **Category（分类）**
@@ -195,7 +195,7 @@ cd ..
 
 3. **Search terms（搜索词）**
    ```
-   文件重命名, 批量重命名, 云盘, Quark Drive, Rename, Batch Operations
+   文件重命名, 批量重命名, 云盘, 115 Drive, 123Pan, Aliyun Drive, Baidu Cloud, Quark Drive, Rename, Batch Operations
    ```
 
 4. **Logo（标志）**
@@ -217,7 +217,7 @@ cd ..
 
 3. **Short description（简短描述）**
    ```
-   强大的批量重命名工具，支持夸克网盘、阿里云盘、百度网盘文件批量重命名
+   支持 115、123、阿里、百度、移动、天翼、夸克、UC 网盘的批量重命名工具
    ```
 
 4. **Long description（详细描述）**

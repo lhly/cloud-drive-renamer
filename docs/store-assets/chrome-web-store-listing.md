@@ -7,8 +7,8 @@
 - **英文**: CloudDrive Renamer
 
 ### 简短描述 (132字符以内)
-- **中文**: 强大的批量重命名工具，支持夸克网盘、阿里云盘、百度网盘，并支持正则替换规则
-- **英文**: Powerful batch renaming tool for Quark Drive, Aliyun Drive, and Baidu Cloud Drive with regex replace support
+- **中文**: 支持 115、123、阿里、百度、移动、天翼、夸克、UC 网盘的批量重命名工具
+- **英文**: Batch rename files across 115 Drive, 123Pan, Aliyun, Baidu, CMCC, Esurfing, Quark, and UC Drive
 
 ### 详细描述
 
@@ -19,9 +19,14 @@
 ✨ 核心特性
 
 🎯 多平台支持
-• 夸克网盘 - 完全支持，可立即使用
-• 阿里云盘 - 完全支持，可立即使用
-• 百度网盘 - 完全支持，可立即使用
+• 115 网盘 - 支持文件批量重命名
+• 123 云盘 - 支持文件批量重命名
+• 阿里云盘 - 支持文件批量重命名
+• 百度网盘 - 支持文件批量重命名
+• 移动云盘 - 支持文件批量重命名
+• 天翼云盘 - 支持文件批量重命名
+• 夸克网盘 - 支持文件批量重命名
+• UC 网盘 - 支持文件批量重命名
 
 🔧 六大重命名规则
 1. 替换规则 - 批量替换文件名中的特定文本
@@ -64,9 +69,14 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
 ✨ Core Features
 
 🎯 Multi-Platform Support
-• Quark Drive - Fully supported, ready to use
-• Aliyun Drive - Fully supported, ready to use
-• Baidu Cloud Drive - Fully supported, ready to use
+• 115 Drive - Batch rename support
+• 123Pan - Batch rename support
+• Aliyun Drive - Batch rename support
+• Baidu Cloud Drive - Batch rename support
+• CMCC Drive - Batch rename support
+• Esurfing Cloud - Batch rename support
+• Quark Drive - Batch rename support
+• UC Drive - Batch rename support
 
 🔧 Six Renaming Rules
 1. Replace - Batch replace specific text in file names
@@ -135,9 +145,20 @@ This project is open-sourced under MIT License. Contributions and suggestions ar
 1. **storage** - 保存用户的规则配置和崩溃恢复数据
 2. **tabs** - 检测当前标签页URL以确定使用的云盘平台
 3. **host_permissions** - 访问以下网站：
-   - https://pan.quark.cn/* - 夸克网盘
-   - https://www.aliyundrive.com/* - 阿里云盘
-   - https://pan.baidu.com/* - 百度网盘
+   - https://115.com/* - 115 网盘页面
+   - https://webapi.115.com/* - 115 网盘 API
+   - https://www.123pan.com/* - 123 云盘页面与 API
+   - https://www.aliyundrive.com/* - 阿里云盘页面
+   - https://www.alipan.com/* - 阿里云盘页面
+   - https://api.aliyundrive.com/* - 阿里云盘 API
+   - https://pan.baidu.com/* - 百度网盘页面与 API
+   - https://yun.139.com/* - 移动云盘页面
+   - https://personal-kd-njs.yun.139.com/* - 移动云盘 API
+   - https://cloud.189.cn/* - 天翼云盘页面与 API
+   - https://pan.quark.cn/* - 夸克网盘页面与 API
+   - https://drive.uc.cn/* - UC 网盘页面
+   - https://pan.uc.cn/* - UC 网盘页面
+   - https://pc-api.uc.cn/* - UC 网盘 API
 
 ### 权限用途说明
 ```
@@ -148,7 +169,7 @@ This project is open-sourced under MIT License. Contributions and suggestions ar
    所有数据仅存储在您的浏览器中，不会上传到任何服务器。
 
 2. 标签页权限 (tabs):
-   用于识别您当前访问的云盘平台（夸克/阿里/百度），以加载对应的功能模块。
+   用于识别您当前访问的云盘平台，以加载对应的功能模块。
    不会读取或记录您访问的其他网站。
 
 3. 网站访问权限:

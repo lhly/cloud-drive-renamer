@@ -1,7 +1,7 @@
 {
   "name": "cloud-drive-renamer",
-  "version": "1.0.5",
-  "description": "批量重命名工具，支持夸克网盘、阿里云盘、百度网盘",
+  "version": "1.5.0",
+  "description": "云盘文件批量重命名工具，支持 115 网盘、123 云盘、阿里云盘、百度网盘、移动云盘、天翼云盘、夸克网盘、UC 网盘",
   "type": "module",
   "scripts": {
     "dev": "pnpm run sync:version && vite",
@@ -24,10 +24,16 @@
   "keywords": [
     "chrome-extension",
     "rename",
+    "batch-rename",
     "cloud-drive",
-    "quark",
+    "115",
+    "123pan",
     "aliyun",
-    "baidu"
+    "baidu",
+    "cmcc",
+    "esurfing",
+    "quark",
+    "uc"
   ],
   "author": "CloudDrive Renamer Team",
   "license": "MIT",

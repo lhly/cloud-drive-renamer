@@ -7,8 +7,8 @@
 - **英文**: CloudDrive Renamer
 
 ### 简短描述 (不超过150字符)
-- **中文**: 强大的批量重命名工具，支持夸克网盘、阿里云盘、百度网盘，并支持正则替换规则
-- **英文**: Powerful batch renaming tool for Quark Drive, Aliyun Drive, and Baidu Cloud Drive with regex replace support
+- **中文**: 支持 115、123、阿里、百度、移动、天翼、夸克、UC 网盘的批量重命名工具
+- **英文**: Batch rename files across 115 Drive, 123Pan, Aliyun, Baidu, CMCC, Esurfing, Quark, and UC Drive
 
 ### 完整描述
 
@@ -19,9 +19,14 @@
 ✨ 核心特性
 
 🎯 多平台支持
-• 夸克网盘 - 完全支持，可立即使用
-• 阿里云盘 - 完全支持，可立即使用
-• 百度网盘 - 完全支持，可立即使用
+• 115 网盘 - 支持文件批量重命名
+• 123 云盘 - 支持文件批量重命名
+• 阿里云盘 - 支持文件批量重命名
+• 百度网盘 - 支持文件批量重命名
+• 移动云盘 - 支持文件批量重命名
+• 天翼云盘 - 支持文件批量重命名
+• 夸克网盘 - 支持文件批量重命名
+• UC 网盘 - 支持文件批量重命名
 
 🔧 六大重命名规则
 1. 替换规则 - 批量替换文件名中的特定文本，支持大小写敏感和全局替换
@@ -87,9 +92,14 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
 ✨ Core Features
 
 🎯 Multi-Platform Support
-• Quark Drive - Fully supported and ready to use
-• Aliyun Drive - Fully supported and ready to use
-• Baidu Cloud Drive - Fully supported and ready to use
+• 115 Drive - Batch rename support
+• 123Pan - Batch rename support
+• Aliyun Drive - Batch rename support
+• Baidu Cloud Drive - Batch rename support
+• CMCC Drive - Batch rename support
+• Esurfing Cloud - Batch rename support
+• Quark Drive - Batch rename support
+• UC Drive - Batch rename support
 
 🔧 Six Powerful Renaming Rules
 1. Replace - Batch replace specific text with case-sensitive and global options
@@ -159,17 +169,17 @@ Edge Add-ons允许添加搜索关键词以提高扩展的可发现性。
 
 **推荐关键词（英文）**：
 ```
-rename, batch rename, file rename, cloud drive, cloud storage, quark drive, file management, bulk rename, batch operations, productivity
+rename, batch rename, file rename, cloud drive, cloud storage, 115 drive, 123pan, aliyun drive, baidu cloud, quark drive, file management, bulk rename, batch operations, productivity
 ```
 
 **推荐关键词（中文）**：
 ```
-重命名, 批量重命名, 文件重命名, 云盘, 网盘, 夸克网盘, 文件管理, 批量操作, 效率工具
+重命名, 批量重命名, 文件重命名, 云盘, 网盘, 115网盘, 123云盘, 阿里云盘, 百度网盘, 移动云盘, 天翼云盘, 夸克网盘, UC网盘, 文件管理, 批量操作, 效率工具
 ```
 
 **关键词策略说明**：
 - 核心功能词：rename, batch rename, file rename（重命名、批量重命名）
-- 平台相关：cloud drive, quark drive（云盘、夸克网盘）
+- 平台相关：cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, quark drive（云盘及主流网盘平台）
 - 使用场景：file management, productivity（文件管理、效率）
 - 操作类型：batch operations, bulk operations（批量操作）
 
@@ -224,9 +234,20 @@ rename, batch rename, file rename, cloud drive, cloud storage, quark drive, file
 |------|------|---------|
 | storage | 存储配置 | 在浏览器本地保存用户的重命名规则配置和任务状态，不会上传到任何服务器 |
 | tabs | 平台识别 | 识别当前访问的云盘平台，加载对应的功能模块，不读取其他网站数据 |
-| https://pan.quark.cn/* | 夸克网盘 | 在夸克网盘页面注入重命名工具界面和调用API |
-| https://www.aliyundrive.com/* | 阿里云盘 | 为未来的阿里云盘支持预留权限 |
-| https://pan.baidu.com/* | 百度网盘 | 为未来的百度网盘支持预留权限 |
+| https://115.com/* | 115 网盘 | 在 115 网盘页面注入重命名工具界面 |
+| https://webapi.115.com/* | 115 网盘 API | 调用 115 网盘 API 执行文件列表读取和重命名 |
+| https://www.123pan.com/* | 123 云盘 | 在 123 云盘页面注入界面并调用 API |
+| https://www.aliyundrive.com/* | 阿里云盘 | 在阿里云盘页面注入重命名工具界面 |
+| https://www.alipan.com/* | 阿里云盘 | 支持新版阿里云盘页面域名 |
+| https://api.aliyundrive.com/* | 阿里云盘 API | 调用阿里云盘 API 执行重命名 |
+| https://pan.baidu.com/* | 百度网盘 | 在百度网盘页面注入界面并调用 API |
+| https://yun.139.com/* | 移动云盘 | 在移动云盘页面注入重命名工具界面 |
+| https://personal-kd-njs.yun.139.com/* | 移动云盘 API | 调用移动云盘 API 执行文件列表读取和重命名 |
+| https://cloud.189.cn/* | 天翼云盘 | 在天翼云盘页面注入界面并调用 API |
+| https://pan.quark.cn/* | 夸克网盘 | 在夸克网盘页面注入界面并调用 API |
+| https://drive.uc.cn/* | UC 网盘 | 在 UC 网盘页面注入重命名工具界面 |
+| https://pan.uc.cn/* | UC 网盘 | 支持 UC 网盘备用页面域名 |
+| https://pc-api.uc.cn/* | UC 网盘 API | 调用 UC 网盘 API 执行重命名 |
 
 ### 数据使用说明
 ```
@@ -267,8 +288,8 @@ rename, batch rename, file rename, cloud drive, cloud storage, quark drive, file
 - **功能建议**: https://github.com/lhly/cloud-drive-renamer/discussions
 
 ### 版本历史
-- **当前版本**: 0.4.1
-- **更新日期**: 2025年
+- **当前版本**: 1.5.0
+- **更新日期**: 2026年
 
 ## 定价和分发
 
