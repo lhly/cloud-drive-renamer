@@ -143,8 +143,11 @@ describe('PreviewPanel episode assist bridge', () => {
     const prevButton = panel.shadowRoot?.querySelector<HTMLButtonElement>('[data-role="episode-assist-prev-failure"]');
     const nextButton = panel.shadowRoot?.querySelector<HTMLButtonElement>('[data-role="episode-assist-next-failure"]');
 
-    expect(summary?.textContent).toContain('3');
+    const label = panel.shadowRoot?.querySelector('[data-role="episode-assist-failure-nav-summary"] .failure-nav-label');
+    expect(label?.textContent).not.toContain('3');
     expect(summary?.textContent).toContain('2 / 3');
+    expect(panel.shadowRoot?.querySelector('[data-role="episode-assist-failure-nav-summary"] .failure-nav-count')).toBeNull();
+    expect(panel.shadowRoot?.querySelector('[data-role="episode-assist-failure-nav-summary"] .failure-nav-position')).toBeTruthy();
     expect(prevButton?.disabled).toBe(false);
     expect(nextButton?.disabled).toBe(false);
 

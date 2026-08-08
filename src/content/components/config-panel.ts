@@ -137,6 +137,18 @@ export class ConfigPanel extends LitElement {
   private selectedRuleType: RuleType = 'replace';
 
   /**
+   * Currently active preset tab.
+   */
+  @state()
+  private activePresetTab: 'config' | 'recent' | 'templates' = 'config';
+
+  /**
+   * Rule panel currently expanded in the accordion.
+   */
+  @state()
+  private expandedRuleType: RuleType | null = null;
+
+  /**
    * Rule parameters configuration
    */
   @state()
@@ -172,6 +184,18 @@ export class ConfigPanel extends LitElement {
    * @private
    */
   private handleRuleChange(type: RuleType): void {
+    if (this.expandedRuleType === type) {
+      this.expandedRuleType = null;
+      return;
+    }
+
+    this.expandedRuleType = type;
+
+    if (this.selectedRuleType === type) {
+      void this.scrollRulePanelIntoViewAfterUpdate(type);
+      return;
+    }
+
     this.selectedRuleType = type;
     this.regexValidationError = null;
 
@@ -223,12 +247,55 @@ export class ConfigPanel extends LitElement {
 
     this.validateRegexIfNeeded();
     this.emitConfigChange();
+    void this.scrollRulePanelIntoViewAfterUpdate(type);
+  }
+
+  private async scrollRulePanelIntoViewAfterUpdate(type: RuleType): Promise<void> {
+    await this.updateComplete;
+    this.scrollRulePanelIntoView(type);
+  }
+
+  private scrollRulePanelIntoView(type: RuleType): void {
+    const panelBody = this.renderRoot.querySelector<HTMLElement>('.panel-body');
+    const rulePanel = this.renderRoot.querySelector<HTMLElement>(`[data-rule-panel-type="${type}"]`);
+    if (!panelBody || !rulePanel) return;
+
+    const panelBodyRect = panelBody.getBoundingClientRect();
+    const rulePanelRect = rulePanel.getBoundingClientRect();
+    const topMargin = 8;
+    const bottomMargin = 16;
+    const panelTop = panelBody.scrollTop + rulePanelRect.top - panelBodyRect.top;
+    const panelBottom = panelTop + rulePanelRect.height;
+    const visibleTop = panelBody.scrollTop + topMargin;
+    const visibleBottom = panelBody.scrollTop + panelBody.clientHeight - bottomMargin;
+
+    let nextScrollTop = panelBody.scrollTop;
+    if (rulePanelRect.height + topMargin + bottomMargin >= panelBody.clientHeight) {
+      nextScrollTop = panelTop - topMargin;
+    } else if (panelTop < visibleTop) {
+      nextScrollTop = panelTop - topMargin;
+    } else if (panelBottom > visibleBottom) {
+      nextScrollTop = panelBottom - panelBody.clientHeight + bottomMargin;
+    }
+
+    nextScrollTop = Math.max(0, Math.round(nextScrollTop));
+    if (nextScrollTop !== panelBody.scrollTop) {
+      panelBody.scrollTo({ top: nextScrollTop, behavior: 'smooth' });
+    }
   }
 
   private handleApplyPreset(record: RulePresetRecord): void {
     if (!isRulePresetConfigValid(record.config)) {
       return;
     }
+
+    this.activePresetTab = 'config';
+    this.selectedRuleType = record.config.type;
+    this.expandedRuleType = record.config.type;
+    this.ruleParams = { ...record.config.params };
+    this.regexValidationError = null;
+    this.validateRegexIfNeeded();
+    void this.scrollRulePanelIntoViewAfterUpdate(record.config.type);
 
     this.dispatchEvent(
       new CustomEvent('apply-rule-preset', {
@@ -266,6 +333,41 @@ export class ConfigPanel extends LitElement {
         composed: true,
       })
     );
+  }
+
+  private renderPresetList(source: 'recent' | 'templates') {
+    const records = source === 'recent' ? this.recentRulePresets.slice(0, 5) : this.templateRulePresets;
+    const deletable = source === 'templates';
+    const emptyMessage =
+      source === 'recent' ? I18nService.t('rule_preset_recent_empty') : I18nService.t('rule_preset_templates_empty');
+
+    return html`
+      <div class="preset-list">
+        ${records.length
+          ? records.map((record) => this.renderPresetItem(record, deletable))
+          : html`<div class="preset-empty">${emptyMessage}</div>`}
+      </div>
+    `;
+  }
+
+  private renderRulePanelFooter(ruleType: RuleType, isExpanded: boolean) {
+    if (!isExpanded) {
+      return html``;
+    }
+
+    const canSaveTemplate = this.selectedRuleType === ruleType;
+    return html`
+      <div class="rule-panel-footer">
+        <button
+          class="text-action-button rule-panel-save-button"
+          data-role="save-template-button"
+          ?disabled=${!canSaveTemplate}
+          @click=${this.handleSaveTemplate}
+        >
+          ${I18nService.t('rule_preset_save_button')}
+        </button>
+      </div>
+    `;
   }
 
   private handleSaveTemplate(): void {
@@ -440,9 +542,7 @@ export class ConfigPanel extends LitElement {
         </div>
 
         <div class="panel-body">
-          ${showExecutionView
-            ? this.renderExecutionView()
-            : html`${this.renderRuleSelector()}${this.renderRuleConfig()}${this.renderEpisodeExtractAssist()}${this.renderRulePresets()}`}
+          ${showExecutionView ? this.renderExecutionView() : this.renderRulePresets()}
         </div>
 
         <div class="panel-footer">
@@ -765,7 +865,7 @@ export class ConfigPanel extends LitElement {
    * Render rule selector
    * @private
    */
-  private renderRuleSelector() {
+  private renderRulePanels() {
     const rules: { type: RuleType; label: string }[] = [
       { type: 'replace', label: I18nService.t('rule_replace') },
       { type: 'regex', label: I18nService.t('rule_regex') },
@@ -776,65 +876,132 @@ export class ConfigPanel extends LitElement {
       { type: 'episodeExtract', label: I18nService.t('rule_episode_extract') },
     ];
 
+    const expandedRule = this.expandedRuleType;
+    const renderParams = (ruleType: RuleType) => {
+      if (expandedRule !== ruleType) return html``;
+      return this.renderRuleParams(ruleType);
+    };
+
     return html`
-      <div class="rule-selector">
-        <div class="section-title">${I18nService.t('rule_selector_title')}</div>
-        <div class="rule-options">
-          ${rules.map(
-            rule => html`
-              <label class="rule-option ${this.selectedRuleType === rule.type ? 'selected' : ''}">
-                <input
-                  type="radio"
-                  name="rule"
-                  value=${rule.type}
-                  ?checked=${this.selectedRuleType === rule.type}
-                  @change=${() => this.handleRuleChange(rule.type)}
-                />
-                <div>${rule.label}</div>
-              </label>
-            `
-          )}
+      <div class="rule-panels">
+        <div class="rule-panel-list">
+          ${rules.map(rule => {
+            const isExpanded = expandedRule === rule.type;
+            return html`
+              <section class="rule-panel ${isExpanded ? 'selected' : ''}" data-rule-panel-type=${rule.type}>
+                <button
+                  type="button"
+                  class="rule-panel-header"
+                  aria-expanded=${isExpanded ? 'true' : 'false'}
+                  aria-controls=${`rule-panel-body-${rule.type}`}
+                  @click=${() => this.handleRuleChange(rule.type)}
+                >
+                  <span class="rule-panel-title">
+                    <span class="rule-panel-label">${rule.label}</span>
+                  </span>
+                  <span class="rule-panel-chevron" aria-hidden="true"></span>
+                </button>
+                <div
+                  id=${`rule-panel-body-${rule.type}`}
+                  class="rule-panel-body"
+                  aria-hidden=${isExpanded ? 'false' : 'true'}
+                  ?hidden=${!isExpanded}
+                  ?inert=${!isExpanded}
+                >
+                  <div class="rule-panel-body-inner">
+                    ${renderParams(rule.type)}
+                    ${this.renderRulePanelFooter(rule.type, isExpanded)}
+                  </div>
+                </div>
+              </section>
+            `;
+          })}
         </div>
       </div>
     `;
   }
 
-  /**
-   * Render rule configuration form
-   * @private
-   */
-  private renderRuleConfig() {
-    return html`
-      <div class="rule-config">
-        <div class="section-title">${I18nService.t('rule_config_title')}</div>
-        ${this.renderRuleParams()}
-      </div>
-    `;
+  private handlePresetTabChange(tab: 'config' | 'recent' | 'templates'): void {
+    this.activePresetTab = tab;
   }
 
   private renderRulePresets() {
+    const showConfig = this.activePresetTab === 'config';
+    const showRecent = this.activePresetTab === 'recent';
+    const showTemplates = this.activePresetTab === 'templates';
+
     return html`
       <div class="rule-presets">
-        <div class="section-title">${I18nService.t('rule_preset_section_title')}</div>
-        <div class="preset-group">
-          <div class="preset-group-header">
-            <span class="preset-group-title">${I18nService.t('rule_preset_recent_title')}</span>
-          </div>
-          ${this.recentRulePresets.length
-            ? this.recentRulePresets.slice(0, 5).map((record) => this.renderPresetItem(record, false))
-            : html`<div class="preset-empty">${I18nService.t('rule_preset_recent_empty')}</div>`}
-        </div>
-
-        <div class="preset-group">
-          <div class="preset-group-header">
-            <span class="preset-group-title">${I18nService.t('rule_preset_templates_title')}</span>
-            <button class="text-action-button" data-role="save-template-button" @click=${this.handleSaveTemplate}>
-              ${I18nService.t('rule_preset_save_button')}
+        <div class="preset-toolbar" data-role="preset-toolbar">
+          <div class="preset-tablist" role="tablist" aria-label=${I18nService.t('rule_preset_section_title')} data-role="preset-tablist">
+            <button
+              type="button"
+              class="preset-tab ${showConfig ? 'selected' : ''}"
+              role="tab"
+              aria-selected=${showConfig ? 'true' : 'false'}
+              aria-controls="preset-panel-config"
+              id="preset-tab-config"
+              data-role="preset-tab-config"
+              @click=${() => this.handlePresetTabChange('config')}
+            >
+              ${I18nService.t('config_panel_title')}
+            </button>
+            <button
+              type="button"
+              class="preset-tab ${showRecent ? 'selected' : ''}"
+              role="tab"
+              aria-selected=${showRecent ? 'true' : 'false'}
+              aria-controls="preset-panel-recent"
+              id="preset-tab-recent"
+              data-role="preset-tab-recent"
+              @click=${() => this.handlePresetTabChange('recent')}
+            >
+              ${I18nService.t('rule_preset_recent_title')}
+            </button>
+            <button
+              type="button"
+              class="preset-tab ${showTemplates ? 'selected' : ''}"
+              role="tab"
+              aria-selected=${showTemplates ? 'true' : 'false'}
+              aria-controls="preset-panel-templates"
+              id="preset-tab-templates"
+              data-role="preset-tab-template"
+              @click=${() => this.handlePresetTabChange('templates')}
+            >
+              ${I18nService.t('rule_preset_templates_title')}
             </button>
           </div>
-          ${this.templateRulePresets.length
-            ? this.templateRulePresets.map((record) => this.renderPresetItem(record, true))
-            : html`<div class="preset-empty">${I18nService.t('rule_preset_templates_empty')}</div>`}
+        </div>
+
+        <div
+          id="preset-panel-config"
+          class="preset-panel"
+          role="tabpanel"
+          aria-labelledby="preset-tab-config"
+          ?hidden=${!showConfig}
+        >
+          ${this.renderRulePanels()}
+          ${this.renderEpisodeExtractAssist()}
+        </div>
+
+        <div
+          id="preset-panel-recent"
+          class="preset-panel"
+          role="tabpanel"
+          aria-labelledby="preset-tab-recent"
+          ?hidden=${!showRecent}
+        >
+          ${this.renderPresetList('recent')}
+        </div>
+
+        <div
+          id="preset-panel-templates"
+          class="preset-panel"
+          role="tabpanel"
+          aria-labelledby="preset-tab-templates"
+          ?hidden=${!showTemplates}
+        >
+          ${this.renderPresetList('templates')}
         </div>
       </div>
     `;
@@ -894,7 +1061,7 @@ export class ConfigPanel extends LitElement {
   }
 
   private renderEpisodeExtractAssist() {
-    if (this.selectedRuleType !== 'episodeExtract') {
+    if (this.expandedRuleType !== 'episodeExtract') {
       return null;
     }
 
@@ -971,8 +1138,8 @@ export class ConfigPanel extends LitElement {
    * Render rule-specific parameters
    * @private
    */
-  private renderRuleParams() {
-    switch (this.selectedRuleType) {
+  private renderRuleParams(ruleType = this.selectedRuleType) {
+    switch (ruleType) {
       case 'replace':
         return html`
           <div class="form-group">
@@ -1346,7 +1513,7 @@ export class ConfigPanel extends LitElement {
     }
 
     .panel-header {
-      padding: 16px;
+      padding: 12px 16px;
       border-bottom: 1px solid var(--cdr-border, #f0f0f0);
       flex-shrink: 0;
     }
@@ -1360,12 +1527,14 @@ export class ConfigPanel extends LitElement {
 
     .panel-body {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
-      padding: 16px;
+      padding: 12px 14px 32px;
+      scroll-padding-bottom: 32px;
     }
 
     .panel-footer {
-      padding: 16px;
+      padding: 12px 14px;
       border-top: 1px solid var(--cdr-border, #f0f0f0);
       flex-shrink: 0;
     }
@@ -1556,66 +1725,165 @@ export class ConfigPanel extends LitElement {
       max-width: 100%;
     }
 
-    .rule-selector {
-      margin-bottom: 24px;
+    .rule-panels {
+      margin-bottom: 10px;
     }
 
-    .section-title {
+    .rule-panel-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .rule-panel {
+      position: relative;
+      border: 1px solid var(--cdr-border-strong, #d9d9d9);
+      border-radius: 6px;
+      background: var(--cdr-bg, #fff);
+      overflow: hidden;
+      transition:
+        border-color 0.2s ease,
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .rule-panel.selected {
+      border-color: rgba(24, 144, 255, 0.55);
+      background: var(--cdr-bg, #fff);
+      box-shadow: 0 0 0 1px rgba(24, 144, 255, 0.08);
+    }
+
+    .rule-panel.selected::before {
+      content: '';
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 3px;
+      background: var(--cdr-primary, #1890ff);
+    }
+
+    .rule-panel-header {
+      width: 100%;
+      min-height: 40px;
+      padding: 7px 10px 7px 12px;
+      border: none;
+      background: transparent;
+      color: var(--cdr-text, #262626);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      text-align: left;
+      transition:
+        color 0.2s ease,
+        background-color 0.2s ease;
+    }
+
+    .rule-panel-header:hover {
+      background: rgba(24, 144, 255, 0.04);
+    }
+
+    .rule-panel-header:focus-visible {
+      outline: 2px solid var(--cdr-primary, #1890ff);
+      outline-offset: -2px;
+    }
+
+    .rule-panel.selected .rule-panel-header {
+      color: var(--cdr-primary, #1890ff);
+      background: rgba(24, 144, 255, 0.05);
+    }
+
+    .rule-panel-title {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .rule-panel-label {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.3;
+      transition: font-size 0.2s ease;
+    }
+
+    .rule-panel.selected .rule-panel-label {
       font-size: 14px;
       font-weight: 600;
-      color: var(--cdr-text, #262626);
-      margin-bottom: 12px;
     }
 
-    .rule-options {
+    .rule-panel-chevron {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      transform: rotate(45deg);
+      transition: transform 0.2s ease;
+      opacity: 0.5;
+    }
+
+    .rule-panel.selected .rule-panel-chevron {
+      transform: rotate(225deg);
+      opacity: 0.7;
+    }
+
+    .rule-panel-body {
+      overflow: hidden;
+    }
+
+    .rule-panel-body[hidden] {
+      display: none;
+    }
+
+    .rule-panel-body-inner {
+      padding: 0 10px 10px 12px;
+    }
+
+    .rule-panel-footer {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 8px;
+      margin-top: 10px;
+      border-top: 1px solid var(--cdr-border, #f0f0f0);
+    }
+
+    .rule-panel-save-button {
+      padding: 4px 10px;
+      min-height: 28px;
+      border-radius: 6px;
+    }
+
+    .preset-list {
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
 
-    .rule-option {
-      padding: 12px;
-      border: 2px solid var(--cdr-border-strong, #d9d9d9);
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .rule-option:hover {
-      border-color: var(--cdr-primary, #1890ff);
-    }
-
-    .rule-option.selected {
-      border-color: var(--cdr-primary, #1890ff);
-      background-color: var(--cdr-selection-bg, #e6f7ff);
-      color: var(--cdr-primary, #1890ff);
-    }
-
-    .rule-option input[type='radio'] {
-      margin: 0;
-    }
-
-    .rule-config {
-      margin-bottom: 16px;
+    @media (prefers-reduced-motion: reduce) {
+      .rule-panel,
+      .rule-panel-header,
+      .rule-panel-label,
+      .rule-panel-chevron,
+      .rule-panel-body {
+        transition: none;
+      }
     }
 
     .form-group {
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .form-label {
       display: block;
       font-size: 14px;
       color: var(--cdr-text-secondary, #595959);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .form-input {
       width: 100%;
-      padding: 8px 12px;
+      padding: 7px 10px;
       border: 1px solid var(--cdr-border-strong, #d9d9d9);
       border-radius: 4px;
       font-size: 14px;
@@ -1627,7 +1895,7 @@ export class ConfigPanel extends LitElement {
 
     .form-select {
       width: 100%;
-      padding: 8px 12px;
+      padding: 7px 10px;
       border: 1px solid var(--cdr-border-strong, #d9d9d9);
       border-radius: 4px;
       font-size: 14px;
@@ -1680,7 +1948,85 @@ export class ConfigPanel extends LitElement {
 
     .rule-presets,
     .episode-assist {
-      margin-bottom: 20px;
+      margin-bottom: 12px;
+    }
+
+    .preset-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+      height: 48px;
+      margin: -12px -14px 8px;
+      padding: 8px 14px;
+      border-top: 1px solid var(--cdr-border, #f0f0f0);
+      border-right: 1px solid var(--cdr-border, #f0f0f0);
+      border-bottom: 1px solid var(--cdr-border, #f0f0f0);
+      border-left: 1px solid var(--cdr-border, #f0f0f0);
+      box-sizing: border-box;
+    }
+
+    .preset-tablist {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .preset-tab {
+      appearance: none;
+      position: relative;
+      border: none;
+      background: transparent;
+      color: var(--cdr-text-secondary, #595959);
+      border-radius: 4px;
+      padding: 4px 8px;
+      min-height: 28px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .preset-tab:hover {
+      background: var(--cdr-surface-muted, #fafafa);
+      color: var(--cdr-text, #262626);
+    }
+
+    .preset-tab.selected {
+      color: var(--cdr-primary, #1890ff);
+      background: transparent;
+    }
+
+    .preset-tab.selected::after {
+      content: '';
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: -4px;
+      height: 2px;
+      border-radius: 999px;
+      background: var(--cdr-primary, #1890ff);
+    }
+
+    .preset-tab:focus-visible {
+      outline: 2px solid var(--cdr-primary, #1890ff);
+      outline-offset: 2px;
+    }
+
+    .preset-save-button {
+      flex: 0 0 auto;
+      padding: 4px 8px;
+      min-height: 28px;
+      border-radius: 6px;
+    }
+
+    .preset-panel {
+      display: block;
+    }
+
+    .preset-panel[hidden] {
+      display: none;
     }
 
     .preset-group,

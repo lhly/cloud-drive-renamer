@@ -10,7 +10,7 @@
  * 1. Edit version in package.json
  * 2. Run: pnpm run sync:version (or automatically via prebuild/predev)
  *
- * Generated at: 2026-03-20T02:24:40.460Z
+ * Generated at: 2026-08-08T01:28:35.816Z
  */
 
 /**

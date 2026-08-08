@@ -8,7 +8,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: 'src/popup/index.html',
-        dialog: 'src/dialog/index.html',
         // ✅ 添加 page-script 作为显式入口点
         'page-script-aliyun': 'src/adapters/aliyun/page-script.ts',
         'page-script-baidu': 'src/adapters/baidu/page-script.ts',

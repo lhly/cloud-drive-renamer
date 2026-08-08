@@ -4,7 +4,7 @@ import { ConfigPanel } from '../../src/content/components/config-panel';
 describe('ConfigPanel undo action', () => {
   it('uses balanced footer styles so execute button is compact and disabled undo stays visible', () => {
     const cssText = ConfigPanel.styles.cssText;
-    const actionGroupRule = cssText.slice(cssText.indexOf('.execution-actions-main'), cssText.indexOf('.rule-selector'));
+    const actionGroupRule = cssText.slice(cssText.indexOf('.execution-actions-main'), cssText.indexOf('.rule-panels'));
     const footerButtonRule = cssText.slice(cssText.indexOf('.execution-actions .button'), cssText.indexOf('.button-icon:disabled'));
     const disabledUndoRule = cssText.slice(cssText.indexOf('.button-icon:disabled'), cssText.indexOf('@keyframes cdr-undo-spin'));
 

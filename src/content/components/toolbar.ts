@@ -310,16 +310,16 @@ export class Toolbar extends LitElement {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 16px;
+      padding: 8px 16px;
       background: var(--cdr-surface-muted, #fafafa);
       border-bottom: 1px solid var(--cdr-border, #f0f0f0);
-      gap: 16px;
+      gap: 12px;
     }
 
     .toolbar-left {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       flex: 1;
       min-width: 0;
     }

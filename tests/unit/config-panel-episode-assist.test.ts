@@ -27,6 +27,11 @@ describe('ConfigPanel episode extract assist', () => {
 
     document.body.appendChild(panel);
     await panel.updateComplete;
+
+    panel.shadowRoot
+      ?.querySelector<HTMLElement>('[aria-controls="rule-panel-body-episodeExtract"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+    await panel.updateComplete;
     await panel.updateComplete;
 
     expect(panel.shadowRoot?.querySelector('[data-role="episode-assist-random"]')).toBeTruthy();

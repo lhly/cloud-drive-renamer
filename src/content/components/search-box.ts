@@ -148,7 +148,7 @@ export class SearchBox extends LitElement {
       background: var(--cdr-surface, #fff);
       border: 1px solid var(--cdr-border-strong, #d9d9d9);
       border-radius: 4px;
-      padding: 8px 12px;
+      padding: 6px 10px;
       transition: all 0.3s;
     }
 

@@ -107,8 +107,6 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "src/dialog/*",
-        "src/dialog/**/*",
         "assets/*",
         "icons/*",
         "*.js",

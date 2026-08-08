@@ -207,7 +207,7 @@ export class FileListPanel extends LitElement {
     }
 
     .panel-header {
-      padding: 16px;
+      padding: 12px 16px;
       border-bottom: 1px solid var(--cdr-border, #f0f0f0);
       flex-shrink: 0;
     }
@@ -220,9 +220,13 @@ export class FileListPanel extends LitElement {
     }
 
     .search-container {
-      padding: 12px 16px;
+      height: 48px;
+      padding: 8px 16px;
       border-bottom: 1px solid var(--cdr-border, #f0f0f0);
+      box-sizing: border-box;
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
     }
 
     .list-container {

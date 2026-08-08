@@ -90,7 +90,6 @@ export class PreviewPanel extends LitElement {
       <div class="failure-nav" data-role="episode-assist-failure-nav">
         <div class="failure-nav-summary" data-role="episode-assist-failure-nav-summary">
           <span class="failure-nav-label">${I18nService.t('episode_assist_failure_nav_label')}</span>
-          <span class="failure-nav-count">${failureItems.length}</span>
           <span class="failure-nav-position">${currentPosition} / ${failureItems.length}</span>
         </div>
         <div class="failure-nav-actions">
@@ -208,13 +207,13 @@ export class PreviewPanel extends LitElement {
     }
 
     .panel-header {
-      padding: 16px;
+      padding: 12px 16px;
       border-bottom: 1px solid var(--cdr-border, #f0f0f0);
       flex-shrink: 0;
     }
 
     .panel-title {
-      margin: 0 0 8px 0;
+      margin: 0;
       font-size: 16px;
       font-weight: 600;
       color: var(--cdr-text, #262626);
@@ -241,10 +240,13 @@ export class PreviewPanel extends LitElement {
 
     .panel-stats {
       display: flex;
-      gap: 16px;
-      padding: 12px 16px;
+      align-items: center;
+      gap: 12px;
+      height: 48px;
+      padding: 8px 16px;
       background: var(--cdr-surface-muted, #fafafa);
       border-bottom: 1px solid var(--cdr-border, #f0f0f0);
+      box-sizing: border-box;
       flex-shrink: 0;
     }
 
@@ -280,17 +282,19 @@ export class PreviewPanel extends LitElement {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      padding: 12px 16px;
+      gap: 10px;
+      height: 48px;
+      padding: 6px 16px;
       background: var(--cdr-info-bg, #e6f4ff);
       border-bottom: 1px solid var(--cdr-info-border, #91caff);
+      box-sizing: border-box;
       flex-shrink: 0;
     }
 
     .failure-nav-summary {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       min-width: 0;
       color: var(--cdr-info-text, #0958d9);
       font-size: 13px;
@@ -301,12 +305,11 @@ export class PreviewPanel extends LitElement {
       color: var(--cdr-text, #262626);
     }
 
-    .failure-nav-count,
     .failure-nav-position {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 2px 8px;
+      padding: 2px 6px;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.7);
       border: 1px solid rgba(9, 88, 217, 0.18);
@@ -321,11 +324,12 @@ export class PreviewPanel extends LitElement {
     }
 
     .failure-nav-button {
+      height: 32px;
       border: 1px solid var(--cdr-border, #d9d9d9);
       background: var(--cdr-surface, #fff);
       color: var(--cdr-text, #262626);
       border-radius: 8px;
-      padding: 6px 10px;
+      padding: 4px 10px;
       font-size: 12px;
       cursor: pointer;
     }

@@ -1877,7 +1877,7 @@ export class FileSelectorPanel extends LitElement {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 20px 24px;
+      padding: 12px 20px;
       border-bottom: 1px solid var(--cdr-border);
       flex-shrink: 0;
     }
