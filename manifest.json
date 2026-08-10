@@ -19,7 +19,7 @@
     "https://pc-api.uc.cn/*",
     "https://115.com/*",
     "https://webapi.115.com/*",
-    "https://www.123pan.com/*",
+    "https://yun.123pan.cn/*",
     "https://yun.139.com/*",
     "https://personal-kd-njs.yun.139.com/*",
     "https://cloud.189.cn/*"
@@ -78,7 +78,7 @@
     },
     {
       "matches": [
-        "https://www.123pan.com/*"
+        "https://yun.123pan.cn/*"
       ],
       "js": [
         "src/content/index.ts"
@@ -128,7 +128,7 @@
         "https://drive.uc.cn/*",
         "https://pan.uc.cn/*",
         "https://115.com/*",
-        "https://www.123pan.com/*",
+        "https://yun.123pan.cn/*",
         "https://yun.139.com/*",
         "https://cloud.189.cn/*"
       ]

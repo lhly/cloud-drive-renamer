@@ -1278,7 +1278,7 @@ export class FileSelectorPanel extends LitElement {
       return;
     }
 
-    if (this.operationIndexByFileId) {
+    if (!this.undoBusy && this.operationIndexByFileId) {
       const index = this.operationIndexByFileId.get(progress.fileId);
       if (index !== undefined) {
         if (progress.status === 'failed') {

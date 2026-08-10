@@ -102,9 +102,8 @@ export function detectPlatformFromUrl(url: string, pathname?: string): PlatformN
   }
 
   // 123云盘
-  if (url.includes('www.123pan.com')) {
-    const pathToCheck = pathname ?? extractPathnameFromUrl(url);
-    return pathToCheck === '/' ? '123' : null;
+  if (url.includes('yun.123pan.cn')) {
+    return '123';
   }
 
   // 移动云盘

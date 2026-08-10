@@ -236,7 +236,7 @@ rename, batch rename, file rename, cloud drive, cloud storage, 115 drive, 123pan
 | tabs | 平台识别 | 识别当前访问的云盘平台，加载对应的功能模块，不读取其他网站数据 |
 | https://115.com/* | 115 网盘 | 在 115 网盘页面注入重命名工具界面 |
 | https://webapi.115.com/* | 115 网盘 API | 调用 115 网盘 API 执行文件列表读取和重命名 |
-| https://www.123pan.com/* | 123 云盘 | 在 123 云盘页面注入界面并调用 API |
+| https://yun.123pan.cn/* | 123 云盘 | 在 123 云盘页面注入界面并调用 API |
 | https://www.aliyundrive.com/* | 阿里云盘 | 在阿里云盘页面注入重命名工具界面 |
 | https://www.alipan.com/* | 阿里云盘 | 支持新版阿里云盘页面域名 |
 | https://api.aliyundrive.com/* | 阿里云盘 API | 调用阿里云盘 API 执行重命名 |

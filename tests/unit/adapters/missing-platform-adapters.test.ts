@@ -122,12 +122,12 @@ describe('missing platform adapters', () => {
 
     expect(files[0]).toEqual({ id: 'file-123', name: 'Episode 01.mkv', ext: '.mkv', parentId: 'folder123', size: 34, mtime: 456 });
     expect(rename).toEqual({ success: true, newName: 'Episode 01-fixed.mkv' });
-    expect(mock123CallAPI.mock.calls[0][1]).toContain('https://www.123pan.com/b/api/file/list/new');
+    expect(mock123CallAPI.mock.calls[0][1]).toContain('https://yun.123pan.cn/b/api/file/list/new');
     expect(mock123CallAPI.mock.calls[0][1]).toContain('parentFileId=folder123');
     expect(mock123CallAPI).toHaveBeenNthCalledWith(
       2,
       'POST',
-      'https://www.123pan.com/b/api/file/rename',
+      'https://yun.123pan.cn/b/api/file/rename',
       expect.objectContaining({ fileId: 'file-123', fileName: 'Episode 01-fixed.mkv', duplicate: 1 }),
       30000
     );
@@ -240,6 +240,127 @@ describe('missing platform adapters', () => {
     expect(md5('abc')).toBe('900150983cd24fb0d6963f7d28e17f72');
     expect(md5('message digest')).toBe('f96b697d7cb7938d525a2f31aaf161d0');
     expect(md5('中文')).toBe('a7bac2239fcdcb3a067903d8077c4a07');
+  });
+
+  it('patches 115 visible rows inside the file-list iframe after rename', async () => {
+    document.body.innerHTML = '<iframe></iframe>';
+    const frame = document.querySelector('iframe');
+    const frameDocument = frame?.contentDocument;
+    expect(frameDocument).toBeTruthy();
+
+    frameDocument!.body.innerHTML = `
+      <ul>
+        <li rel="item" file_id="file-115" title="Episode 01.mkv">
+          <span class="file-name" rel="file_name">
+            <em>
+              <a class="name" href="javascript:;" title="Episode 01.mkv" rel="file" field="file_name">
+                <span></span><span>Episode 01.mkv</span>
+              </a>
+              <a href="javascript:;" class="icon-star">星标</a>
+            </em>
+          </span>
+        </li>
+      </ul>
+    `;
+
+    const adapter = new Drive115Adapter({ requestInterval: 0 });
+    const result = await adapter.syncAfterRename([
+      { fileId: 'file-115', oldName: 'Episode 01.mkv', newName: 'Episode 01-fixed.mkv' },
+    ]);
+
+    const row = frameDocument!.querySelector<HTMLElement>('li[file_id="file-115"]');
+    const link = frameDocument!.querySelector<HTMLElement>('a.name');
+    expect(result.success).toBe(true);
+    expect(result.method).toBe('dom-patch');
+    expect(row?.getAttribute('title')).toBe('Episode 01-fixed.mkv');
+    expect(link?.getAttribute('title')).toBe('Episode 01-fixed.mkv');
+    expect(link?.textContent?.replace(/\s+/g, '').trim()).toBe('Episode01-fixed.mkv');
+  });
+
+  it('patches 115 split filename text nodes inside iframe rows', async () => {
+    document.body.innerHTML = '<iframe></iframe>';
+    const frameDocument = document.querySelector('iframe')?.contentDocument;
+    expect(frameDocument).toBeTruthy();
+
+    frameDocument!.body.innerHTML = `
+      <ul>
+        <li rel="item" file_id="file-115" title="《啊哈！算法》.pdf">
+          <span class="file-name" rel="file_name">
+            <em>
+              <a class="name" href="javascript:;" title="《啊哈！算法》.pdf" rel="file" field="file_name">
+                <span>《</span><span>啊哈！算法》.pdf</span>
+              </a>
+              <a href="javascript:;" class="icon-star">星标</a>
+            </em>
+          </span>
+        </li>
+      </ul>
+    `;
+
+    const adapter = new Drive115Adapter({ requestInterval: 0 });
+    const result = await adapter.syncAfterRename([
+      { fileId: 'file-115', oldName: '《啊哈！算法》.pdf', newName: 'test-《啊哈！算法》.pdf' },
+    ]);
+
+    const link = frameDocument!.querySelector<HTMLElement>('a.name');
+    expect(result.success).toBe(true);
+    expect(result.method).toBe('dom-patch');
+    expect(link?.getAttribute('title')).toBe('test-《啊哈！算法》.pdf');
+    expect(link?.textContent?.replace(/\s+/g, '').trim()).toBe('test-《啊哈！算法》.pdf');
+  });
+
+  it('patches 123Pan visible rows with Ant Table filename classes after rename', async () => {
+    document.body.innerHTML = `
+      <div class="ant-table-row editable-row" data-row-key="file-123">
+        <div class="ant-table-cell drag-visible ant-table-cell-ellipsis mfy-table-row">
+          <div class="custom-dropdown context-menu-wrapper">
+            <div class="custom-dropdown-content">
+              <div class="table-list-file-name">
+                <div class="file-icon-wrapper"><img alt="Android-apk icon" /></div>
+                <div class="file-name-wrapper">
+                  <span class="table-file-name-tooltip-host">
+                    <div class="overflow-detector-container">
+                      <span class="overflow-detector-container-text table-file-name overflowing">test-WADBS_1.3.apk</span>
+                    </div>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const adapter = new Drive123Adapter({ requestInterval: 0 });
+    const result = await adapter.syncAfterRename([
+      { fileId: 'file-123', oldName: 'test-WADBS_1.3.apk', newName: 'WADBS_1.3.apk' },
+    ]);
+
+    const nameNode = document.querySelector<HTMLElement>('.table-file-name');
+    expect(result.success).toBe(true);
+    expect(result.method).toBe('dom-patch');
+    expect(nameNode?.textContent).toBe('WADBS_1.3.apk');
+  });
+
+  it('patches later 123Pan row mutations without rescanning the whole document', async () => {
+    document.body.innerHTML = '<main id="file-list"></main>';
+
+    const querySelectorAll = vi.spyOn(document, 'querySelectorAll');
+    const adapter = new Drive123Adapter({ requestInterval: 0 });
+    await adapter.syncAfterRename([
+      { fileId: 'file-123', oldName: 'test-WADBS_1.3.apk', newName: 'WADBS_1.3.apk' },
+    ]);
+    querySelectorAll.mockClear();
+
+    document.querySelector('#file-list')!.insertAdjacentHTML('beforeend', `
+      <div class="ant-table-row editable-row" data-row-key="file-123">
+        <span class="table-file-name">test-WADBS_1.3.apk</span>
+      </div>
+    `);
+    await new Promise((resolve) => window.setTimeout(resolve, 10));
+
+    expect(document.querySelector<HTMLElement>('.table-file-name')?.textContent).toBe('WADBS_1.3.apk');
+    expect(querySelectorAll).not.toHaveBeenCalled();
   });
 
   it('patches visible rows for new adapters instead of reporting unsupported sync', async () => {

@@ -71,7 +71,7 @@
 
 - `https://115.com/*` - 115 网盘页面
 - `https://webapi.115.com/*` - 115 网盘 API
-- `https://www.123pan.com/*` - 123 云盘页面与 API
+- `https://yun.123pan.cn/*` - 123 云盘页面与 API
 - `https://www.aliyundrive.com/*` - 阿里云盘页面
 - `https://www.alipan.com/*` - 阿里云盘页面
 - `https://api.aliyundrive.com/*` - 阿里云盘 API
@@ -231,7 +231,7 @@ The Extension requests access to the following websites:
 
 - `https://115.com/*` - 115 Drive pages
 - `https://webapi.115.com/*` - 115 Drive API
-- `https://www.123pan.com/*` - 123Pan pages and API
+- `https://yun.123pan.cn/*` - 123Pan pages and API
 - `https://www.aliyundrive.com/*` - Aliyun Drive pages
 - `https://www.alipan.com/*` - Aliyun Drive pages
 - `https://api.aliyundrive.com/*` - Aliyun Drive API

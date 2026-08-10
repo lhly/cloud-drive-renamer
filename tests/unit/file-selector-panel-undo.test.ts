@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FileSelectorPanel } from '../../src/content/components/file-selector-panel';
 import { FileItem, PlatformAdapter, RenameResult } from '../../src/types/platform';
 import { BatchResults } from '../../src/types/core';
+import { crashRecovery } from '../../src/core/crash-recovery';
 import { LastRenameOperation } from '../../src/types/undo';
 
 type FileSelectorPanelTestHarness = FileSelectorPanel & {
@@ -155,6 +156,48 @@ describe('FileSelectorPanel undo helpers', () => {
     expect(panel.lastRenameOperation).toBeNull();
     expect(panel.allFiles[0].name).toBe('old-a.txt');
     expect(panel.executionResults?.success).toHaveLength(1);
+  });
+
+  it('does not write crash recovery progress while undoing the last rename operation', async () => {
+    const markAsCompleted = vi.spyOn(crashRecovery, 'markAsCompleted').mockResolvedValue();
+    const markAsFailed = vi.spyOn(crashRecovery, 'markAsFailed').mockResolvedValue();
+    const panel = new FileSelectorPanel() as FileSelectorPanelTestHarness;
+    const adapter = new PanelMockAdapter();
+    panel.adapter = adapter;
+    panel.allFiles = [
+      {
+        id: '1',
+        name: 'new-a.txt',
+        ext: '.txt',
+        parentId: 'dir-a',
+        size: 0,
+        mtime: Date.now(),
+      },
+      {
+        id: '2',
+        name: 'new-b.txt',
+        ext: '.txt',
+        parentId: 'dir-a',
+        size: 0,
+        mtime: Date.now(),
+      },
+    ];
+    panel.lastRenameOperation = {
+      platform: 'quark',
+      directoryKey: 'dir-a',
+      createdAt: 1,
+      updatedAt: 1,
+      items: [
+        { fileId: '1', original: 'old-a.txt', renamed: 'new-a.txt', index: 0 },
+        { fileId: '2', original: 'old-b.txt', renamed: 'new-b.txt', index: 1 },
+      ],
+    };
+
+    await panel.handleUndoLastRename();
+
+    expect(panel.executionResults?.success).toHaveLength(2);
+    expect(markAsCompleted).not.toHaveBeenCalled();
+    expect(markAsFailed).not.toHaveBeenCalled();
   });
 
   it('undoes both initial success items and retry-merged success items together', async () => {

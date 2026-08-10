@@ -43,7 +43,7 @@ export class Drive123Adapter extends SharedCloudDriveAdapter {
     let hasNext = true;
 
     while (hasNext) {
-      const url = new URL('https://www.123pan.com/b/api/file/list/new?driveId=0&limit=100&next=0&orderBy=file_name&orderDirection=asc&trashed=false&SearchData=&OnlyLookAbnormalFile=0&event=homeListFile&operateType=4&inDirectSpace=false');
+      const url = new URL('https://yun.123pan.cn/b/api/file/list/new?driveId=0&limit=100&next=0&orderBy=file_name&orderDirection=asc&trashed=false&SearchData=&OnlyLookAbnormalFile=0&event=homeListFile&operateType=4&inDirectSpace=false');
       url.searchParams.set('parentFileId', targetParentId);
       url.searchParams.set('Page', String(page++));
 
@@ -64,7 +64,7 @@ export class Drive123Adapter extends SharedCloudDriveAdapter {
 
   async renameFile(fileId: string, newName: string): Promise<RenameResult> {
     return this.retryableRename(async () => {
-      const response = await this.callAPI('POST', 'https://www.123pan.com/b/api/file/rename', {
+      const response = await this.callAPI('POST', 'https://yun.123pan.cn/b/api/file/rename', {
         driveId: 0,
         fileId,
         fileName: newName,

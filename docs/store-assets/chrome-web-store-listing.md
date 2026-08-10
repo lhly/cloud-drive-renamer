@@ -147,7 +147,7 @@ This project is open-sourced under MIT License. Contributions and suggestions ar
 3. **host_permissions** - 访问以下网站：
    - https://115.com/* - 115 网盘页面
    - https://webapi.115.com/* - 115 网盘 API
-   - https://www.123pan.com/* - 123 云盘页面与 API
+   - https://yun.123pan.cn/* - 123 云盘页面与 API
    - https://www.aliyundrive.com/* - 阿里云盘页面
    - https://www.alipan.com/* - 阿里云盘页面
    - https://api.aliyundrive.com/* - 阿里云盘 API

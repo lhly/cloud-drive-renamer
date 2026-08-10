@@ -202,12 +202,20 @@ describe('Platform Detection - Unified Utils', () => {
         expect(result).toBeNull();
       });
 
-      it('should detect 123 Drive', () => {
+      it('should detect 123 Drive on yun.123pan.cn file pages', () => {
+        const result = detectPlatformFromUrl(
+          'https://yun.123pan.cn/?remember=yes&homeFilePath=31611662',
+          '/'
+        );
+        expect(result).toBe('123');
+      });
+
+      it('should ignore 123Pan product homepage', () => {
         const result = detectPlatformFromUrl(
           'https://www.123pan.com/',
           '/'
         );
-        expect(result).toBe('123');
+        expect(result).toBeNull();
       });
 
       it('should detect CMCC Drive', () => {
