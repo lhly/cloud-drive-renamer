@@ -108,7 +108,8 @@ export function detectPlatformFromUrl(url: string, pathname?: string): PlatformN
 
   // 移动云盘
   if (url.includes('yun.139.com')) {
-    return url.includes('/w/#/main') || url.includes('/w/#/index') ? 'cmcc' : null;
+    const pathToCheck = pathname ?? extractPathnameFromUrl(url);
+    return pathToCheck === '/w/' || url.includes('/w/#/main') || url.includes('/w/#/index') ? 'cmcc' : null;
   }
 
   // 天翼云盘

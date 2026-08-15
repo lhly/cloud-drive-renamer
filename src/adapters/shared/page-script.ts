@@ -6,6 +6,7 @@ export interface PageScriptInstallOptions {
   datasetTimestampKey: string;
   logPrefix: string;
   captureHeaders?: string[];
+  transport?: 'fetch' | 'xhr';
 }
 
 interface APIRequestMessage {
@@ -98,6 +99,65 @@ export function markPageScriptReady(options: PageScriptInstallOptions, timestamp
   return true;
 }
 
+function parseResponseText(text: string): unknown {
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { text };
+  }
+}
+
+async function requestWithFetch(
+  message: Partial<APIRequestMessage>,
+  encoded: { body?: BodyInit; headers?: Record<string, string> },
+  capturedHeaders: Map<string, string>,
+  signal: AbortSignal
+): Promise<{ success: boolean; status: number; body: unknown }> {
+  const headers = new Headers();
+  for (const [key, value] of capturedHeaders.entries()) headers.set(key, value);
+  appendHeaders(headers, encoded.headers);
+
+  const response = await fetch(message.url || '', {
+    method: message.method,
+    credentials: 'include',
+    headers,
+    body: message.method?.toUpperCase() === 'GET' ? undefined : encoded.body,
+    signal,
+  });
+  const text = await response.text();
+  return { success: response.ok, status: response.status, body: parseResponseText(text) };
+}
+
+function requestWithXhr(
+  message: Partial<APIRequestMessage>,
+  encoded: { body?: BodyInit; headers?: Record<string, string> },
+  capturedHeaders: Map<string, string>
+): Promise<{ success: boolean; status: number; body: unknown }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(message.method || 'GET', message.url || '', true);
+    xhr.withCredentials = true;
+    if (message.timeout) xhr.timeout = message.timeout;
+
+    for (const [key, value] of capturedHeaders.entries()) xhr.setRequestHeader(key, value);
+    for (const [key, value] of Object.entries(encoded.headers || {})) xhr.setRequestHeader(key, value);
+
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState !== XMLHttpRequest.DONE) return;
+      resolve({
+        success: xhr.status >= 200 && xhr.status < 300,
+        status: xhr.status,
+        body: parseResponseText(xhr.responseText || ''),
+      });
+    };
+    xhr.onerror = () => reject(new Error(`XHR request failed: ${message.url}`));
+    xhr.ontimeout = () => reject(new Error(`XHR request timeout: ${message.url}`));
+
+    xhr.send(message.method?.toUpperCase() === 'GET' ? undefined : (encoded.body as XMLHttpRequestBodyInit | undefined));
+  });
+}
+
 export function installCloudDrivePageScript(options: PageScriptInstallOptions): void {
   const capturedHeaders = new Map<string, string>();
   const allowHeader = new Set((options.captureHeaders || []).map(normalizeHeaderName));
@@ -133,35 +193,17 @@ export function installCloudDrivePageScript(options: PageScriptInstallOptions): 
 
     try {
       const encoded = createBodyAndHeaders(message.body);
-      const headers = new Headers();
-      for (const [key, value] of capturedHeaders.entries()) headers.set(key, value);
-      appendHeaders(headers, encoded.headers);
-
-      const response = await fetch(message.url, {
-        method: message.method,
-        credentials: 'include',
-        headers,
-        body: message.method.toUpperCase() === 'GET' ? undefined : encoded.body,
-        signal: controller.signal,
-      });
+      const data = options.transport === 'xhr'
+        ? await requestWithXhr(message, encoded, capturedHeaders)
+        : await requestWithFetch(message, encoded, capturedHeaders, controller.signal);
       window.clearTimeout(timeoutId);
-
-      const text = await response.text();
-      let data: unknown = {};
-      if (text) {
-        try {
-          data = JSON.parse(text);
-        } catch {
-          data = { text };
-        }
-      }
 
       window.postMessage({
         type: options.responseType,
         requestId: message.requestId,
-        success: response.ok,
-        data,
-        status: response.status,
+        success: data.success,
+        data: data.body,
+        status: data.status,
       }, '*');
     } catch (error) {
       window.clearTimeout(timeoutId);

@@ -68,16 +68,18 @@ export class CMCCAdapter extends SharedCloudDriveAdapter {
         startNumber: cursor.type === 'initial' ? 1 : cursor.value,
       };
 
-      const response = await this.callAPI(
+      const response = this.normalizeResponse<CMCCListResponse>(await this.callAPI(
         'POST',
         'https://personal-kd-njs.yun.139.com/hcy/file/list',
         this.createSignedJsonBody(payload, signPayload)
-      ) as CMCCListResponse;
-      this.assertSuccessful(String(response.code ?? '0') === '0' || String(response.code ?? '0') === '200', response.code, response.message || '移动云盘列表获取失败', response);
+      ));
+      this.assertSuccessful(this.isSuccessfulResponseCode(response.code), response.code, response.message || '移动云盘列表获取失败', response);
 
       const list = response.data?.items;
       if (!Array.isArray(list)) {
-        throw new Error('移动云盘列表获取失败: missing file list');
+        const responseKeys = Object.keys(response || {}).join(',') || 'none';
+        const dataKeys = response.data ? Object.keys(response.data).join(',') || 'none' : 'none';
+        throw new Error(`移动云盘列表获取失败: missing file list (response keys: ${responseKeys}; data keys: ${dataKeys})`);
       }
 
       files.push(...list.filter((item) => item.type !== 'folder').map((item) => this.toFileItem(item, targetParentId)));
@@ -98,13 +100,12 @@ export class CMCCAdapter extends SharedCloudDriveAdapter {
         contentID: fileId,
         contentName: newName,
       };
-      const response = await this.callAPI(
+      const response = this.normalizeResponse<CMCCUpdateResponse>(await this.callAPI(
         'POST',
         'https://personal-kd-njs.yun.139.com/hcy/file/update',
         this.createSignedJsonBody(payload, signPayload)
-      ) as CMCCUpdateResponse;
-      const code = String(response.code ?? '0');
-      this.assertSuccessful(code === '0' || code === '200' || code.toLowerCase() === 'success', response.code, response.message || '移动云盘重命名失败', response);
+      ));
+      this.assertSuccessful(this.isSuccessfulResponseCode(response.code), response.code, response.message || '移动云盘重命名失败', response);
     }, fileId, newName);
   }
 
@@ -114,6 +115,40 @@ export class CMCCAdapter extends SharedCloudDriveAdapter {
 
   protected getPageScriptAPI(): PageScriptAPI {
     return getCMCCPageScriptInjector();
+  }
+
+  private isSuccessfulResponseCode(code: string | number | undefined): boolean {
+    const normalized = String(code ?? '0').toLowerCase();
+    return normalized === '0' || normalized === '0000' || normalized === '200' || normalized === 'success';
+  }
+
+  private normalizeResponse<T>(response: unknown): T {
+    let current = response;
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (typeof current === 'string') {
+        const text = current.trim();
+        if (!text) return {} as T;
+        try {
+          current = JSON.parse(text) as unknown;
+          continue;
+        } catch {
+          break;
+        }
+      }
+
+      if (current && typeof current === 'object' && !Array.isArray(current)) {
+        const text = (current as { text?: unknown }).text;
+        if (typeof text === 'string') {
+          current = text;
+          continue;
+        }
+      }
+
+      break;
+    }
+
+    return current as T;
   }
 
   private toFileItem(item: CMCCFileItem, parentId: string): FileItem {

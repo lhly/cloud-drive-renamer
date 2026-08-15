@@ -226,6 +226,22 @@ describe('Platform Detection - Unified Utils', () => {
         expect(result).toBe('cmcc');
       });
 
+      it('should detect CMCC Drive on the SPA index route', () => {
+        const result = detectPlatformFromUrl(
+          'https://yun.139.com/w/#/index',
+          '/w/'
+        );
+        expect(result).toBe('cmcc');
+      });
+
+      it('should detect CMCC Drive on the app entry before hash routing is ready', () => {
+        const result = detectPlatformFromUrl(
+          'https://yun.139.com/w/',
+          '/w/'
+        );
+        expect(result).toBe('cmcc');
+      });
+
       it('should detect Esurfing Drive', () => {
         const result = detectPlatformFromUrl(
           'https://cloud.189.cn/web/main/file/folder/folder189',

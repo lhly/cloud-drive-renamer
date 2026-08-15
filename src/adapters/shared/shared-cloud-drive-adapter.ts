@@ -21,6 +21,7 @@ export class CloudDriveAPIError extends Error {
 export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
   private lastRequestTime = 0;
   private pendingConflictListRequests = new Map<string, Promise<FileItem[]>>;
+  private static activeDomSyncCleanup: (() => void) | null = null;
 
   protected constructor(config: Partial<PlatformConfig>) {
     super({
@@ -156,6 +157,8 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
       return { success: true, method: 'none' };
     }
 
+    this.disconnectActiveDomSyncObserver();
+
     const documents = this.getDomPatchDocuments();
     let patchedById = 0;
     let patchedByOldName = 0;
@@ -251,7 +254,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
       const info = renameInfoById.get(fileId);
       if (!info) continue;
 
-      const row = node.closest('tr,[role="row"],.ant-table-row,.file-item,.list-item,li[rel="item"],li') || node;
+      const row = node.closest('tr,[role="row"],.ant-table-row,.document_table_list,.file-item,.list-item,li[rel="item"],li') || node;
       patched += this.patchRowElement(row, info.oldName, info.newName);
     }
 
@@ -262,7 +265,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
     if (renameByOldName.size === 0) return 0;
 
     let patched = 0;
-    const nodes = Array.from(root.querySelectorAll('.file-name,.filename,.name,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,[title],[aria-label]'));
+    const nodes = Array.from(root.querySelectorAll('.touch-div,.document_table_list_name_text,.file-name,.filename,.name,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,[title],[aria-label]'));
     for (const node of nodes) {
       for (const [oldName, newName] of renameByOldName.entries()) {
         patched += this.patchNameElement(node, oldName, newName);
@@ -272,7 +275,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
   }
 
   private patchRowElement(row: Element, oldName: string | undefined, newName: string): number {
-    const preferredNameNode = row.querySelector('.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.file-name,.filename,.name');
+    const preferredNameNode = row.querySelector('.touch-div,.document_table_list_name_text,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.file-name,.filename,.name');
     if (preferredNameNode && oldName) {
       return this.patchStructuredNameWithinElement(preferredNameNode, oldName, newName);
     }
@@ -393,7 +396,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
     const roots = new Set<ParentNode>();
     const ownerWindow = doc.defaultView ?? window;
     const NodeCtor = ownerWindow.Node;
-    const rowSelector = 'tr,[role="row"],.ant-table-row,.file-item,.list-item,li[rel="item"],li';
+    const rowSelector = 'tr,[role="row"],.ant-table-row,.document_table_list,.file-item,.list-item,li[rel="item"],li';
 
     const addNode = (node: Node | null) => {
       if (!node) return;
@@ -410,6 +413,12 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
     }
 
     return Array.from(roots);
+  }
+
+  private disconnectActiveDomSyncObserver(): void {
+    const cleanup = SharedCloudDriveAdapter.activeDomSyncCleanup;
+    SharedCloudDriveAdapter.activeDomSyncCleanup = null;
+    cleanup?.();
   }
 
   private observeAndPatchRenamedRows(
@@ -458,14 +467,29 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
       cleanupCallbacks.push(() => {
         if (flushTimer !== null) {
           observerWindow.clearTimeout(flushTimer);
+          flushTimer = null;
         }
       });
     }
 
-    window.setTimeout(() => {
-      for (const cleanup of cleanupCallbacks) cleanup();
+    let timeoutId: number | null = null;
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      for (const clearPendingFlush of cleanupCallbacks) clearPendingFlush();
       for (const observer of observers) observer.disconnect();
-    }, durationMs);
+      if (SharedCloudDriveAdapter.activeDomSyncCleanup === cleanup) {
+        SharedCloudDriveAdapter.activeDomSyncCleanup = null;
+      }
+    };
+
+    timeoutId = window.setTimeout(cleanup, durationMs);
+    SharedCloudDriveAdapter.activeDomSyncCleanup = cleanup;
   }
 
   private tryTriggerNativeFileListRerender(documents: Document[] = this.getDomPatchDocuments()): { triggered: boolean; message?: string } {
@@ -496,7 +520,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
 
   private findFilenameInRow(row: Element): string {
     return (
-      row.querySelector('.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.file-name,.filename,.name,[title]')?.textContent?.trim() ||
+      row.querySelector('.touch-div,.document_table_list_name_text,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.file-name,.filename,.name,[title]')?.textContent?.trim() ||
       row.getAttribute('title') ||
       row.getAttribute('aria-label') ||
       ''

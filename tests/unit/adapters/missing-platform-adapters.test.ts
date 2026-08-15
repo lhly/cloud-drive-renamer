@@ -6,6 +6,7 @@ import { EsurfingAdapter } from '../../../src/adapters/esurfing/adapter';
 import { getDrive115PageScriptInjector } from '../../../src/adapters/115/page-script-injector';
 import { getDrive123PageScriptInjector } from '../../../src/adapters/123/page-script-injector';
 import { getCMCCPageScriptInjector } from '../../../src/adapters/cmcc/page-script-injector';
+import { CMCC_PAGE_SCRIPT_OPTIONS } from '../../../src/adapters/cmcc/page-script';
 import { getEsurfingPageScriptInjector } from '../../../src/adapters/esurfing/page-script-injector';
 
 vi.mock('../../../src/adapters/115/page-script-injector', () => ({
@@ -133,6 +134,38 @@ describe('missing platform adapters', () => {
     );
   });
 
+  it('does not duplicate CMCC explicit auth headers or capture encryption-triggering headers', () => {
+    const headers = CMCC_PAGE_SCRIPT_OPTIONS.captureHeaders?.map((header) => header.toLowerCase());
+    expect(headers).not.toContain('authorization');
+    expect(headers).not.toContain('hcy-cool-flag');
+  });
+
+  it('parses CMCC list responses that arrive as JSON strings', async () => {
+    const adapter = new CMCCAdapter({ requestInterval: 0 });
+    localStorage.setItem('currentCatalogID', 'folder139');
+    mockCMCCCallAPI.mockResolvedValue(JSON.stringify({
+      code: '0000',
+      message: '请求成功',
+      data: {
+        items: [{ fileId: 'file-139', name: 'Episode 01.mkv', parentFileId: 'folder139', fileExtension: 'mkv', size: 56, updatedAt: 789, type: 'file' }],
+        nextPageCursor: null,
+      },
+    }));
+
+    const files = await adapter.getAllFiles();
+
+    expect(files[0]).toEqual({ id: 'file-139', name: 'Episode 01.mkv', ext: '.mkv', parentId: 'folder139', size: 56, mtime: 789 });
+  });
+
+  it('accepts CMCC rename responses with the real success code', async () => {
+    const adapter = new CMCCAdapter({ requestInterval: 0 });
+    mockCMCCCallAPI.mockResolvedValue({ code: '0000', message: '请求成功' });
+
+    const result = await adapter.renameFile('file-139', 'Episode 01-fixed.mkv');
+
+    expect(result).toEqual({ success: true, newName: 'Episode 01-fixed.mkv' });
+  });
+
   it('uses CMCC APIs and deduplicates concurrent conflict checks', async () => {
     const adapter = new CMCCAdapter({ requestInterval: 0 });
     Object.defineProperty(window, 'location', {
@@ -221,6 +254,14 @@ describe('missing platform adapters', () => {
     mockCMCCCallAPI.mockResolvedValue({ code: 500, message: 'list failed' });
 
     await expect(adapter.getAllFiles()).rejects.toThrow('list failed');
+  });
+
+  it('reports CMCC response shape when the list payload is missing', async () => {
+    const adapter = new CMCCAdapter({ requestInterval: 0 });
+    localStorage.setItem('currentCatalogID', 'folder139');
+    mockCMCCCallAPI.mockResolvedValue({ code: 0, data: { catalogList: [] } });
+
+    await expect(adapter.getAllFiles()).rejects.toThrow('response keys: code,data; data keys: catalogList');
   });
 
   it('throws instead of returning an empty list when Esurfing list API fails', async () => {
@@ -340,6 +381,65 @@ describe('missing platform adapters', () => {
     expect(result.success).toBe(true);
     expect(result.method).toBe('dom-patch');
     expect(nameNode?.textContent).toBe('WADBS_1.3.apk');
+  });
+
+  it('patches CMCC visible rows with document table filename classes after rename', async () => {
+    document.body.innerHTML = `
+      <div class="main_file_list">
+        <div class="document_table_list">
+          <div class="document_table_list_name name-col-3-item">
+            <div class="document_table_list_name_text">
+              <div class="touch-div"><span>未命名项目-图层 1.png</span></div>
+              <span class="mirror-name">未命名项目-图层 1.png</span>
+            </div>
+          </div>
+          <div class="document_table_list_time">今天 11:40</div>
+          <div class="document_table_list_size">246.59KB</div>
+        </div>
+      </div>
+    `;
+
+    const adapter = new CMCCAdapter({ requestInterval: 0 });
+    const result = await adapter.syncAfterRename([
+      { fileId: 'file-139', oldName: '未命名项目-图层 1.png', newName: 'test-未命名项目-图层 1.png' },
+    ]);
+
+    const nameNode = document.querySelector<HTMLElement>('.touch-div');
+    expect(result.success).toBe(true);
+    expect(result.method).toBe('dom-patch');
+    expect(nameNode?.textContent).toBe('test-未命名项目-图层 1.png');
+  });
+
+  it('disconnects older DOM sync observers before undo sync starts', async () => {
+    document.body.innerHTML = '<main id="file-list"></main>';
+
+    const adapter = new CMCCAdapter({ requestInterval: 0 });
+    await adapter.syncAfterRename([
+      { fileId: 'file-139', oldName: '未命名项目-图层 1.png', newName: 'test-未命名项目-图层 1.png' },
+    ]);
+    await adapter.syncAfterRename([
+      { fileId: 'file-139', oldName: 'test-未命名项目-图层 1.png', newName: '未命名项目-图层 1.png' },
+    ]);
+
+    const observedNames: string[] = [];
+    const observer = new MutationObserver(() => {
+      const text = document.querySelector<HTMLElement>('.touch-div')?.textContent?.trim();
+      if (text) observedNames.push(text);
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+    document.querySelector('#file-list')!.insertAdjacentHTML('beforeend', `
+      <div class="document_table_list">
+        <div class="document_table_list_name_text">
+          <div class="touch-div"><span>未命名项目-图层 1.png</span></div>
+        </div>
+      </div>
+    `);
+    await new Promise((resolve) => window.setTimeout(resolve, 20));
+    observer.disconnect();
+
+    expect(observedNames).not.toContain('test-未命名项目-图层 1.png');
+    expect(document.querySelector<HTMLElement>('.touch-div')?.textContent).toBe('未命名项目-图层 1.png');
   });
 
   it('patches later 123Pan row mutations without rescanning the whole document', async () => {
