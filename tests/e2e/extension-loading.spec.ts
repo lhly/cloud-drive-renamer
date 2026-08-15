@@ -22,15 +22,16 @@ test.describe('扩展加载测试', () => {
     await page.goto('https://pan.quark.cn');
     await page.waitForLoadState('networkidle');
 
-    // 等待一段时间让内容脚本注入
-    await page.waitForTimeout(2000);
+    // 等待内容脚本挂载当前架构的 Shadow DOM 浮动按钮
+    const floatingButtonHost = page.locator('#cloud-drive-renamer-shadow-host');
+    await expect(floatingButtonHost).toBeAttached({ timeout: 5000 });
 
-    // 验证自定义元素是否已注册
-    const hasRenameButton = await page.evaluate(() => {
-      return customElements.get('rename-button') !== undefined;
+    const hasFloatingButton = await page.evaluate(() => {
+      const host = document.querySelector('#cloud-drive-renamer-shadow-host');
+      return host?.shadowRoot?.querySelector('#cloud-drive-renamer-floating-button') !== null;
     });
 
-    expect(hasRenameButton).toBe(true);
+    expect(hasFloatingButton).toBe(true);
   });
 
   test('应该能够访问扩展的background service worker', async ({ context }) => {

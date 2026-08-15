@@ -11,6 +11,7 @@
 | 3. 对照油猴脚本识别能力差距/可优化点 | complete | 已完成差距分析，并与用户确认本次实现范围：剧集提取交互增强（B 档）+ 最近使用/命名模板（B 档）。 |
 | 4. 汇总优化建议并按优先级输出 | complete | 已输出 P0/P1/P2 分层建议，并聚焦到本次要实现的两项优化。 |
 | 5. 产出设计文档并等待用户确认书面 spec | complete | 设计 spec 与 implementation plan 已落盘，且用户已批准进入实现。 |
+| 6. 清理根本未使用的代码 | complete | 已删除旧 Web Component、历史 cookie/message 模块、旧 batch rename e2e；extension-loading e2e 改为当前 Shadow DOM 浮动按钮入口；验证通过。 |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |

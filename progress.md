@@ -22,3 +22,8 @@
 - 2026-03-25：实现规则模板重命名：配置面板模板项新增“重命名”按钮，点击后通过 `prompt` 输入新名称并派发 `rename-rule-template`。
 - 2026-03-25：完成接线：`file-selector-panel` 统一处理模板重命名、同名覆盖确认与模板列表刷新。
 - 2026-03-25：完成验证：`npm run typecheck` ✅，`npx vitest run` ✅（36 files / 271 tests），`npm run lint` ✅（仅历史 warning）。
+- 2026-08-15：收到新任务——清理项目内根本没用到的代码，重点避免旧组件/旧入口误导后续开发。初步配置扫描确认 `tsconfig` 已启用 `noUnusedLocals/noUnusedParameters`，但文件级死代码仍需人工检查 manifest/vite/customElement/dynamic import 引用。
+- 2026-08-15：Serena 符号与引用搜索初步发现疑似死代码候选：`src/content/components/hello-world.ts`、`src/content/components/progress-dialog.ts`、`src/content/components/rename-preview.ts` 没有生产导入；`rename-preview` 只被一个 e2e 旧标签检查引用。另发现 `src/core/cookie-manager.ts` 与 `src/types/message.ts` 目前仅自身定义，需进一步确认是否历史遗留或保留契约。
+- 2026-08-15：完成死代码清理：删除 `hello-world.ts`、`progress-dialog.ts`、`rename-preview.ts`、`cookie-manager.ts`、`types/message.ts` 和旧 `tests/e2e/batch-rename.spec.ts`；将 `extension-loading.spec.ts` 从旧 `rename-button` custom element 断言改为当前 `#cloud-drive-renamer-shadow-host` / `#cloud-drive-renamer-floating-button` 注入断言。验证：`pnpm run typecheck` ✅，相关单测 55 tests ✅，`pnpm run lint` 0 errors/266 warnings ✅，`pnpm run build` ✅（375 tests，12 个平台 page-script 产物），Serena 残留引用搜索 0 results。
+- 2026-08-15：独立 reviewer（xiaomi-token-plan-cn/mimo-v2.5）复核无 Critical/Important 问题；按 reviewer 的 Note 同步修正 README 项目结构树，移除已不存在的 `message.ts` / `dialog/`，补充当前 `runtime-message.ts`、诊断 background 模块、`conflict-resolution-dialog.ts`、`episode-extract.ts` 等真实文件；最终 `pnpm run typecheck` ✅。
+

@@ -389,8 +389,10 @@ src/
 │   ├── rule.ts         # 规则类型
 │   ├── platform.ts     # 平台接口
 │   ├── core.ts         # 核心类型
-│   └── message.ts      # 消息类型
+│   └── runtime-message.ts # Chrome runtime 消息类型
 ├── background/         # Background Service Worker
+│   ├── diagnostic-log-store.ts
+│   ├── diagnostic-service.ts
 │   └── service-worker.ts
 ├── content/            # Content Scripts
 │   ├── index.ts        # 入口文件
@@ -399,6 +401,7 @@ src/
 │       ├── file-selector-panel.ts
 │       ├── config-panel.ts
 │       ├── file-list-panel.ts
+│       ├── conflict-resolution-dialog.ts
 │       ├── preview-panel.ts
 │       ├── search-box.ts
 │       ├── toolbar.ts
@@ -415,29 +418,32 @@ src/
 │   ├── cmcc/           # 移动云盘适配器
 │   ├── esurfing/       # 天翼云盘适配器
 │   ├── guangyapan/     # 光鸭云盘适配器
-│   ├── wkbrowser/     # 悟空网盘适配器
 │   ├── quark/          # 夸克网盘适配器
 │   ├── uc/             # UC 网盘适配器
+│   ├── wkbrowser/      # 悟空网盘适配器
 │   ├── xunlei/         # 迅雷云盘适配器
 │   └── woozooo/        # 蓝奏云适配器
 ├── rules/              # 重命名规则
 │   ├── base-rule.ts    # 规则基类
 │   ├── rule-factory.ts # 规则工厂
 │   ├── replace.ts      # 替换规则
+│   ├── regex.ts        # 正则规则
 │   ├── prefix.ts       # 前缀规则
 │   ├── suffix.ts       # 后缀规则
 │   ├── numbering.ts    # 编号规则
+│   ├── episode-extract.ts # 剧集提取规则
 │   └── sanitize.ts     # 清理规则
 ├── core/               # 核心引擎
 │   ├── executor.ts     # 批量执行引擎
+│   ├── execution-plan.ts # 执行计划构建
 │   ├── retry.ts        # 重试机制
 │   ├── crash-recovery.ts # 崩溃恢复
+│   ├── last-rename-operation.ts # 最近一次重命名记录
+│   ├── diagnostic-session.ts # 诊断快照
 │   └── conflict-detector.ts # 冲突检测
 ├── popup/              # Popup 界面
 │   ├── popup.ts
 │   └── index.html
-├── dialog/             # 独立对话框页面
-│   └── dialog.ts
 └── utils/              # 工具函数
     ├── storage.ts      # 存储抽象
     ├── logger.ts       # 日志系统
