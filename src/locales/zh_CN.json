@@ -1,6 +1,6 @@
 {
   "extName": "云盘批量重命名工具",
-  "extDescription": "强大的批量重命名工具，支持115网盘、123云盘、阿里云盘、百度网盘、移动云盘、天翼云盘、夸克网盘、UC网盘文件批量重命名",
+  "extDescription": "强大的批量重命名工具，支持115网盘、123云盘、阿里云盘、百度网盘、移动云盘、天翼云盘、迅雷云盘、夸克网盘、UC网盘文件批量重命名",
   "rename_dialog_title": "批量重命名",
   "file_selector_title": "批量重命名",
   "config_panel_title": "配置",
@@ -187,6 +187,7 @@
   "platform_123": "123云盘",
   "platform_cmcc": "移动云盘",
   "platform_esurfing": "天翼云盘",
+  "platform_xunlei": "迅雷云盘",
   "popup_language_label": "语言 / Language",
   "toast_language_changed": "语言已更改为$1",
   "toast_language_change_failed": "语言切换失败,请重试",

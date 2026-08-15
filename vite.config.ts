@@ -17,6 +17,7 @@ export default defineConfig({
         'page-script-123': 'src/adapters/123/page-script.ts',
         'page-script-cmcc': 'src/adapters/cmcc/page-script.ts',
         'page-script-esurfing': 'src/adapters/esurfing/page-script.ts',
+        'page-script-xunlei': 'src/adapters/xunlei/page-script.ts',
       },
       output: {
         entryFileNames: (chunkInfo) => {

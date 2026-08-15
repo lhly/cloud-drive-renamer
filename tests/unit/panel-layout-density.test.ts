@@ -13,6 +13,13 @@ function cssRule(cssText: string, selector: string, nextSelector: string): strin
 }
 
 describe('panel layout density', () => {
+  it('resets panel typography so host pages cannot enlarge form checkbox labels', () => {
+    const configCss = ConfigPanel.styles.cssText;
+    const hostRule = cssRule(configCss, ':host {', '.config-panel');
+
+    expect(hostRule).toContain('font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;');
+  });
+
   it('uses compact modal and column headers', () => {
     const selectorCss = FileSelectorPanel.styles.cssText;
     const configCss = ConfigPanel.styles.cssText;

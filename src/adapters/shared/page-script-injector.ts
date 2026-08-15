@@ -83,13 +83,13 @@ export class CloudDrivePageScriptInjector {
   }
 
   private waitForPageScriptReady(): void {
-    const domReadyFlag = document.body?.dataset[this.options.datasetReadyKey];
-    const domTimestampStr = document.body?.dataset[this.options.datasetTimestampKey];
-    const windowFlag = (window as unknown as Window & Record<string, unknown>)[this.options.readyFlagName] as PageScriptReadyFlag | undefined;
-    const timestamp = Number(domTimestampStr || windowFlag?.timestamp || 0);
-    const isFresh = timestamp > 0 && Date.now() - timestamp < 60000;
+    const isReady = () => {
+      const domReadyFlag = document.body?.dataset[this.options.datasetReadyKey];
+      const windowFlag = (window as unknown as Window & Record<string, unknown>)[this.options.readyFlagName] as PageScriptReadyFlag | undefined;
+      return domReadyFlag === 'true' || windowFlag?.ready === true;
+    };
 
-    if ((domReadyFlag === 'true' || windowFlag?.ready) && isFresh) {
+    if (isReady()) {
       this.ready = true;
       this.resolveReady();
       return;
@@ -97,13 +97,7 @@ export class CloudDrivePageScriptInjector {
 
     const startTime = Date.now();
     const checkReady = () => {
-      const latestDomReady = document.body?.dataset[this.options.datasetReadyKey];
-      const latestTimestampStr = document.body?.dataset[this.options.datasetTimestampKey];
-      const latestWindowFlag = (window as unknown as Window & Record<string, unknown>)[this.options.readyFlagName] as PageScriptReadyFlag | undefined;
-      const latestTimestamp = Number(latestTimestampStr || latestWindowFlag?.timestamp || 0);
-      const latestFresh = latestTimestamp > 0 && Date.now() - latestTimestamp < 60000;
-
-      if ((latestDomReady === 'true' || latestWindowFlag?.ready) && latestFresh) {
+      if (isReady()) {
         this.ready = true;
         this.resolveReady();
         return;

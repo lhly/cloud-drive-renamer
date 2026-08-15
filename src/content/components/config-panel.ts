@@ -1501,6 +1501,7 @@ export class ConfigPanel extends LitElement {
       display: flex;
       flex-direction: column;
       height: 100%;
+      font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: var(--cdr-surface, #fff);
       border-right: 1px solid var(--cdr-border, #f0f0f0);
       color: var(--cdr-text, #262626);

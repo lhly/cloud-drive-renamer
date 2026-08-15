@@ -265,7 +265,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
     if (renameByOldName.size === 0) return 0;
 
     let patched = 0;
-    const nodes = Array.from(root.querySelectorAll('.touch-div,.document_table_list_name_text,.file-name,.filename,.name,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,[title],[aria-label]'));
+    const nodes = Array.from(root.querySelectorAll('[class*="SourceListItem__name"],.touch-div,.document_table_list_name_text,.file-name,.filename,.name,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,[title],[aria-label]'));
     for (const node of nodes) {
       for (const [oldName, newName] of renameByOldName.entries()) {
         patched += this.patchNameElement(node, oldName, newName);
@@ -275,7 +275,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
   }
 
   private patchRowElement(row: Element, oldName: string | undefined, newName: string): number {
-    const preferredNameNode = row.querySelector('.touch-div,.document_table_list_name_text,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.file-name,.filename,.name');
+    const preferredNameNode = row.querySelector('[class*="SourceListItem__name"],.touch-div,.document_table_list_name_text,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.file-name,.filename,.name');
     if (preferredNameNode && oldName) {
       return this.patchStructuredNameWithinElement(preferredNameNode, oldName, newName);
     }
@@ -520,7 +520,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
 
   private findFilenameInRow(row: Element): string {
     return (
-      row.querySelector('.touch-div,.document_table_list_name_text,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.file-name,.filename,.name,[title]')?.textContent?.trim() ||
+      row.querySelector('[class*="SourceListItem__name"],.touch-div,.document_table_list_name_text,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.file-name,.filename,.name,[title]')?.textContent?.trim() ||
       row.getAttribute('title') ||
       row.getAttribute('aria-label') ||
       ''

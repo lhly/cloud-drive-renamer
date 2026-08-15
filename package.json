@@ -1,7 +1,7 @@
 {
   "name": "cloud-drive-renamer",
   "version": "1.5.0",
-  "description": "云盘文件批量重命名工具，支持 115 网盘、123 云盘、阿里云盘、百度网盘、移动云盘、天翼云盘、夸克网盘、UC 网盘",
+  "description": "云盘文件批量重命名工具，支持 115 网盘、123 云盘、阿里云盘、百度网盘、移动云盘、天翼云盘、迅雷云盘、夸克网盘、UC 网盘",
   "type": "module",
   "scripts": {
     "dev": "pnpm run sync:version && vite",
@@ -32,6 +32,7 @@
     "baidu",
     "cmcc",
     "esurfing",
+    "xunlei",
     "quark",
     "uc"
   ],

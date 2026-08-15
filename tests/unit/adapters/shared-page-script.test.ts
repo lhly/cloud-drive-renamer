@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { installCloudDrivePageScript, markPageScriptReady } from '../../../src/adapters/shared/page-script';
+import { CloudDrivePageScriptInjector } from '../../../src/adapters/shared/page-script-injector';
 import { CMCC_PAGE_SCRIPT_OPTIONS } from '../../../src/adapters/cmcc/page-script';
 
 describe('shared cloud drive page script', () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     document.body.innerHTML = '';
   });
@@ -22,6 +24,52 @@ describe('shared cloud drive page script', () => {
     })).not.toThrow();
 
     Object.defineProperty(document, 'body', { value: body, configurable: true });
+  });
+
+  it('keeps an already installed page script usable after the page has been open for more than one minute', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-15T01:40:00.000Z'));
+
+    const timestamp = Date.now() - 120000;
+    document.body.dataset.testStaleReady = 'true';
+    document.body.dataset.testStaleTimestamp = timestamp.toString();
+    (window as unknown as Window & Record<string, unknown>).__TEST_STALE_READY__ = { ready: true, timestamp };
+
+    const injector = new CloudDrivePageScriptInjector({
+      requestType: 'TEST_STALE_REQUEST',
+      responseType: 'TEST_STALE_RESPONSE',
+      readyFlagName: '__TEST_STALE_READY__',
+      datasetReadyKey: 'testStaleReady',
+      datasetTimestampKey: 'testStaleTimestamp',
+      logPrefix: 'TestStale',
+    });
+
+    const requests: unknown[] = [];
+    const handleRequest = (event: MessageEvent) => {
+      const message = event.data as { type?: string; requestId?: string };
+      if (message?.type !== 'TEST_STALE_REQUEST' || !message.requestId) return;
+
+      requests.push(message);
+      const responseEvent = new MessageEvent('message', {
+        data: {
+          type: 'TEST_STALE_RESPONSE',
+          requestId: message.requestId,
+          success: true,
+          data: { ok: true },
+        },
+      });
+      Object.defineProperty(responseEvent, 'source', { value: window });
+      window.dispatchEvent(responseEvent);
+    };
+    window.addEventListener('message', handleRequest);
+
+    const resultPromise = injector.callAPI('GET', 'https://example.com/api');
+    await vi.runAllTimersAsync();
+
+    await expect(resultPromise).resolves.toEqual({ ok: true });
+    expect(requests).toHaveLength(1);
+
+    window.removeEventListener('message', handleRequest);
   });
 
   it('uses XHR transport for CMCC so request header casing is preserved', () => {

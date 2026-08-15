@@ -3,11 +3,14 @@ import { Drive115Adapter } from '../../../src/adapters/115/adapter';
 import { Drive123Adapter } from '../../../src/adapters/123/adapter';
 import { CMCCAdapter, md5 } from '../../../src/adapters/cmcc/adapter';
 import { EsurfingAdapter } from '../../../src/adapters/esurfing/adapter';
+import { XunleiAdapter } from '../../../src/adapters/xunlei/adapter';
 import { getDrive115PageScriptInjector } from '../../../src/adapters/115/page-script-injector';
 import { getDrive123PageScriptInjector } from '../../../src/adapters/123/page-script-injector';
 import { getCMCCPageScriptInjector } from '../../../src/adapters/cmcc/page-script-injector';
 import { CMCC_PAGE_SCRIPT_OPTIONS } from '../../../src/adapters/cmcc/page-script';
 import { getEsurfingPageScriptInjector } from '../../../src/adapters/esurfing/page-script-injector';
+import { getXunleiPageScriptInjector } from '../../../src/adapters/xunlei/page-script-injector';
+import { XUNLEI_PAGE_SCRIPT_OPTIONS } from '../../../src/adapters/xunlei/page-script';
 
 vi.mock('../../../src/adapters/115/page-script-injector', () => ({
   getDrive115PageScriptInjector: vi.fn(),
@@ -25,22 +28,29 @@ vi.mock('../../../src/adapters/esurfing/page-script-injector', () => ({
   getEsurfingPageScriptInjector: vi.fn(),
 }));
 
+vi.mock('../../../src/adapters/xunlei/page-script-injector', () => ({
+  getXunleiPageScriptInjector: vi.fn(),
+}));
+
 describe('missing platform adapters', () => {
   let mock115CallAPI: Mock;
   let mock123CallAPI: Mock;
   let mockCMCCCallAPI: Mock;
   let mockEsurfingCallAPI: Mock;
+  let mockXunleiCallAPI: Mock;
 
   beforeEach(() => {
     mock115CallAPI = vi.fn();
     mock123CallAPI = vi.fn();
     mockCMCCCallAPI = vi.fn();
     mockEsurfingCallAPI = vi.fn();
+    mockXunleiCallAPI = vi.fn();
 
     vi.mocked(getDrive115PageScriptInjector).mockReturnValue({ callAPI: mock115CallAPI });
     vi.mocked(getDrive123PageScriptInjector).mockReturnValue({ callAPI: mock123CallAPI });
     vi.mocked(getCMCCPageScriptInjector).mockReturnValue({ callAPI: mockCMCCCallAPI });
     vi.mocked(getEsurfingPageScriptInjector).mockReturnValue({ callAPI: mockEsurfingCallAPI });
+    vi.mocked(getXunleiPageScriptInjector).mockReturnValue({ callAPI: mockXunleiCallAPI });
 
     Object.defineProperty(window, 'location', {
       value: {
@@ -191,6 +201,74 @@ describe('missing platform adapters', () => {
     expect(results).toEqual([true, false, false]);
     expect(mockCMCCCallAPI).toHaveBeenCalledTimes(1);
     expect(mockCMCCCallAPI.mock.calls[0][1]).toBe('https://personal-kd-njs.yun.139.com/hcy/file/list');
+  });
+
+  it('captures Xunlei dynamic API headers from native page requests', () => {
+    const headers = XUNLEI_PAGE_SCRIPT_OPTIONS.captureHeaders?.map((header) => header.toLowerCase());
+    expect(headers).toEqual(expect.arrayContaining([
+      'authorization',
+      'x-device-id',
+      'x-client-id',
+      'x-captcha-token',
+      'content-type',
+    ]));
+  });
+
+  it('uses Xunlei APIs for listing and rename', async () => {
+    const adapter = new XunleiAdapter({ requestInterval: 0 });
+    Object.defineProperty(window, 'location', {
+      value: {
+        href: 'https://pan.xunlei.com/?path=%2F%E6%88%91%E7%9A%84%E8%B5%84%E6%BA%90%2F%E5%AD%90%E7%9B%AE%E5%BD%95%2F%E5%BD%93%E5%89%8D%E7%9B%AE%E5%BD%95',
+        search: '?path=%2F%E6%88%91%E7%9A%84%E8%B5%84%E6%BA%90%2F%E5%AD%90%E7%9B%AE%E5%BD%95%2F%E5%BD%93%E5%89%8D%E7%9B%AE%E5%BD%95',
+        pathname: '/',
+        hash: '',
+      },
+      writable: true,
+      configurable: true,
+    });
+    localStorage.setItem('xlPanHomeRoutes', JSON.stringify({
+      '/我的资源/子目录/当前目录': '/root-xl/child-xl/folder-xl',
+    }));
+
+    mockXunleiCallAPI
+      .mockResolvedValueOnce({
+        kind: 'drive#fileList',
+        next_page_token: '',
+        files: [{
+          kind: 'drive#file',
+          id: 'file-xl',
+          parent_id: 'folder-xl',
+          name: 'Episode 01.mkv',
+          file_extension: '.mkv',
+          size: '12345',
+          modified_time: '2026-08-15T09:00:00.000+08:00',
+        }],
+      })
+      .mockResolvedValueOnce({ id: 'file-xl', name: 'Episode 01-fixed.mkv' });
+
+    const files = await adapter.getAllFiles();
+    const rename = await adapter.renameFile('file-xl', 'Episode 01-fixed.mkv');
+
+    expect(files[0]).toMatchObject({ id: 'file-xl', name: 'Episode 01.mkv', ext: '.mkv', parentId: 'folder-xl', size: 12345 });
+    expect(rename).toEqual({ success: true, newName: 'Episode 01-fixed.mkv' });
+    expect(mockXunleiCallAPI.mock.calls[0][1]).toContain('https://api-pan.xunlei.com/drive/v1/files');
+    expect(mockXunleiCallAPI.mock.calls[0][1]).toContain('parent_id=folder-xl');
+    expect(mockXunleiCallAPI.mock.calls[0][1]).not.toContain('parent_id=root-xl%2Fchild-xl%2Ffolder-xl');
+    expect(mockXunleiCallAPI.mock.calls[0][1]).toContain('limit=50');
+    expect(mockXunleiCallAPI).toHaveBeenNthCalledWith(
+      2,
+      'PATCH',
+      'https://api-pan.xunlei.com/drive/v1/files/file-xl',
+      { name: 'Episode 01-fixed.mkv' },
+      30000
+    );
+  });
+
+  it('throws instead of returning an empty list when Xunlei list API fails', async () => {
+    const adapter = new XunleiAdapter({ requestInterval: 0 });
+    mockXunleiCallAPI.mockResolvedValue({ error: 'bad_request', error_description: 'list failed' });
+
+    await expect(adapter.getAllFiles()).rejects.toThrow('list failed');
   });
 
   it('uses Esurfing APIs for listing and form-encoded rename', async () => {
@@ -381,6 +459,32 @@ describe('missing platform adapters', () => {
     expect(result.success).toBe(true);
     expect(result.method).toBe('dom-patch');
     expect(nameNode?.textContent).toBe('WADBS_1.3.apk');
+  });
+
+  it('patches Xunlei visible rows with SourceListItem filename classes after rename', async () => {
+    document.body.innerHTML = `
+      <ul>
+        <li data-file-id="file-xl" class="SourceListItem__item--XxpOC">
+          <div class="SourceListItem__main--c9HnH">
+            <div class="SourceListItem__content--bJbFo">
+              <div class="SourceListItem__title--fq2DG">
+                <a class="SourceListItem__name--y6dVw">Episode 01.mkv</a>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    `;
+
+    const adapter = new XunleiAdapter({ requestInterval: 0 });
+    const result = await adapter.syncAfterRename([
+      { fileId: 'file-xl', oldName: 'Episode 01.mkv', newName: 'Episode 01-fixed.mkv' },
+    ]);
+
+    const nameNode = document.querySelector<HTMLElement>('[class*="SourceListItem__name"]');
+    expect(result.success).toBe(true);
+    expect(result.method).toBe('dom-patch');
+    expect(nameNode?.textContent).toBe('Episode 01-fixed.mkv');
   });
 
   it('patches CMCC visible rows with document table filename classes after rename', async () => {

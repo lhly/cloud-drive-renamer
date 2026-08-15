@@ -118,6 +118,11 @@ export function detectPlatformFromUrl(url: string, pathname?: string): PlatformN
     return pathToCheck === '/web/main' || pathToCheck === '/web/main/' || pathToCheck.startsWith('/web/main/file') ? 'esurfing' : null;
   }
 
+  // 迅雷云盘
+  if (url.includes('pan.xunlei.com')) {
+    return 'xunlei';
+  }
+
   // UC网盘
   if (url.includes('drive.uc.cn') || url.includes('pan.uc.cn')) {
     return 'uc';

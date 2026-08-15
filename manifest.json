@@ -22,7 +22,9 @@
     "https://yun.123pan.cn/*",
     "https://yun.139.com/*",
     "https://personal-kd-njs.yun.139.com/*",
-    "https://cloud.189.cn/*"
+    "https://cloud.189.cn/*",
+    "https://pan.xunlei.com/*",
+    "https://api-pan.xunlei.com/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -102,6 +104,15 @@
         "src/content/index.ts"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://pan.xunlei.com/*"
+      ],
+      "js": [
+        "src/content/index.ts"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
@@ -118,7 +129,8 @@
         "src/adapters/115/page-script.js",
         "src/adapters/123/page-script.js",
         "src/adapters/cmcc/page-script.js",
-        "src/adapters/esurfing/page-script.js"
+        "src/adapters/esurfing/page-script.js",
+        "src/adapters/xunlei/page-script.js"
       ],
       "matches": [
         "https://pan.quark.cn/*",
@@ -130,7 +142,8 @@
         "https://115.com/*",
         "https://yun.123pan.cn/*",
         "https://yun.139.com/*",
-        "https://cloud.189.cn/*"
+        "https://cloud.189.cn/*",
+        "https://pan.xunlei.com/*"
       ]
     }
   ],

@@ -9,6 +9,7 @@ import { Drive115Adapter } from '../adapters/115/adapter';
 import { Drive123Adapter } from '../adapters/123/adapter';
 import { CMCCAdapter } from '../adapters/cmcc/adapter';
 import { EsurfingAdapter } from '../adapters/esurfing/adapter';
+import { XunleiAdapter } from '../adapters/xunlei/adapter';
 import { storage } from '../utils/storage';
 import { STORAGE_KEYS } from '../types/stats';
 import { I18nService } from '../utils/i18n';
@@ -270,6 +271,8 @@ function createPlatformAdapter(platform: PlatformName): PlatformAdapter {
       return new CMCCAdapter();
     case 'esurfing':
       return new EsurfingAdapter();
+    case 'xunlei':
+      return new XunleiAdapter();
   }
 }
 
