@@ -242,6 +242,14 @@ describe('Platform Detection - Unified Utils', () => {
         expect(result).toBe('cmcc');
       });
 
+      it('should detect Esurfing Drive entry page before navigating into file lists', () => {
+        const result = detectPlatformFromUrl(
+          'https://cloud.189.cn/web/main/',
+          '/web/main/'
+        );
+        expect(result).toBe('esurfing');
+      });
+
       it('should detect Esurfing Drive', () => {
         const result = detectPlatformFromUrl(
           'https://cloud.189.cn/web/main/file/folder/folder189',

@@ -115,7 +115,7 @@ export function detectPlatformFromUrl(url: string, pathname?: string): PlatformN
   // 天翼云盘
   if (url.includes('cloud.189.cn')) {
     const pathToCheck = pathname ?? extractPathnameFromUrl(url);
-    return pathToCheck.startsWith('/web/main/file') ? 'esurfing' : null;
+    return pathToCheck === '/web/main' || pathToCheck === '/web/main/' || pathToCheck.startsWith('/web/main/file') ? 'esurfing' : null;
   }
 
   // UC网盘
