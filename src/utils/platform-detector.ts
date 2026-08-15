@@ -139,6 +139,11 @@ export function detectPlatformFromUrl(url: string, pathname?: string): PlatformN
     return 'baidu';
   }
 
+  // 光鸭云盘 (hash-routed SPA: only match the UI host, not api/account subdomains)
+  if (url.includes('www.guangyapan.com')) {
+    return 'guangyapan';
+  }
+
   return null;
 }
 

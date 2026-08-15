@@ -76,9 +76,14 @@
 - `https://www.alipan.com/*` - 阿里云盘页面
 - `https://api.aliyundrive.com/*` - 阿里云盘 API
 - `https://pan.baidu.com/*` - 百度网盘页面与 API
+- `https://www.guangyapan.com/*` - 光鸭云盘页面
+- `https://api.guangyapan.com/*` - 光鸭云盘 API
 - `https://yun.139.com/*` - 移动云盘页面
 - `https://personal-kd-njs.yun.139.com/*` - 移动云盘 API
 - `https://cloud.189.cn/*` - 天翼云盘页面与 API
+- `https://pan.xunlei.com/*` - 迅雷云盘页面
+- `https://api-pan.xunlei.com/*` - 迅雷云盘 API
+- `https://pc.woozooo.com/*` - 蓝奏云页面与 API
 - `https://pan.quark.cn/*` - 夸克网盘页面与 API
 - `https://drive.uc.cn/*` - UC 网盘页面
 - `https://pan.uc.cn/*` - UC 网盘页面
@@ -236,6 +241,8 @@ The Extension requests access to the following websites:
 - `https://www.alipan.com/*` - Aliyun Drive pages
 - `https://api.aliyundrive.com/*` - Aliyun Drive API
 - `https://pan.baidu.com/*` - Baidu Cloud Drive pages and API
+- `https://www.guangyapan.com/*` - GuangyaPan pages
+- `https://api.guangyapan.com/*` - GuangyaPan API
 - `https://yun.139.com/*` - CMCC Drive pages
 - `https://personal-kd-njs.yun.139.com/*` - CMCC Drive API
 - `https://cloud.189.cn/*` - Esurfing Cloud pages and API

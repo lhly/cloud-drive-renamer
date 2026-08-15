@@ -73,7 +73,7 @@ export class CloudDrivePageScriptInjector {
         if (response.success) {
           resolve(response.data);
         } else {
-          reject(new Error(response.error || `${this.options.logPrefix} API request failed with status ${response.status || 'unknown'}`));
+          reject(new Error(response.error || `${this.options.logPrefix} API request failed with status ${response.status ?? 'unknown'}`));
         }
       };
 

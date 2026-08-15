@@ -2,6 +2,26 @@ import { logger } from '../utils/logger';
 import { diagnosticService } from './diagnostic-service';
 import { RUNTIME_MESSAGE_TYPES } from '../types/runtime-message';
 
+const SUPPORTED_CLOUD_DRIVE_URL_PARTS = [
+  'pan.quark.cn',
+  'www.aliyundrive.com',
+  'www.alipan.com',
+  'pan.baidu.com',
+  'drive.uc.cn',
+  'pan.uc.cn',
+  '115.com',
+  'yun.123pan.cn',
+  'yun.139.com',
+  'cloud.189.cn',
+  'pan.xunlei.com',
+  'pc.woozooo.com',
+  'www.guangyapan.com',
+];
+
+function isSupportedCloudDriveUrl(url: string): boolean {
+  return SUPPORTED_CLOUD_DRIVE_URL_PARTS.some((part) => url.includes(part));
+}
+
 /**
  * Service Worker (Background Script)
  * Manifest V3的后台脚本
@@ -56,11 +76,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       // 广播语言变更到所有支持的云盘标签页
       chrome.tabs.query({}, (tabs) => {
         tabs.forEach((tab) => {
-          if (tab.id && tab.url && (
-            tab.url.includes('pan.quark.cn') ||
-            tab.url.includes('www.aliyundrive.com') ||
-            tab.url.includes('pan.baidu.com')
-          )) {
+          if (tab.id && tab.url && isSupportedCloudDriveUrl(tab.url)) {
             chrome.tabs.sendMessage(tab.id, message).catch((error) => {
               // 忽略未注入 Content Script 的标签页的连接错误
               if (!error.message?.includes('Could not establish connection')) {
@@ -106,6 +122,39 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         });
       return true;
 
+    case RUNTIME_MESSAGE_TYPES.GUANGYAPAN_API_REQUEST: {
+      const controller = new AbortController();
+      const timeoutId = typeof message.timeout === 'number' && message.timeout > 0
+        ? setTimeout(() => controller.abort(), message.timeout)
+        : undefined;
+
+      void fetch(message.url, {
+        method: message.method,
+        headers: message.headers,
+        body: message.body ? JSON.stringify(message.body) : undefined,
+        credentials: 'include',
+        signal: controller.signal,
+      })
+        .then(async (response) => {
+          if (timeoutId !== undefined) clearTimeout(timeoutId);
+          const text = await response.text();
+          let data: unknown;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = text;
+          }
+          sendResponse({ success: response.ok, data, status: response.status });
+        })
+        .catch((error) => {
+          if (timeoutId !== undefined) clearTimeout(timeoutId);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.warn('[GuangyaPan] Background API request failed:', errorMessage);
+          sendResponse({ success: false, error: errorMessage, status: 0 });
+        });
+      return true;
+    }
+
     default:
       logger.warn('Unknown message type:', message.type);
   }
@@ -118,11 +167,7 @@ chrome.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
 
     // 检测是否是支持的网盘平台
-    if (
-      tab.url.includes('pan.quark.cn') ||
-      tab.url.includes('www.aliyundrive.com') ||
-      tab.url.includes('pan.baidu.com')
-    ) {
+    if (isSupportedCloudDriveUrl(tab.url)) {
       logger.info('Supported cloud drive detected:', tab.url);
     }
   }

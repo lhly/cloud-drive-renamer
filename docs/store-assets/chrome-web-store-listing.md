@@ -7,8 +7,8 @@
 - **英文**: CloudDrive Renamer
 
 ### 简短描述 (132字符以内)
-- **中文**: 支持 115、123、阿里、百度、蓝奏、移动、天翼、迅雷、夸克、UC 网盘的批量重命名工具
-- **英文**: Batch rename files across 115 Drive, 123Pan, Aliyun, Baidu, Lanzou, CMCC, Esurfing, Xunlei, Quark, and UC Drive
+- **中文**: 支持 115、123、阿里、百度、光鸭、蓝奏、移动、天翼、迅雷、夸克、UC 网盘的批量重命名工具
+- **英文**: Batch rename files across 115 Drive, 123Pan, Aliyun, Baidu, GuangyaPan, Lanzou, CMCC, Esurfing, Xunlei, Quark, and UC Drive
 
 ### 详细描述
 
@@ -23,6 +23,7 @@
 • 123 云盘 - 支持文件批量重命名
 • 阿里云盘 - 支持文件批量重命名
 • 百度网盘 - 支持文件批量重命名
+• 光鸭云盘 - 支持文件批量重命名
 • 蓝奏云 - 支持文件批量重命名
 • 移动云盘 - 支持文件批量重命名
 • 天翼云盘 - 支持文件批量重命名
@@ -75,6 +76,7 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
 • 123Pan - Batch rename support
 • Aliyun Drive - Batch rename support
 • Baidu Cloud Drive - Batch rename support
+• GuangyaPan - Batch rename support
 • Lanzou Cloud - Batch rename support
 • CMCC Drive - Batch rename support
 • Esurfing Cloud - Batch rename support
@@ -156,6 +158,8 @@ This project is open-sourced under MIT License. Contributions and suggestions ar
    - https://www.alipan.com/* - 阿里云盘页面
    - https://api.aliyundrive.com/* - 阿里云盘 API
    - https://pan.baidu.com/* - 百度网盘页面与 API
+   - https://www.guangyapan.com/* - 光鸭云盘页面
+   - https://api.guangyapan.com/* - 光鸭云盘 API
    - https://yun.139.com/* - 移动云盘页面
    - https://personal-kd-njs.yun.139.com/* - 移动云盘 API
    - https://cloud.189.cn/* - 天翼云盘页面与 API

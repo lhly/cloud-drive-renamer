@@ -1,6 +1,6 @@
 {
   "extName": "CloudDrive Renamer",
-  "extDescription": "Powerful batch renaming tool for 115 Drive, 123Pan, Aliyun Drive, Baidu Cloud Drive, Lanzou Cloud, CMCC Drive, Esurfing Cloud, Xunlei Drive, Quark Drive, and UC Drive",
+  "extDescription": "Powerful batch renaming tool for 115 Drive, 123Pan, Aliyun Drive, Baidu Cloud Drive, GuangyaPan, Lanzou Cloud, CMCC Drive, Esurfing Cloud, Xunlei Drive, Quark Drive, and UC Drive",
   "rename_dialog_title": "Batch Rename",
   "file_selector_title": "Batch Rename",
   "config_panel_title": "Configuration",
@@ -189,6 +189,7 @@
   "platform_esurfing": "Esurfing Cloud",
   "platform_xunlei": "Xunlei Drive",
   "platform_woozooo": "Lanzou Cloud",
+  "platform_guangyapan": "GuangyaPan",
   "popup_language_label": "Language",
   "toast_language_changed": "Language changed to $1",
   "toast_language_change_failed": "Failed to change language, please try again",

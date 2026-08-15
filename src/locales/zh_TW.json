@@ -1,6 +1,6 @@
 {
   "extName": "雲端硬碟批次重新命名工具",
-  "extDescription": "強大的批次重新命名工具，支援115網盤、123雲盤、阿里雲盤、百度雲端硬碟、藍奏雲、移動雲盤、天翼雲盤、迅雷雲盤、夸克網盤、UC網盤檔案批次重新命名",
+  "extDescription": "強大的批次重新命名工具，支援115網盤、123雲盤、阿里雲盤、百度雲端硬碟、光鴨雲盤、藍奏雲、移動雲盤、天翼雲盤、迅雷雲盤、夸克網盤、UC網盤檔案批次重新命名",
   "rename_dialog_title": "批次重新命名",
   "file_selector_title": "批次重新命名",
   "config_panel_title": "設定",
@@ -189,6 +189,7 @@
   "platform_esurfing": "天翼雲盤",
   "platform_xunlei": "迅雷雲盤",
   "platform_woozooo": "藍奏雲",
+  "platform_guangyapan": "光鴨雲盤",
   "popup_language_label": "語言 / Language",
   "toast_language_changed": "語言已更改為$1",
   "toast_language_change_failed": "語言切換失敗,請重試",

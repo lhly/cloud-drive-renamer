@@ -266,7 +266,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
     if (renameByOldName.size === 0) return 0;
 
     let patched = 0;
-    const nodes = Array.from(root.querySelectorAll('[class*="SourceListItem__name"],.f_name_title,.touch-div,.document_table_list_name_text,.file-name,.filename,.name,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,[title],[aria-label]'));
+    const nodes = Array.from(root.querySelectorAll('[class*="SourceListItem__name"],.f_name_title,.touch-div,.document_table_list_name_text,.file-name,.filename,.name,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.swangpan-file-list-table__label,[title],[aria-label]'));
     for (const node of nodes) {
       for (const [oldName, newName] of renameByOldName.entries()) {
         patched += this.patchNameElement(node, oldName, newName);
@@ -276,7 +276,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
   }
 
   private patchRowElement(row: Element, oldName: string | undefined, newName: string): number {
-    const preferredNameNode = row.querySelector('[class*="SourceListItem__name"],.f_name_title,.touch-div,.document_table_list_name_text,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.file-name,.filename,.name');
+    const preferredNameNode = row.querySelector('[class*="SourceListItem__name"],.f_name_title,.touch-div,.document_table_list_name_text,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.swangpan-file-list-table__label,.file-name,.filename,.name');
     if (preferredNameNode && oldName) {
       return this.patchStructuredNameWithinElement(preferredNameNode, oldName, newName);
     }
@@ -397,7 +397,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
     const roots = new Set<ParentNode>();
     const ownerWindow = doc.defaultView ?? window;
     const NodeCtor = ownerWindow.Node;
-    const rowSelector = 'tr,[role="row"],.ant-table-row,.document_table_list,.f_tb,.file-item,.list-item,li[rel="item"],li';
+    const rowSelector = 'tr,[role="row"],.ant-table-row,.document_table_list,.f_tb,.file-item,.list-item,li[rel="item"],li,.swangpan-file-list-table__row';
 
     const addNode = (node: Node | null) => {
       if (!node) return;
@@ -511,7 +511,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
     return { triggered: false };
   }
 
-  private async rateLimit(): Promise<void> {
+  protected async rateLimit(): Promise<void> {
     const now = Date.now();
     const elapsed = now - this.lastRequestTime;
     const waitTime = this.config.requestInterval - elapsed;
@@ -521,7 +521,7 @@ export abstract class SharedCloudDriveAdapter extends BasePlatformAdapter {
 
   private findFilenameInRow(row: Element): string {
     return (
-      row.querySelector('[class*="SourceListItem__name"],.f_name_title,.touch-div,.document_table_list_name_text,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.file-name,.filename,.name,[title]')?.textContent?.trim() ||
+      row.querySelector('[class*="SourceListItem__name"],.f_name_title,.touch-div,.document_table_list_name_text,.table-file-name,.table-file-name-tooltip-host,.table-list-file-name,.swangpan-file-list-table__label,.file-name,.filename,.name,[title]')?.textContent?.trim() ||
       row.getAttribute('title') ||
       row.getAttribute('aria-label') ||
       ''

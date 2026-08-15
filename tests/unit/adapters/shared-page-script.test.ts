@@ -72,6 +72,49 @@ describe('shared cloud drive page script', () => {
     window.removeEventListener('message', handleRequest);
   });
 
+  it('reports status 0 as status 0 rather than unknown in the error message', async () => {
+    vi.useFakeTimers();
+    const timestamp = Date.now();
+    document.body.dataset.testStatus0Ready = 'true';
+    document.body.dataset.testStatus0Timestamp = timestamp.toString();
+    (window as unknown as Window & Record<string, unknown>).__TEST_STATUS0_READY__ = { ready: true, timestamp };
+
+    const injector = new CloudDrivePageScriptInjector({
+      requestType: 'TEST_STATUS0_REQUEST',
+      responseType: 'TEST_STATUS0_RESPONSE',
+      readyFlagName: '__TEST_STATUS0_READY__',
+      datasetReadyKey: 'testStatus0Ready',
+      datasetTimestampKey: 'testStatus0Timestamp',
+      logPrefix: 'TestStatus0',
+    });
+
+    const handleRequest = (event: MessageEvent) => {
+      const message = event.data as { type?: string; requestId?: string };
+      if (message?.type !== 'TEST_STATUS0_REQUEST' || !message.requestId) return;
+
+      const responseEvent = new MessageEvent('message', {
+        data: {
+          type: 'TEST_STATUS0_RESPONSE',
+          requestId: message.requestId,
+          success: false,
+          status: 0,
+        },
+      });
+      Object.defineProperty(responseEvent, 'source', { value: window });
+      window.dispatchEvent(responseEvent);
+    };
+    window.addEventListener('message', handleRequest);
+
+    const requestPromise = injector.callAPI('GET', 'https://example.com/api').catch((e: unknown) => e);
+    await vi.runAllTimersAsync();
+
+    const error = await requestPromise;
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toBe('TestStatus0 API request failed with status 0');
+
+    window.removeEventListener('message', handleRequest);
+  });
+
   it('uses XHR transport for CMCC so request header casing is preserved', () => {
     expect(CMCC_PAGE_SCRIPT_OPTIONS.transport).toBe('xhr');
   });

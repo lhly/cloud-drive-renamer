@@ -65,4 +65,15 @@ describe('manifest platform matches', () => {
     expect(contentScriptMatches).toContain('https://yun.139.com/*');
     expect(webAccessibleMatches).toContain('https://yun.139.com/*');
   });
+
+  it('injects GuangyaPan UI on www.guangyapan.com and allows its API host', () => {
+    const manifest = loadManifest();
+    const contentScriptMatches = manifest.content_scripts?.flatMap((script) => script.matches ?? []) ?? [];
+    const webAccessibleMatches = manifest.web_accessible_resources?.flatMap((resource) => resource.matches ?? []) ?? [];
+
+    expect(manifest.host_permissions).toContain('https://www.guangyapan.com/*');
+    expect(manifest.host_permissions).toContain('https://api.guangyapan.com/*');
+    expect(contentScriptMatches).toContain('https://www.guangyapan.com/*');
+    expect(webAccessibleMatches).toContain('https://www.guangyapan.com/*');
+  });
 });

@@ -7,8 +7,8 @@
 - **英文**: CloudDrive Renamer
 
 ### 简短描述 (不超过150字符)
-- **中文**: 支持 115、123、阿里、百度、蓝奏、移动、天翼、迅雷、夸克、UC 网盘的批量重命名工具
-- **英文**: Batch rename files across 115 Drive, 123Pan, Aliyun, Baidu, Lanzou, CMCC, Esurfing, Xunlei, Quark, and UC Drive
+- **中文**: 支持 115、123、阿里、百度、光鸭、蓝奏、移动、天翼、迅雷、夸克、UC 网盘的批量重命名工具
+- **英文**: Batch rename files across 115 Drive, 123Pan, Aliyun, Baidu, GuangyaPan, Lanzou, CMCC, Esurfing, Xunlei, Quark, and UC Drive
 
 ### 完整描述
 
@@ -23,6 +23,7 @@
 • 123 云盘 - 支持文件批量重命名
 • 阿里云盘 - 支持文件批量重命名
 • 百度网盘 - 支持文件批量重命名
+• 光鸭云盘 - 支持文件批量重命名
 • 蓝奏云 - 支持文件批量重命名
 • 移动云盘 - 支持文件批量重命名
 • 天翼云盘 - 支持文件批量重命名
@@ -98,6 +99,7 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
 • 123Pan - Batch rename support
 • Aliyun Drive - Batch rename support
 • Baidu Cloud Drive - Batch rename support
+• GuangyaPan - Batch rename support
 • Lanzou Cloud - Batch rename support
 • CMCC Drive - Batch rename support
 • Esurfing Cloud - Batch rename support
@@ -173,17 +175,17 @@ Edge Add-ons允许添加搜索关键词以提高扩展的可发现性。
 
 **推荐关键词（英文）**：
 ```
-rename, batch rename, file rename, cloud drive, cloud storage, 115 drive, 123pan, aliyun drive, baidu cloud, lanzou cloud, xunlei drive, quark drive, file management, bulk rename, batch operations, productivity
+rename, batch rename, file rename, cloud drive, cloud storage, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, lanzou cloud, xunlei drive, quark drive, file management, bulk rename, batch operations, productivity
 ```
 
 **推荐关键词（中文）**：
 ```
-重命名, 批量重命名, 文件重命名, 云盘, 网盘, 115网盘, 123云盘, 阿里云盘, 百度网盘, 蓝奏云, 移动云盘, 天翼云盘, 迅雷云盘, 夸克网盘, UC网盘, 文件管理, 批量操作, 效率工具
+重命名, 批量重命名, 文件重命名, 云盘, 网盘, 115网盘, 123云盘, 阿里云盘, 百度网盘, 光鸭云盘, 蓝奏云, 移动云盘, 天翼云盘, 迅雷云盘, 夸克网盘, UC网盘, 文件管理, 批量操作, 效率工具
 ```
 
 **关键词策略说明**：
 - 核心功能词：rename, batch rename, file rename（重命名、批量重命名）
-- 平台相关：cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, quark drive（云盘及主流网盘平台）
+- 平台相关：cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, quark drive（云盘及主流网盘平台）
 - 使用场景：file management, productivity（文件管理、效率）
 - 操作类型：batch operations, bulk operations（批量操作）
 
@@ -245,6 +247,8 @@ rename, batch rename, file rename, cloud drive, cloud storage, 115 drive, 123pan
 | https://www.alipan.com/* | 阿里云盘 | 支持新版阿里云盘页面域名 |
 | https://api.aliyundrive.com/* | 阿里云盘 API | 调用阿里云盘 API 执行重命名 |
 | https://pan.baidu.com/* | 百度网盘 | 在百度网盘页面注入界面并调用 API |
+| https://www.guangyapan.com/* | 光鸭云盘 | 在光鸭云盘页面注入重命名工具界面 |
+| https://api.guangyapan.com/* | 光鸭云盘 API | 调用光鸭云盘 API 执行文件列表读取和重命名 |
 | https://yun.139.com/* | 移动云盘 | 在移动云盘页面注入重命名工具界面 |
 | https://personal-kd-njs.yun.139.com/* | 移动云盘 API | 调用移动云盘 API 执行文件列表读取和重命名 |
 | https://cloud.189.cn/* | 天翼云盘 | 在天翼云盘页面注入界面并调用 API |

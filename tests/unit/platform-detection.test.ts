@@ -298,6 +298,38 @@ describe('Platform Detection - Unified Utils', () => {
         expect(result).toBe('baidu');
       });
 
+      it('should detect GuangyaPan on the hash-routed SPA home page', () => {
+        const result = detectPlatformFromUrl(
+          'https://www.guangyapan.com/#/home/all',
+          '/'
+        );
+        expect(result).toBe('guangyapan');
+      });
+
+      it('should detect GuangyaPan on the root entry before hash routing initializes', () => {
+        const result = detectPlatformFromUrl(
+          'https://www.guangyapan.com/',
+          '/'
+        );
+        expect(result).toBe('guangyapan');
+      });
+
+      it('should not detect GuangyaPan on the API domain', () => {
+        const result = detectPlatformFromUrl(
+          'https://api.guangyapan.com/userres/v1/file/get_file_list',
+          '/userres/v1/file/get_file_list'
+        );
+        expect(result).toBeNull();
+      });
+
+      it('should not detect GuangyaPan on the auth domain', () => {
+        const result = detectPlatformFromUrl(
+          'https://account.guangyapan.com/',
+          '/'
+        );
+        expect(result).toBeNull();
+      });
+
       it('should return null for unsupported platform', () => {
         const result = detectPlatformFromUrl(
           'https://example.com/',

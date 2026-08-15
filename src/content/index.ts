@@ -11,6 +11,7 @@ import { CMCCAdapter } from '../adapters/cmcc/adapter';
 import { EsurfingAdapter } from '../adapters/esurfing/adapter';
 import { XunleiAdapter } from '../adapters/xunlei/adapter';
 import { WoozoooAdapter } from '../adapters/woozooo/adapter';
+import { GuangyaPanAdapter } from '../adapters/guangyapan/adapter';
 import { storage } from '../utils/storage';
 import { STORAGE_KEYS } from '../types/stats';
 import { I18nService } from '../utils/i18n';
@@ -276,6 +277,8 @@ function createPlatformAdapter(platform: PlatformName): PlatformAdapter {
       return new XunleiAdapter();
     case 'woozooo':
       return new WoozoooAdapter();
+    case 'guangyapan':
+      return new GuangyaPanAdapter();
   }
 }
 
