@@ -4,7 +4,7 @@
     "description": "Extension name"
   },
   "extDescription": {
-    "message": "Powerful batch renaming tool for Quark Drive, Aliyun Drive, Baidu Cloud Drive, GuangyaPan, 115 Drive, 123Pan, CMCC Drive, Esurfing Cloud, Xunlei Drive, Lanzou Cloud, WKBrowser Cloud, and UC Drive",
+    "message": "Batch rename files across 12 cloud drives, including Quark, Aliyun, Baidu, 115, 123Pan, CMCC, Esurfing, Xunlei, Lanzou, WKBrowser, GuangyaPan, and UC Drive",
     "description": "Extension description"
   },
 
