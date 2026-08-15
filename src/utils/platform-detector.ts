@@ -123,6 +123,12 @@ export function detectPlatformFromUrl(url: string, pathname?: string): PlatformN
     return 'xunlei';
   }
 
+  // 蓝奏云
+  if (url.includes('pc.woozooo.com')) {
+    const pathToCheck = pathname ?? extractPathnameFromUrl(url);
+    return pathToCheck === '/mydisk.php' ? 'woozooo' : null;
+  }
+
   // UC网盘
   if (url.includes('drive.uc.cn') || url.includes('pan.uc.cn')) {
     return 'uc';

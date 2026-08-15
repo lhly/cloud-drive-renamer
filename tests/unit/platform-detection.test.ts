@@ -242,6 +242,22 @@ describe('Platform Detection - Unified Utils', () => {
         expect(result).toBe('cmcc');
       });
 
+      it('should detect Woozooo Drive on the top-level file manager page', () => {
+        const result = detectPlatformFromUrl(
+          'https://pc.woozooo.com/mydisk.php',
+          '/mydisk.php'
+        );
+        expect(result).toBe('woozooo');
+      });
+
+      it('should detect Woozooo Drive on the same-origin file iframe page', () => {
+        const result = detectPlatformFromUrl(
+          'https://pc.woozooo.com/mydisk.php?item=files&action=index&u=484561',
+          '/mydisk.php'
+        );
+        expect(result).toBe('woozooo');
+      });
+
       it('should detect Xunlei Drive', () => {
         const result = detectPlatformFromUrl(
           'https://pan.xunlei.com/',

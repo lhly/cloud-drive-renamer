@@ -7,8 +7,8 @@
 - **英文**: CloudDrive Renamer
 
 ### 简短描述 (132字符以内)
-- **中文**: 支持 115、123、阿里、百度、移动、天翼、夸克、UC 网盘的批量重命名工具
-- **英文**: Batch rename files across 115 Drive, 123Pan, Aliyun, Baidu, CMCC, Esurfing, Quark, and UC Drive
+- **中文**: 支持 115、123、阿里、百度、蓝奏、移动、天翼、迅雷、夸克、UC 网盘的批量重命名工具
+- **英文**: Batch rename files across 115 Drive, 123Pan, Aliyun, Baidu, Lanzou, CMCC, Esurfing, Xunlei, Quark, and UC Drive
 
 ### 详细描述
 
@@ -23,8 +23,10 @@
 • 123 云盘 - 支持文件批量重命名
 • 阿里云盘 - 支持文件批量重命名
 • 百度网盘 - 支持文件批量重命名
+• 蓝奏云 - 支持文件批量重命名
 • 移动云盘 - 支持文件批量重命名
 • 天翼云盘 - 支持文件批量重命名
+• 迅雷云盘 - 支持文件批量重命名
 • 夸克网盘 - 支持文件批量重命名
 • UC 网盘 - 支持文件批量重命名
 
@@ -73,8 +75,10 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
 • 123Pan - Batch rename support
 • Aliyun Drive - Batch rename support
 • Baidu Cloud Drive - Batch rename support
+• Lanzou Cloud - Batch rename support
 • CMCC Drive - Batch rename support
 • Esurfing Cloud - Batch rename support
+• Xunlei Drive - Batch rename support
 • Quark Drive - Batch rename support
 • UC Drive - Batch rename support
 
@@ -155,6 +159,9 @@ This project is open-sourced under MIT License. Contributions and suggestions ar
    - https://yun.139.com/* - 移动云盘页面
    - https://personal-kd-njs.yun.139.com/* - 移动云盘 API
    - https://cloud.189.cn/* - 天翼云盘页面与 API
+   - https://pan.xunlei.com/* - 迅雷云盘页面
+   - https://api-pan.xunlei.com/* - 迅雷云盘 API
+   - https://pc.woozooo.com/* - 蓝奏云页面与 API
    - https://pan.quark.cn/* - 夸克网盘页面与 API
    - https://drive.uc.cn/* - UC 网盘页面
    - https://pan.uc.cn/* - UC 网盘页面

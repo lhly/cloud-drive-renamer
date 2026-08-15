@@ -10,6 +10,7 @@ import { Drive123Adapter } from '../adapters/123/adapter';
 import { CMCCAdapter } from '../adapters/cmcc/adapter';
 import { EsurfingAdapter } from '../adapters/esurfing/adapter';
 import { XunleiAdapter } from '../adapters/xunlei/adapter';
+import { WoozoooAdapter } from '../adapters/woozooo/adapter';
 import { storage } from '../utils/storage';
 import { STORAGE_KEYS } from '../types/stats';
 import { I18nService } from '../utils/i18n';
@@ -193,7 +194,7 @@ function cleanupOldInstances(): void {
  * 背景: @crxjs/vite-plugin 不支持在 manifest.json 中直接配置 world: "MAIN" 的 TypeScript 文件
  * 解决方案: 在 content script (ISOLATED world) 中动态创建 <script> 标签注入到页面
  *
- * @param platform - 平台名称 (aliyun/baidu/quark/uc/115/123/cmcc/esurfing)
+ * @param platform - 平台名称 (aliyun/baidu/quark/uc/115/123/cmcc/esurfing/xunlei/woozooo)
  */
 async function injectPageScriptToMainWorld(platform: PlatformName): Promise<void> {
   // ✅ 引用编译后的 .js 文件（Vite 会将 TypeScript 编译为 JavaScript）
@@ -273,6 +274,8 @@ function createPlatformAdapter(platform: PlatformName): PlatformAdapter {
       return new EsurfingAdapter();
     case 'xunlei':
       return new XunleiAdapter();
+    case 'woozooo':
+      return new WoozoooAdapter();
   }
 }
 

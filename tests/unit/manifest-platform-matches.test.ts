@@ -45,6 +45,16 @@ describe('manifest platform matches', () => {
     expect(webAccessibleMatches).toContain('https://pan.xunlei.com/*');
   });
 
+  it('injects Woozooo UI on pc.woozooo.com and allows its same-origin API', () => {
+    const manifest = loadManifest();
+    const contentScriptMatches = manifest.content_scripts?.flatMap((script) => script.matches ?? []) ?? [];
+    const webAccessibleMatches = manifest.web_accessible_resources?.flatMap((resource) => resource.matches ?? []) ?? [];
+
+    expect(manifest.host_permissions).toContain('https://pc.woozooo.com/*');
+    expect(contentScriptMatches).toContain('https://pc.woozooo.com/*');
+    expect(webAccessibleMatches).toContain('https://pc.woozooo.com/*');
+  });
+
   it('injects CMCC UI on yun.139.com and allows its API host', () => {
     const manifest = loadManifest();
     const contentScriptMatches = manifest.content_scripts?.flatMap((script) => script.matches ?? []) ?? [];

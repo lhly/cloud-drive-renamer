@@ -39,6 +39,7 @@ const PLATFORM_LABELS: Record<PlatformName, string> = {
   cmcc: '移动云盘',
   esurfing: '天翼云盘',
   xunlei: '迅雷云盘',
+  woozooo: '蓝奏云',
 };
 
 function buildSummary(input: BuildLastFailureDiagnosticSnapshotInput): DiagnosticSummary {

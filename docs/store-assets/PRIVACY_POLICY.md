@@ -239,6 +239,9 @@ The Extension requests access to the following websites:
 - `https://yun.139.com/*` - CMCC Drive pages
 - `https://personal-kd-njs.yun.139.com/*` - CMCC Drive API
 - `https://cloud.189.cn/*` - Esurfing Cloud pages and API
+- `https://pan.xunlei.com/*` - Xunlei Drive pages
+- `https://api-pan.xunlei.com/*` - Xunlei Drive API
+- `https://pc.woozooo.com/*` - Lanzou Cloud pages and API
 - `https://pan.quark.cn/*` - Quark Drive pages and API
 - `https://drive.uc.cn/*` - UC Drive pages
 - `https://pan.uc.cn/*` - UC Drive pages

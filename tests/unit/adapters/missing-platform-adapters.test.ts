@@ -4,6 +4,7 @@ import { Drive123Adapter } from '../../../src/adapters/123/adapter';
 import { CMCCAdapter, md5 } from '../../../src/adapters/cmcc/adapter';
 import { EsurfingAdapter } from '../../../src/adapters/esurfing/adapter';
 import { XunleiAdapter } from '../../../src/adapters/xunlei/adapter';
+import { WoozoooAdapter } from '../../../src/adapters/woozooo/adapter';
 import { getDrive115PageScriptInjector } from '../../../src/adapters/115/page-script-injector';
 import { getDrive123PageScriptInjector } from '../../../src/adapters/123/page-script-injector';
 import { getCMCCPageScriptInjector } from '../../../src/adapters/cmcc/page-script-injector';
@@ -11,6 +12,8 @@ import { CMCC_PAGE_SCRIPT_OPTIONS } from '../../../src/adapters/cmcc/page-script
 import { getEsurfingPageScriptInjector } from '../../../src/adapters/esurfing/page-script-injector';
 import { getXunleiPageScriptInjector } from '../../../src/adapters/xunlei/page-script-injector';
 import { XUNLEI_PAGE_SCRIPT_OPTIONS } from '../../../src/adapters/xunlei/page-script';
+import { getWoozoooPageScriptInjector } from '../../../src/adapters/woozooo/page-script-injector';
+import { WOOZOOO_PAGE_SCRIPT_OPTIONS } from '../../../src/adapters/woozooo/page-script';
 
 vi.mock('../../../src/adapters/115/page-script-injector', () => ({
   getDrive115PageScriptInjector: vi.fn(),
@@ -32,12 +35,17 @@ vi.mock('../../../src/adapters/xunlei/page-script-injector', () => ({
   getXunleiPageScriptInjector: vi.fn(),
 }));
 
+vi.mock('../../../src/adapters/woozooo/page-script-injector', () => ({
+  getWoozoooPageScriptInjector: vi.fn(),
+}));
+
 describe('missing platform adapters', () => {
   let mock115CallAPI: Mock;
   let mock123CallAPI: Mock;
   let mockCMCCCallAPI: Mock;
   let mockEsurfingCallAPI: Mock;
   let mockXunleiCallAPI: Mock;
+  let mockWoozoooCallAPI: Mock;
 
   beforeEach(() => {
     mock115CallAPI = vi.fn();
@@ -45,12 +53,14 @@ describe('missing platform adapters', () => {
     mockCMCCCallAPI = vi.fn();
     mockEsurfingCallAPI = vi.fn();
     mockXunleiCallAPI = vi.fn();
+    mockWoozoooCallAPI = vi.fn();
 
     vi.mocked(getDrive115PageScriptInjector).mockReturnValue({ callAPI: mock115CallAPI });
     vi.mocked(getDrive123PageScriptInjector).mockReturnValue({ callAPI: mock123CallAPI });
     vi.mocked(getCMCCPageScriptInjector).mockReturnValue({ callAPI: mockCMCCCallAPI });
     vi.mocked(getEsurfingPageScriptInjector).mockReturnValue({ callAPI: mockEsurfingCallAPI });
     vi.mocked(getXunleiPageScriptInjector).mockReturnValue({ callAPI: mockXunleiCallAPI });
+    vi.mocked(getWoozoooPageScriptInjector).mockReturnValue({ callAPI: mockWoozoooCallAPI });
 
     Object.defineProperty(window, 'location', {
       value: {
@@ -214,6 +224,73 @@ describe('missing platform adapters', () => {
     ]));
   });
 
+  it('uses Woozooo APIs from the same-origin file iframe and preserves server-managed extensions', async () => {
+    const adapter = new WoozoooAdapter({ requestInterval: 0 });
+    const iframe = document.createElement('iframe');
+    iframe.id = 'mainframe';
+    iframe.src = 'https://pc.woozooo.com/mydisk.php?item=files&action=index&u=484561';
+    document.body.appendChild(iframe);
+    const frameDoc = iframe.contentDocument!;
+    frameDoc.open();
+    frameDoc.write(`
+      <input id="folder_id_bibao" value="8006795" />
+      <script>function more(folder_id){ $.ajax({ data: { 'task':5,'folder_id':folder_id,'pg':pgs,'vei':'B1VQUgNRAw9TBFdW' } }); }</script>
+    `);
+    frameDoc.close();
+
+    mockWoozoooCallAPI
+      .mockResolvedValueOnce({
+        zt: 1,
+        info: 1,
+        text: [{ id: '308207718', name: '未命名项目-图层 1.png', name_all: '未命名项目-图层 1.png', size: '246.6 K', time: '3 分钟前' }],
+      })
+      .mockResolvedValueOnce({
+        zt: 1,
+        info: 1,
+        text: [{ id: '308207716', name: '数字键盘.jpg', name_all: '数字键盘.jpg', size: '68.2 K', time: '3 分钟前' }],
+      })
+      .mockResolvedValueOnce({ zt: 1, info: 0, text: [] })
+      .mockResolvedValueOnce({ zt: 1, info: '新名称' });
+
+    const files = await adapter.getAllFiles();
+    const rename = await adapter.renameFile('308207718', '新名称.png');
+
+    expect(files).toHaveLength(2);
+    expect(files[0]).toMatchObject({ id: '308207718', name: '未命名项目-图层 1.png', ext: '.png', parentId: '8006795', size: 0 });
+    expect(files[1]).toMatchObject({ id: '308207716', name: '数字键盘.jpg', ext: '.jpg', parentId: '8006795', size: 0 });
+    expect(rename).toEqual({ success: true, newName: '新名称.png' });
+    expect(mockWoozoooCallAPI).toHaveBeenNthCalledWith(
+      1,
+      'POST',
+      'https://pc.woozooo.com/doupload.php?uid=484561',
+      {
+        bodyMode: 'urlencoded',
+        entries: [
+          ['task', '5'],
+          ['folder_id', '8006795'],
+          ['pg', '1'],
+          ['vei', 'B1VQUgNRAw9TBFdW'],
+        ],
+      },
+      30000
+    );
+    expect(mockWoozoooCallAPI).toHaveBeenNthCalledWith(
+      4,
+      'POST',
+      'https://pc.woozooo.com/doupload.php',
+      {
+        bodyMode: 'urlencoded',
+        entries: [
+          ['task', '46'],
+          ['file_id', '308207718'],
+          ['file_name', '新名称'],
+          ['type', '2'],
+        ],
+      },
+      30000
+    );
+  });
+
   it('uses Xunlei APIs for listing and rename', async () => {
     const adapter = new XunleiAdapter({ requestInterval: 0 });
     Object.defineProperty(window, 'location', {
@@ -262,6 +339,10 @@ describe('missing platform adapters', () => {
       { name: 'Episode 01-fixed.mkv' },
       30000
     );
+  });
+
+  it('uses no special captured headers for Woozooo page-script requests', () => {
+    expect(WOOZOOO_PAGE_SCRIPT_OPTIONS.captureHeaders ?? []).toEqual([]);
   });
 
   it('throws instead of returning an empty list when Xunlei list API fails', async () => {
@@ -565,6 +646,25 @@ describe('missing platform adapters', () => {
 
     expect(document.querySelector<HTMLElement>('.table-file-name')?.textContent).toBe('WADBS_1.3.apk');
     expect(querySelectorAll).not.toHaveBeenCalled();
+  });
+
+  it('patches Woozooo iframe rows with f_name_title nodes after rename', async () => {
+    const adapter = new WoozoooAdapter({ requestInterval: 0 });
+    const iframe = document.createElement('iframe');
+    iframe.id = 'mainframe';
+    document.body.appendChild(iframe);
+    const frameDoc = iframe.contentDocument!;
+    frameDoc.body.innerHTML = `
+      <div id="f308207718" class="f_tb">
+        <div class="f_name"><span class="f_name_title" id="filename308207718">旧名称.png</span></div>
+      </div>
+    `;
+
+    const result = await adapter.syncAfterRename([{ fileId: '308207718', oldName: '旧名称.png', newName: '新名称.png' }]);
+
+    expect(result.success).toBe(true);
+    expect(result.method).toBe('dom-patch');
+    expect(frameDoc.querySelector('#filename308207718')?.textContent).toBe('新名称.png');
   });
 
   it('patches visible rows for new adapters instead of reporting unsupported sync', async () => {
