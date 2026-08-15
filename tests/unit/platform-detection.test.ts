@@ -330,6 +330,30 @@ describe('Platform Detection - Unified Utils', () => {
         expect(result).toBeNull();
       });
 
+      it('should detect WKBrowser cloud drive on pan.wkbrowser.com', () => {
+        const result = detectPlatformFromUrl(
+          'https://pan.wkbrowser.com/main?category=all',
+          '/main'
+        );
+        expect(result).toBe('wkbrowser');
+      });
+
+      it('should detect WKBrowser on root login entry', () => {
+        const result = detectPlatformFromUrl(
+          'https://pan.wkbrowser.com/',
+          '/'
+        );
+        expect(result).toBe('wkbrowser');
+      });
+
+      it('should not detect WKBrowser on the API domain', () => {
+        const result = detectPlatformFromUrl(
+          'https://api.wkbrowser.com/netdisk/user_file/filter_file',
+          '/netdisk/user_file/filter_file'
+        );
+        expect(result).toBeNull();
+      });
+
       it('should return null for unsupported platform', () => {
         const result = detectPlatformFromUrl(
           'https://example.com/',

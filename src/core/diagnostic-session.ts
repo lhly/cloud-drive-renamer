@@ -41,6 +41,7 @@ const PLATFORM_LABELS: Record<PlatformName, string> = {
   xunlei: '迅雷云盘',
   woozooo: '蓝奏云',
   guangyapan: '光鸭云盘',
+  wkbrowser: '悟空网盘',
 };
 
 function buildSummary(input: BuildLastFailureDiagnosticSnapshotInput): DiagnosticSummary {

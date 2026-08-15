@@ -144,6 +144,11 @@ export function detectPlatformFromUrl(url: string, pathname?: string): PlatformN
     return 'guangyapan';
   }
 
+  // WKBrowser cloud drive (match UI host only, not api.wkbrowser.com)
+  if (url.includes('pan.wkbrowser.com')) {
+    return 'wkbrowser';
+  }
+
   return null;
 }
 

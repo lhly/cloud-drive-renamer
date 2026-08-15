@@ -1,7 +1,7 @@
 /**
  * 云盘平台类型
  */
-export type PlatformName = 'quark' | 'aliyun' | 'baidu' | 'uc' | '115' | '123' | 'cmcc' | 'esurfing' | 'xunlei' | 'woozooo' | 'guangyapan';
+export type PlatformName = 'quark' | 'aliyun' | 'baidu' | 'uc' | '115' | '123' | 'cmcc' | 'esurfing' | 'xunlei' | 'woozooo' | 'guangyapan' | 'wkbrowser';
 
 /**
  * 文件项接口

@@ -27,7 +27,9 @@
     "https://api-pan.xunlei.com/*",
     "https://pc.woozooo.com/*",
     "https://www.guangyapan.com/*",
-    "https://api.guangyapan.com/*"
+    "https://api.guangyapan.com/*",
+    "https://pan.wkbrowser.com/*",
+    "https://api.wkbrowser.com/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -134,6 +136,15 @@
         "src/content/index.ts"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://pan.wkbrowser.com/*"
+      ],
+      "js": [
+        "src/content/index.ts"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
@@ -153,7 +164,8 @@
         "src/adapters/esurfing/page-script.js",
         "src/adapters/xunlei/page-script.js",
         "src/adapters/woozooo/page-script.js",
-        "src/adapters/guangyapan/page-script.js"
+        "src/adapters/guangyapan/page-script.js",
+        "src/adapters/wkbrowser/page-script.js"
       ],
       "matches": [
         "https://pan.quark.cn/*",
@@ -168,7 +180,8 @@
         "https://cloud.189.cn/*",
         "https://pan.xunlei.com/*",
         "https://pc.woozooo.com/*",
-        "https://www.guangyapan.com/*"
+        "https://www.guangyapan.com/*",
+        "https://pan.wkbrowser.com/*"
       ]
     }
   ],

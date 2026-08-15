@@ -67,7 +67,9 @@ describe('background service worker', () => {
       { id: 11, url: 'https://pan.xunlei.com/' },
       { id: 12, url: 'https://pc.woozooo.com/mydisk.php' },
       { id: 13, url: 'https://www.guangyapan.com/#/home/all' },
-      { id: 14, url: 'https://example.com/' },
+      { id: 14, url: 'https://pan.wkbrowser.com/main?category=all' },
+      { id: 15, url: 'https://api.wkbrowser.com/netdisk/user_file/filter_file' },
+      { id: 16, url: 'https://example.com/' },
     ]);
     const listener = await loadServiceWorker();
     const sendResponse = vi.fn();
@@ -76,7 +78,7 @@ describe('background service worker', () => {
 
     expect(sendResponse).toHaveBeenCalledWith({ success: true });
     expect(tabsQueryMock).toHaveBeenCalledWith({}, expect.any(Function));
-    expect(tabsSendMessageMock.mock.calls.map((call) => call[0])).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+    expect(tabsSendMessageMock.mock.calls.map((call) => call[0])).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
   });
 
   it('aborts GuangyaPan background API requests when the runtime timeout elapses', async () => {

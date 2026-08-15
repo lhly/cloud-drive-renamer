@@ -20,6 +20,7 @@ export default defineConfig({
         'page-script-xunlei': 'src/adapters/xunlei/page-script.ts',
         'page-script-woozooo': 'src/adapters/woozooo/page-script.ts',
         'page-script-guangyapan': 'src/adapters/guangyapan/page-script.ts',
+        'page-script-wkbrowser': 'src/adapters/wkbrowser/page-script.ts',
       },
       output: {
         entryFileNames: (chunkInfo) => {

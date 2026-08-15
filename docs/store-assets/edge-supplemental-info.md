@@ -16,7 +16,7 @@
 
 **核心推荐**：
 ```
-rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, quark drive, file management, productivity
+rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, wkbrowser, quark drive, file management, productivity
 ```
 
 **完整列表**（可选择性使用）：
@@ -35,7 +35,7 @@ rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive,
 
 虽然Edge主要使用英文关键词，但如果支持中文商店，可以考虑：
 ```
-重命名, 批量重命名, 文件重命名, 云盘, 网盘, 115网盘, 123云盘, 阿里云盘, 百度网盘, 光鸭云盘, 蓝奏云, 移动云盘, 天翼云盘, 迅雷云盘, 夸克网盘, UC网盘, 文件管理, 批量操作, 效率工具
+重命名, 批量重命名, 文件重命名, 云盘, 网盘, 115网盘, 123云盘, 阿里云盘, 百度网盘, 光鸭云盘, 蓝奏云, 移动云盘, 天翼云盘, 迅雷云盘, 悟空网盘, 夸克网盘, UC网盘, 文件管理, 批量操作, 效率工具
 ```
 
 ### 关键词策略
@@ -89,7 +89,7 @@ Edge允许使用**短语关键词**：
 3. **覆盖不同搜索意图**
    - 功能词：rename, batch
    - 场景词：file management, productivity
-   - 平台词：cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, quark drive
+   - 平台词：cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, wkbrowser, quark drive
 
 #### ❌ 不应该做的
 
@@ -207,7 +207,7 @@ batch rename, cloud drive, 115 drive, 123pan, quark drive, file management, bulk
 ```
 一款强大的云盘文件批量重命名工具，专为提升文件管理效率而设计。
 
-支持 115 网盘、123 云盘、阿里云盘、百度网盘、光鸭云盘、蓝奏云、移动云盘、天翼云盘、迅雷云盘、夸克网盘、UC 网盘，提供 6 种智能重命名规则：替换、正则替换、前缀、后缀、编号、清理。所有操作在本地完成，不收集任何数据。
+支持 115 网盘、123 云盘、阿里云盘、百度网盘、光鸭云盘、蓝奏云、移动云盘、天翼云盘、迅雷云盘、悟空网盘、夸克网盘、UC 网盘，提供 6 种智能重命名规则：替换、正则替换、前缀、后缀、编号、清理。所有操作在本地完成，不收集任何数据。
 ```
 
 **为什么好**：
@@ -232,6 +232,8 @@ batch rename, cloud drive, 115 drive, 123pan, quark drive, file management, bulk
 • 蓝奏云 - 支持文件批量重命名
 • 移动云盘 - 支持文件批量重命名
 • 天翼云盘 - 支持文件批量重命名
+• 迅雷云盘 - 支持文件批量重命名
+• 悟空网盘 - 支持文件批量重命名
 • 夸克网盘 - 支持文件批量重命名
 • UC 网盘 - 支持文件批量重命名
 
@@ -384,7 +386,7 @@ Productivity
 
 #### Search Terms（搜索关键词）
 ```
-rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, quark drive, file management, productivity
+rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, wkbrowser, quark drive, file management, productivity
 ```
 
 #### Logo（图标）
@@ -401,7 +403,7 @@ rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive,
 
 #### Short Description（简短描述）
 ```
-支持 115、123、阿里、百度、光鸭、蓝奏、移动、天翼、迅雷、夸克、UC 网盘的批量重命名工具
+支持 115、123、阿里、百度、光鸭、蓝奏、移动、天翼、迅雷、悟空、夸克、UC 网盘的批量重命名工具
 ```
 
 #### Long Description（详细描述）

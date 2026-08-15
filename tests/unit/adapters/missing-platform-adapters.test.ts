@@ -17,6 +17,9 @@ import { getWoozoooPageScriptInjector } from '../../../src/adapters/woozooo/page
 import { WOOZOOO_PAGE_SCRIPT_OPTIONS } from '../../../src/adapters/woozooo/page-script';
 import { getGuangyaPanPageScriptInjector } from '../../../src/adapters/guangyapan/page-script-injector';
 import { GUANGYAPAN_PAGE_SCRIPT_OPTIONS } from '../../../src/adapters/guangyapan/page-script';
+import { WKBrowserAdapter } from '../../../src/adapters/wkbrowser/adapter';
+import { getWKBrowserPageScriptInjector } from '../../../src/adapters/wkbrowser/page-script-injector';
+import { WKBROWSER_PAGE_SCRIPT_OPTIONS } from '../../../src/adapters/wkbrowser/page-script';
 
 vi.mock('../../../src/adapters/115/page-script-injector', () => ({
   getDrive115PageScriptInjector: vi.fn(),
@@ -46,6 +49,10 @@ vi.mock('../../../src/adapters/guangyapan/page-script-injector', () => ({
   getGuangyaPanPageScriptInjector: vi.fn(),
 }));
 
+vi.mock('../../../src/adapters/wkbrowser/page-script-injector', () => ({
+  getWKBrowserPageScriptInjector: vi.fn(),
+}));
+
 describe('missing platform adapters', () => {
   let mock115CallAPI: Mock;
   let mock123CallAPI: Mock;
@@ -54,6 +61,7 @@ describe('missing platform adapters', () => {
   let mockXunleiCallAPI: Mock;
   let mockWoozoooCallAPI: Mock;
   let mockGuangyaPanCallAPI: Mock;
+  let mockWKBrowserCallAPI: Mock;
 
   beforeEach(() => {
     mock115CallAPI = vi.fn();
@@ -63,6 +71,7 @@ describe('missing platform adapters', () => {
     mockXunleiCallAPI = vi.fn();
     mockWoozoooCallAPI = vi.fn();
     mockGuangyaPanCallAPI = vi.fn();
+    mockWKBrowserCallAPI = vi.fn();
 
     (globalThis as Record<string, unknown>).chrome = {
       runtime: { sendMessage: vi.fn(() => Promise.resolve({ success: true })) },
@@ -75,6 +84,7 @@ describe('missing platform adapters', () => {
     vi.mocked(getXunleiPageScriptInjector).mockReturnValue({ callAPI: mockXunleiCallAPI });
     vi.mocked(getWoozoooPageScriptInjector).mockReturnValue({ callAPI: mockWoozoooCallAPI });
     vi.mocked(getGuangyaPanPageScriptInjector).mockReturnValue({ callAPI: mockGuangyaPanCallAPI });
+    vi.mocked(getWKBrowserPageScriptInjector).mockReturnValue({ callAPI: mockWKBrowserCallAPI });
 
     Object.defineProperty(window, 'location', {
       value: {
@@ -1154,5 +1164,197 @@ describe('missing platform adapters', () => {
 
     expect(selected).toHaveLength(1);
     expect(selected[0]).toMatchObject({ id: 'gyp-1', name: '\u672a\u547d\u540d\u9879\u76ee-\u56fe\u5c42 1.png' });
+  });
+
+  // --- WKBrowser adapter tests ---
+
+  it('uses WKBrowser APIs for paginated listing with filter_file', async () => {
+    const adapter = new WKBrowserAdapter({ requestInterval: 0 });
+    Object.defineProperty(window, 'location', {
+      value: { href: 'https://pan.wkbrowser.com/main?category=all', search: '?category=all', pathname: '/main', hash: '' },
+      writable: true,
+      configurable: true,
+    });
+
+    mockWKBrowserCallAPI
+      .mockResolvedValueOnce({
+        code: 0,
+        message: 'success',
+        data: {
+          file_list: [
+            { file_id: 101, file_name: 'Episode 01.mkv', father_id: 0, extension: 'mkv', is_directory: 0, file_type: 2000, size: 100, updated_at: 1700000000, created_at: 1700000000 },
+            { file_id: 102, file_name: 'Folder1', father_id: 0, extension: '', is_directory: 1, file_type: 0, size: 0, updated_at: 1700000000, created_at: 1700000000 },
+          ],
+          has_more: 0,
+        },
+      });
+
+    const files = await adapter.getAllFiles();
+
+    // Should skip directories (is_directory: 1)
+    expect(files).toHaveLength(1);
+    expect(files[0]).toEqual({
+      id: '101',
+      name: 'Episode 01.mkv',
+      ext: '.mkv',
+      parentId: '0',
+      size: 100,
+      mtime: 1700000000000, // Unix seconds -> ms
+    });
+    expect(mockWKBrowserCallAPI).toHaveBeenNthCalledWith(
+      1,
+      'POST',
+      expect.stringContaining('https://api.wkbrowser.com/netdisk/user_file/filter_file?offset=0&limit=20&'),
+      { father_id: 0, filter_type: 2, is_desc: 1, file_type: 0 },
+      30000
+    );
+  });
+
+  it('paginates WKBrowser listing until has_more is false', async () => {
+    const adapter = new WKBrowserAdapter({ requestInterval: 0 });
+    Object.defineProperty(window, 'location', {
+      value: { href: 'https://pan.wkbrowser.com/main?category=all', search: '?category=all', pathname: '/main', hash: '' },
+      writable: true,
+      configurable: true,
+    });
+
+    mockWKBrowserCallAPI
+      .mockResolvedValueOnce({
+        code: 0,
+        message: 'success',
+        data: {
+          file_list: [
+            { file_id: 1, file_name: 'a.mp4', father_id: 0, extension: 'mp4', is_directory: 0, file_type: 2000, size: 10, updated_at: 1700000000, created_at: 1700000000 },
+            { file_id: 2, file_name: 'b.mp4', father_id: 0, extension: 'mp4', is_directory: 0, file_type: 2000, size: 20, updated_at: 1700000000, created_at: 1700000000 },
+          ],
+          has_more: 1,
+        },
+      })
+      .mockResolvedValueOnce({
+        code: 0,
+        message: 'success',
+        data: {
+          file_list: [
+            { file_id: 3, file_name: 'c.mp4', father_id: 0, extension: 'mp4', is_directory: 0, file_type: 2000, size: 30, updated_at: 1700000000, created_at: 1700000000 },
+          ],
+          has_more: 0,
+        },
+      });
+
+    const files = await adapter.getAllFiles();
+
+    expect(files).toHaveLength(3);
+    expect(mockWKBrowserCallAPI).toHaveBeenCalledTimes(2);
+    expect(mockWKBrowserCallAPI.mock.calls[0][1]).toContain('offset=0');
+    expect(mockWKBrowserCallAPI.mock.calls[1][1]).toContain('offset=2');
+  });
+
+  it('uses WKBrowser rename endpoint with correct body', async () => {
+    const adapter = new WKBrowserAdapter({ requestInterval: 0 });
+    Object.defineProperty(window, 'location', {
+      value: { href: 'https://pan.wkbrowser.com/main?category=all', search: '?category=all', pathname: '/main', hash: '' },
+      writable: true,
+      configurable: true,
+    });
+
+    mockWKBrowserCallAPI.mockResolvedValueOnce({ code: 0, message: 'success' });
+
+    const result = await adapter.renameFile('101', 'Episode 01-fixed.mkv');
+
+    expect(result).toEqual({ success: true, newName: 'Episode 01-fixed.mkv' });
+    expect(mockWKBrowserCallAPI).toHaveBeenNthCalledWith(
+      1,
+      'POST',
+      expect.stringContaining('https://api.wkbrowser.com/netdisk/user_file/rename_file?'),
+      { file_id: 101, new_name: 'Episode 01-fixed.mkv' },
+      30000
+    );
+  });
+
+  it('throws instead of returning empty list when WKBrowser list API fails', async () => {
+    const adapter = new WKBrowserAdapter({ requestInterval: 0 });
+    Object.defineProperty(window, 'location', {
+      value: { href: 'https://pan.wkbrowser.com/main?category=all', search: '?category=all', pathname: '/main', hash: '' },
+      writable: true,
+      configurable: true,
+    });
+
+    mockWKBrowserCallAPI.mockResolvedValueOnce({ code: 60006, message: 'file not found' });
+
+    await expect(adapter.getAllFiles()).rejects.toThrow('文件不存在');
+  });
+
+  it('maps WKBrowser selected Arco table rows to getAllFiles by checkbox value', async () => {
+    const adapter = new WKBrowserAdapter({ requestInterval: 0 });
+    Object.defineProperty(window, 'location', {
+      value: { href: 'https://pan.wkbrowser.com/main?category=all', search: '?category=all', pathname: '/main', hash: '' },
+      writable: true,
+      configurable: true,
+    });
+
+    document.body.innerHTML = `
+      <table>
+        <thead>
+          <tr class="arco-table-tr">
+            <th><input type="checkbox" /></th>
+            <th>Name</th>
+          </tr>
+        </thead>
+        <tbody class="arco-table-body">
+          <tr class="arco-table-tr h-48 arco-table-row-checked">
+            <td><input type="checkbox" value="101" checked /></td>
+            <td>Episode 01.mkv</td>
+          </tr>
+          <tr class="arco-table-tr h-48">
+            <td><input type="checkbox" value="102" /></td>
+            <td>Episode 02.mkv</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+
+    mockWKBrowserCallAPI.mockResolvedValueOnce({
+      code: 0,
+      message: 'success',
+      data: {
+        file_list: [
+          { file_id: 101, file_name: 'Episode 01.mkv', father_id: 0, extension: 'mkv', is_directory: 0, file_type: 2000, size: 100, updated_at: 1700000000, created_at: 1700000000 },
+          { file_id: 102, file_name: 'Episode 02.mkv', father_id: 0, extension: 'mkv', is_directory: 0, file_type: 2000, size: 200, updated_at: 1700000000, created_at: 1700000000 },
+        ],
+        has_more: 0,
+      },
+    });
+
+    const selected = await adapter.getSelectedFiles();
+
+    expect(selected).toHaveLength(1);
+    expect(selected[0]).toMatchObject({ id: '101', name: 'Episode 01.mkv' });
+  });
+
+  it('uses no special captured headers for WKBrowser page-script requests', () => {
+    expect(WKBROWSER_PAGE_SCRIPT_OPTIONS.captureHeaders ?? []).toEqual([]);
+  });
+
+  it('patches WKBrowser Arco table rows after rename', async () => {
+    document.body.innerHTML = `
+      <table>
+        <tbody class="arco-table-body">
+          <tr class="arco-table-tr h-48">
+            <td><input type="checkbox" value="101" /></td>
+            <td><span>Episode 01.mkv</span></td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+
+    const adapter = new WKBrowserAdapter({ requestInterval: 0 });
+    const result = await adapter.syncAfterRename([
+      { fileId: '101', oldName: 'Episode 01.mkv', newName: 'Episode 01-fixed.mkv' },
+    ]);
+
+    expect(result.success).toBe(true);
+    expect(result.method).toBe('dom-patch');
+    const nameNode = document.querySelector<HTMLElement>('.arco-table-tr td:nth-child(2) span');
+    expect(nameNode?.textContent).toBe('Episode 01-fixed.mkv');
   });
 });

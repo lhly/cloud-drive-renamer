@@ -16,6 +16,7 @@ const SUPPORTED_CLOUD_DRIVE_URL_PARTS = [
   'pan.xunlei.com',
   'pc.woozooo.com',
   'www.guangyapan.com',
+  'pan.wkbrowser.com',
 ];
 
 function isSupportedCloudDriveUrl(url: string): boolean {

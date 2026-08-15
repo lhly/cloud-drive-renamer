@@ -84,6 +84,8 @@
 - `https://pan.xunlei.com/*` - 迅雷云盘页面
 - `https://api-pan.xunlei.com/*` - 迅雷云盘 API
 - `https://pc.woozooo.com/*` - 蓝奏云页面与 API
+- `https://pan.wkbrowser.com/*` - 悟空网盘页面
+- `https://api.wkbrowser.com/*` - 悟空网盘 API
 - `https://pan.quark.cn/*` - 夸克网盘页面与 API
 - `https://drive.uc.cn/*` - UC 网盘页面
 - `https://pan.uc.cn/*` - UC 网盘页面
@@ -249,6 +251,8 @@ The Extension requests access to the following websites:
 - `https://pan.xunlei.com/*` - Xunlei Drive pages
 - `https://api-pan.xunlei.com/*` - Xunlei Drive API
 - `https://pc.woozooo.com/*` - Lanzou Cloud pages and API
+- `https://pan.wkbrowser.com/*` - WKBrowser Cloud pages
+- `https://api.wkbrowser.com/*` - WKBrowser Cloud API
 - `https://pan.quark.cn/*` - Quark Drive pages and API
 - `https://drive.uc.cn/*` - UC Drive pages
 - `https://pan.uc.cn/*` - UC Drive pages
