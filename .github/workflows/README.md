@@ -59,15 +59,17 @@ git push origin feature/my-feature
 ### 发布新版本
 
 ```bash
-# 1. 更新版本号
-npm version patch  # 或 minor、major
+# 1. 更新版本号并生成版本提交/标签
+pnpm version patch  # 或 minor、major
 
-# 2. 推送标签
+# 2. 推送 main 分支代码（只触发 CI，不会发布）
 git push origin main
-git push origin --tags
 
-# 3. 自动发布
-# → Release 工作流自动运行
+# 3. 推送本次版本标签（触发 Release 工作流）
+git push origin v$(node -p "require('./package.json').version")
+
+# 4. 自动发布
+# → Release 工作流只在 v*.*.* 标签推送时运行
 # → 生成 GitHub Release
 # → 附加可安装的 ZIP 文件
 ```
