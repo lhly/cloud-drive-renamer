@@ -16,7 +16,7 @@
 
 **核心推荐**：
 ```
-rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, wkbrowser, quark drive, file management, productivity
+rename, batch rename, file rename, cloud drive, file management, productivity, rename rules, local preview
 ```
 
 **完整列表**（可选择性使用）：
@@ -25,7 +25,7 @@ rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive,
 - `file rename` - 文件重命名
 - `cloud drive` - 云盘
 - `cloud storage` - 云存储
-- `quark drive` - 夸克网盘
+- `rename rules` - 重命名规则
 - `file management` - 文件管理
 - `bulk rename` - 批量重命名
 - `batch operations` - 批量操作
@@ -48,8 +48,8 @@ rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive,
    - `file management` - 功能分类
 
 2. **中优先级（推荐）**：
-   - `cloud drive` - 目标平台
-   - `quark drive` - 具体支持的服务
+   - `cloud drive` - 目标场景
+   - `rename rules` - 具体功能
    - `productivity` - 使用场景
 
 3. **低优先级（可选）**：
@@ -87,9 +87,9 @@ Edge允许使用**短语关键词**：
    - 匹配目标用户群体的搜索习惯
 
 3. **覆盖不同搜索意图**
-   - 功能词：rename, batch
-   - 场景词：file management, productivity
-   - 平台词：cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, wkbrowser, quark drive
+   - 功能词：rename, batch rename, file rename
+   - 场景词：cloud drive, file management, productivity
+   - 能力词：rename rules, local preview, conflict checks
 
 #### ❌ 不应该做的
 
@@ -131,7 +131,7 @@ rename, batch rename, file rename, cloud drive, file management, productivity
 
 **备选方案**（如果需要更具体）：
 ```
-batch rename, cloud drive, 115 drive, 123pan, quark drive, file management, bulk operations
+batch rename, cloud drive, rename rules, local preview, conflict checks, bulk operations
 ```
 
 ---

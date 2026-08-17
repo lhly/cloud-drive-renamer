@@ -7,8 +7,8 @@
 - **英文**: CloudDrive Renamer
 
 ### 简短描述 (132字符以内)
-- **中文**: 支持 115、123、阿里、百度、光鸭、蓝奏、移动、天翼、迅雷、悟空、夸克、UC 网盘的批量重命名工具
-- **英文**: Batch rename files across 12 cloud drives, including Quark, Aliyun, Baidu, 115, 123Pan, CMCC, Esurfing, Xunlei, Lanzou, WKBrowser, GuangyaPan, and UC Drive
+- **中文**: 支持百度、阿里、夸克等 12 个网盘平台的文件批量重命名工具
+- **英文**: Batch rename files on 12 cloud drive platforms, including Baidu, Aliyun, Quark, and more.
 
 ### 详细描述
 
