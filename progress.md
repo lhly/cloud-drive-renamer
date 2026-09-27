@@ -60,3 +60,5 @@
 
 - 用户明确要求撤回错误远程版本、修改并提交推送。采用保留本地备份分支后amend最新提交、精确force-with-lease原子更新main及标签，保留原功能变更。
 - package.json、manifest.json、运行时常量及商店待发布版本已同步2.0.1；完整构建通过，399项测试通过，dist/manifest.json为2.0.1。Release工作流新增标签与源码版本校验，v2.0.1接受、v2.0.0拒绝验证通过。
+- 最新功能提交已amend为1176d08224309cbb7223a13d15b25a24732a4f60，通过旧SHA精确lease原子替换远程main与v2.0.1。旧提交保留在本地codex/backup-v2.0.1-before-version-fix分支。
+- GitHub Release工作流36309665247与CI 36309665245全部成功。发布资产已替换：新asset ID 592595286；下载ZIP后确认manifest版本2.0.1及OneDrive权限存在，SHA256为6dbb8eba2ba4e952aed3488c8d885f2bd00466f9eeecef3983cea8caf17b9261。

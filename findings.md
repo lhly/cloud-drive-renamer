@@ -76,3 +76,4 @@
 - 扩展商店manifest实际使用根目录_locales/*/messages.json，已与src/locales三语extDescription同步；简体56、繁体59、英文109字符。避免只更新UI文案而遗漏安装包简介。
 
 - v2.0.1标签与main均为b9dab3b1bfe6926925f88c1f235343dfa0c577c0，工作区干净。package/manifest/runtime均为2.0.0；Release 397562950已有同名zip。需重新触发Release工作流替换旧包，不能只改标签展示。
+- 本次已核验源码、标签和发布ZIP三者版本一致。标签更新触发Release并成功替换同名资产，无需删除整个Release；发布验证记录单独提交，发布标签保持在已通过CI的1176d08。
