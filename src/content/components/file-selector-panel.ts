@@ -199,7 +199,7 @@ export class FileSelectorPanel extends LitElement {
    * Page list sync status after rename
    */
   @state()
-  private syncStatus: 'idle' | 'syncing' | 'success' | 'failed' = 'idle';
+  private syncStatus: 'idle' | 'syncing' | 'success' | 'failed' | 'refresh-required' = 'idle';
 
   @state()
   private syncMessage: string | null = null;
@@ -308,6 +308,12 @@ export class FileSelectorPanel extends LitElement {
    */
   async connectedCallback() {
     super.connectedCallback();
+    // Shadow DOM retargets keyboard events but does not contain them. Stop at
+    // the panel boundary after child controls have handled the event; keeping
+    // the default action allows typing, IME, clipboard shortcuts and Tab.
+    for (const type of ['keydown', 'keypress', 'keyup']) {
+      this.addEventListener(type, this.stopKeyboardPropagation);
+    }
 
     if (this.open) {
       this.resetExecutionState();
@@ -317,9 +323,16 @@ export class FileSelectorPanel extends LitElement {
   }
 
   disconnectedCallback(): void {
+    for (const type of ['keydown', 'keypress', 'keyup']) {
+      this.removeEventListener(type, this.stopKeyboardPropagation);
+    }
     this.resolveConflictDialog(null);
     super.disconnectedCallback();
   }
+
+  private readonly stopKeyboardPropagation = (event: Event): void => {
+    event.stopPropagation();
+  };
 
   protected updated(changedProperties: PropertyValues<this>): void {
     super.updated(changedProperties);
@@ -791,13 +804,14 @@ export class FileSelectorPanel extends LitElement {
     for (const file of selectedFiles) {
       const newName = this.newNameMap.get(file.id);
       if (!newName || newName === file.name) continue;
+      const conflictKey = this.adapter.normalizeConflictName?.(newName) ?? newName;
 
-      if (nameMap.has(newName)) {
+      if (nameMap.has(conflictKey)) {
         // Conflict detected
         conflicts.add(file.id);
-        conflicts.add(nameMap.get(newName)!);
+        conflicts.add(nameMap.get(conflictKey)!);
       } else {
-        nameMap.set(newName, file.id);
+        nameMap.set(conflictKey, file.id);
       }
     }
 
@@ -1402,6 +1416,11 @@ export class FileSelectorPanel extends LitElement {
       this.syncMessage = null;
 
       const result = await this.adapter.syncAfterRename(renames);
+      if (result.method === 'manual-refresh') {
+        this.syncStatus = 'refresh-required';
+        this.syncMessage = null;
+        return;
+      }
       if (result.success && result.method === 'none') {
         this.syncStatus = 'idle';
         this.syncMessage = null;

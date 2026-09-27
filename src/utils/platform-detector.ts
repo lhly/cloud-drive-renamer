@@ -57,6 +57,16 @@ export function isAliyunShareLink(pathname: string | null | undefined): boolean 
  * @returns 平台名称或null
  */
 export function detectPlatformFromUrl(url: string, pathname?: string): PlatformName | null {
+  try {
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol === 'https:' && parsedUrl.hostname === 'onedrive.live.com') {
+      const pathToCheck = pathname ?? parsedUrl.pathname;
+      return (pathToCheck === '/my' || pathToCheck === '/my/') ? 'onedrive' : null;
+    }
+  } catch {
+    return null;
+  }
+
   // 夸克网盘
   if (url.includes('pan.quark.cn')) {
     // 使用统一的分享链接检测函数

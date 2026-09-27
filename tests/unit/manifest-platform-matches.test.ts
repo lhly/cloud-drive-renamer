@@ -8,6 +8,7 @@ interface ManifestContentScript {
 
 interface ManifestWebAccessibleResource {
   matches?: string[];
+  resources?: string[];
 }
 
 interface ExtensionManifest {
@@ -87,5 +88,17 @@ describe('manifest platform matches', () => {
     expect(contentScriptMatches).toContain('https://pan.wkbrowser.com/*');
     expect(contentScriptMatches).not.toContain('https://api.wkbrowser.com/*');
     expect(webAccessibleMatches).toContain('https://pan.wkbrowser.com/*');
+  });
+
+  it('injects OneDrive only on onedrive.live.com and exposes its MAIN bridge bundle', () => {
+    const manifest = loadManifest();
+    const contentScriptMatches = manifest.content_scripts?.flatMap((script) => script.matches ?? []) ?? [];
+    const webAccessibleMatches = manifest.web_accessible_resources?.flatMap((resource) => resource.matches ?? []) ?? [];
+    const resources = manifest.web_accessible_resources?.flatMap((resource) => resource.resources ?? []) ?? [];
+    expect(manifest.host_permissions).toContain('https://onedrive.live.com/*');
+    expect(contentScriptMatches).toContain('https://onedrive.live.com/*');
+    expect(webAccessibleMatches).toContain('https://onedrive.live.com/*');
+    expect(resources).toContain('src/adapters/onedrive/page-script.js');
+    expect(contentScriptMatches).not.toContain('https://login.microsoftonline.com/*');
   });
 });

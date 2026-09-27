@@ -1,7 +1,7 @@
 /**
  * 云盘平台类型
  */
-export type PlatformName = 'quark' | 'aliyun' | 'baidu' | 'uc' | '115' | '123' | 'cmcc' | 'esurfing' | 'xunlei' | 'woozooo' | 'guangyapan' | 'wkbrowser';
+export type PlatformName = 'quark' | 'aliyun' | 'baidu' | 'uc' | '115' | '123' | 'cmcc' | 'esurfing' | 'xunlei' | 'woozooo' | 'guangyapan' | 'wkbrowser' | 'onedrive';
 
 /**
  * 文件项接口
@@ -43,8 +43,8 @@ export interface RenameResult {
 export interface PageSyncResult {
   /** 是否同步成功（至少让页面可见列表更新） */
   success: boolean;
-  /** 使用的方法 */
-  method: 'ui-refresh' | 'dom-patch' | 'none';
+  /** manual-refresh 表示预期需要手动刷新，并非自动同步请求失败 */
+  method: 'ui-refresh' | 'dom-patch' | 'none' | 'manual-refresh';
   /** 可选说明信息 */
   message?: string;
 }
@@ -102,7 +102,10 @@ export interface PlatformAdapter {
    * @param parentId 父目录ID
    * @returns 是否存在同名文件
    */
-  checkNameConflict(fileName: string, parentId: string): Promise<boolean>;
+  checkNameConflict(fileName: string, parentId: string, excludeFileId?: string): Promise<boolean>;
+
+  /** Platform-specific normalization used only for filename collision checks. */
+  normalizeConflictName?(fileName: string): string;
 
   /**
    * 获取文件信息

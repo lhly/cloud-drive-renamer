@@ -58,6 +58,19 @@ jobs:
         with:
           fetch-depth: 0  # 获取完整 Git 历史（用于生成变更日志）
 
+      - name: Verify tag matches source version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const manifest = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
+          if (process.env.RELEASE_TAG !== `v${pkg.version}` || manifest.version !== pkg.version) {
+            throw new Error(`Version mismatch: tag=${process.env.RELEASE_TAG}, package=${pkg.version}, manifest=${manifest.version}`);
+          }
+          NODE
+
       # ------------------------------------------
       # 步骤 2: 设置 pnpm
       # ------------------------------------------

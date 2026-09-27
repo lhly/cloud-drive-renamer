@@ -60,10 +60,11 @@ export enum ConflictResolution {
 export async function checkSingleConflict(
   newName: string,
   parentId: string,
-  adapter: PlatformAdapter
+  adapter: PlatformAdapter,
+  excludeFileId?: string
 ): Promise<ConflictResult> {
   try {
-    const exists = await adapter.checkNameConflict(newName, parentId);
+    const exists = await adapter.checkNameConflict(newName, parentId, excludeFileId);
 
     if (exists) {
       return {
@@ -95,7 +96,8 @@ export async function checkSingleConflict(
  */
 export function checkBatchConflicts(
   files: FileItem[],
-  newNames: string[]
+  newNames: string[],
+  normalizeName: (name: string) => string = (name) => name
 ): Map<string, ConflictResult> {
   const results = new Map<string, ConflictResult>();
   const nameCount = new Map<string, number>();
@@ -103,25 +105,26 @@ export function checkBatchConflicts(
 
   // 统计每个新文件名出现的次数
   newNames.forEach((name, index) => {
-    const count = nameCount.get(name) || 0;
-    nameCount.set(name, count + 1);
+    const key = normalizeName(name);
+    const count = nameCount.get(key) || 0;
+    nameCount.set(key, count + 1);
 
-    const fileList = nameToFiles.get(name) || [];
+    const fileList = nameToFiles.get(key) || [];
     fileList.push(files[index].name);
-    nameToFiles.set(name, fileList);
+    nameToFiles.set(key, fileList);
   });
 
   // 检测重复
   files.forEach((file, index) => {
     const newName = newNames[index];
-    const count = nameCount.get(newName) || 0;
+    const count = nameCount.get(normalizeName(newName)) || 0;
 
     if (count > 1) {
       results.set(file.id, {
         type: ConflictType.DUPLICATE_IN_BATCH,
         hasConflict: true,
         conflictingName: newName,
-        conflictingFiles: nameToFiles.get(newName),
+        conflictingFiles: nameToFiles.get(normalizeName(newName)),
       });
     } else {
       results.set(file.id, {
@@ -147,7 +150,7 @@ export async function checkAllConflicts(
   adapter: PlatformAdapter
 ): Promise<Map<string, ConflictResult>> {
   // 先检测批量内部冲突
-  const batchConflicts = checkBatchConflicts(files, newNames);
+  const batchConflicts = checkBatchConflicts(files, newNames, adapter.normalizeConflictName?.bind(adapter));
 
   // 再检测每个文件与现有文件的冲突
   const externalConflictPromises = files.map(async (file, index) => {
@@ -159,7 +162,7 @@ export async function checkAllConflicts(
     }
 
     const newName = newNames[index];
-    const externalConflict = await checkSingleConflict(newName, file.parentId, adapter);
+    const externalConflict = await checkSingleConflict(newName, file.parentId, adapter, file.id);
 
     return { fileId: file.id, result: externalConflict };
   });

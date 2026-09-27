@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "default_locale": "zh_CN",
   "name": "__MSG_extName__",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "__MSG_extDescription__",
   "permissions": [
     "storage",
@@ -29,7 +29,8 @@
     "https://www.guangyapan.com/*",
     "https://api.guangyapan.com/*",
     "https://pan.wkbrowser.com/*",
-    "https://api.wkbrowser.com/*"
+    "https://api.wkbrowser.com/*",
+    "https://onedrive.live.com/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -145,6 +146,15 @@
         "src/content/index.ts"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://onedrive.live.com/*"
+      ],
+      "js": [
+        "src/content/index.ts"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
@@ -165,7 +175,8 @@
         "src/adapters/xunlei/page-script.js",
         "src/adapters/woozooo/page-script.js",
         "src/adapters/guangyapan/page-script.js",
-        "src/adapters/wkbrowser/page-script.js"
+        "src/adapters/wkbrowser/page-script.js",
+        "src/adapters/onedrive/page-script.js"
       ],
       "matches": [
         "https://pan.quark.cn/*",
@@ -181,7 +192,8 @@
         "https://pan.xunlei.com/*",
         "https://pc.woozooo.com/*",
         "https://www.guangyapan.com/*",
-        "https://pan.wkbrowser.com/*"
+        "https://pan.wkbrowser.com/*",
+        "https://onedrive.live.com/*"
       ]
     }
   ],

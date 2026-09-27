@@ -52,7 +52,8 @@ export class Toolbar extends LitElement {
   private typeMenuOpen = false;
 
   private documentClickHandler: ((e: MouseEvent) => void) | null = null;
-  private documentKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
+  private rootKeydownHandler: ((e: Event) => void) | null = null;
+  private keyboardEventRoot: Node | null = null;
 
   connectedCallback() {
     super.connectedCallback();
@@ -64,15 +65,18 @@ export class Toolbar extends LitElement {
       this.closeTypeMenu();
     };
 
-    this.documentKeydownHandler = (e: KeyboardEvent) => {
+    this.rootKeydownHandler = (e: Event) => {
       if (!this.typeMenuOpen) return;
-      if (e.key !== 'Escape') return;
+      if ((e as KeyboardEvent).key !== 'Escape') return;
       e.preventDefault();
       this.closeTypeMenu({ focusButton: true });
     };
 
     document.addEventListener('click', this.documentClickHandler);
-    document.addEventListener('keydown', this.documentKeydownHandler);
+    // Handle Escape inside the extension before the panel stops propagation
+    // to the host page. This also works when the toolbar is used standalone.
+    this.keyboardEventRoot = this.getRootNode();
+    this.keyboardEventRoot.addEventListener('keydown', this.rootKeydownHandler);
   }
 
   disconnectedCallback() {
@@ -82,9 +86,10 @@ export class Toolbar extends LitElement {
       document.removeEventListener('click', this.documentClickHandler);
       this.documentClickHandler = null;
     }
-    if (this.documentKeydownHandler) {
-      document.removeEventListener('keydown', this.documentKeydownHandler);
-      this.documentKeydownHandler = null;
+    if (this.rootKeydownHandler) {
+      this.keyboardEventRoot?.removeEventListener('keydown', this.rootKeydownHandler);
+      this.rootKeydownHandler = null;
+      this.keyboardEventRoot = null;
     }
   }
 

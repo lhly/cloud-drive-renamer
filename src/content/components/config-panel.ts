@@ -83,7 +83,7 @@ export class ConfigPanel extends LitElement {
    * Page list sync status after rename
    */
   @property({ type: String })
-  syncStatus: 'idle' | 'syncing' | 'success' | 'failed' = 'idle';
+  syncStatus: 'idle' | 'syncing' | 'success' | 'failed' | 'refresh-required' = 'idle';
 
   /**
    * Optional sync message
@@ -592,7 +592,9 @@ export class ConfigPanel extends LitElement {
           ? I18nService.t('sync_success')
           : this.syncStatus === 'failed'
             ? I18nService.t('sync_failed')
-            : '';
+            : this.syncStatus === 'refresh-required'
+              ? I18nService.t('sync_manual_refresh')
+              : '';
     const showSyncStatus = Boolean(syncText) || Boolean(this.syncMessage);
 
     return html`
@@ -631,7 +633,7 @@ export class ConfigPanel extends LitElement {
 
         ${this.finished && showSyncStatus
           ? html`
-              <div class="sync-status ${this.syncStatus}">
+              <div class="sync-status ${this.syncStatus}" role="status">
                 ${syncText}${this.syncMessage ? `：${this.syncMessage}` : ''}
                 ${this.syncSupported && this.syncStatus === 'failed'
                   ? html`

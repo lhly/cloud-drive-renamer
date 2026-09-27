@@ -4,7 +4,7 @@
 
 **一款覆盖多家主流网盘的文件批量重命名工具**
 
-支持 115 网盘、123 云盘、阿里云盘、百度网盘、光鸭云盘、蓝奏云、移动云盘、天翼云盘、迅雷云盘、悟空网盘、夸克网盘、UC 网盘的智能化文件管理
+支持 OneDrive 个人版、115 网盘、123 云盘、阿里云盘、百度网盘、光鸭云盘、蓝奏云、移动云盘、天翼云盘、迅雷云盘、悟空网盘、夸克网盘、UC 网盘的智能化文件管理
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
@@ -31,6 +31,10 @@
 ## ✨ 核心特性
 
 ### 🎯 多平台支持
+
+- **OneDrive 个人版** - 支持“我的文件”普通目录中的文件批量重命名（不重命名文件夹）
+
+  仅支持 `https://onedrive.live.com/my` 下“我的文件”的普通目录中的文件；共享视图、搜索、最近、照片、个人保管库、远程快捷方式及企业/学校版暂不支持。重命名后扩展内列表会更新；OneDrive 原生列表暂不支持自动刷新，界面会提示手动刷新网页查看最新名称。
 
 - **115 网盘** - 支持文件批量重命名和页面同步
 - **123 云盘** - 支持文件批量重命名和页面同步
@@ -508,6 +512,11 @@ pnpm run test:e2e
 
 # E2E 测试（可视化模式）
 pnpm run test:e2e:ui
+
+# 先构建 dist，再运行本地 mock OneDrive 扩展读写与撤销验收（不访问真实 OneDrive）
+# 可用 CDR_BROWSER_PATH=/path/to/browser 指定浏览器；macOS 默认检测 Edge/Chrome
+# 其他平台使用 Playwright Chromium；若未安装，请运行 pnpm exec playwright install chromium
+pnpm run verify:onedrive
 ```
 
 ### 扩展新平台

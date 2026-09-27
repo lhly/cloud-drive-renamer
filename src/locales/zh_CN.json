@@ -1,6 +1,6 @@
 {
   "extName": "云盘批量重命名工具",
-  "extDescription": "强大的批量重命名工具，支持115网盘、123云盘、阿里云盘、百度网盘、光鸭云盘、蓝奏云、移动云盘、天翼云盘、迅雷云盘、悟空网盘、夸克网盘、UC网盘文件批量重命名",
+  "extDescription": "支持 OneDrive 个人版、百度、阿里、夸克等 13 个网盘平台，批量重命名文件，支持预览、冲突检查和撤销。",
   "rename_dialog_title": "批量重命名",
   "file_selector_title": "批量重命名",
   "config_panel_title": "配置",
@@ -118,6 +118,7 @@
   "syncing_list": "同步中...",
   "sync_success": "已同步列表",
   "sync_failed": "同步失败，可能需要手动刷新页面",
+  "sync_manual_refresh": "文件名已更新。原网页列表暂不支持自动刷新，请手动刷新网页查看最新名称。",
   "undo_last_rename": "撤销上一次批量重命名",
   "undo_in_progress": "正在撤销...",
   "undo_failed_prefix": "以下文件撤销失败：",
@@ -191,6 +192,7 @@
   "platform_woozooo": "蓝奏云",
   "platform_guangyapan": "光鸭云盘",
   "platform_wkbrowser": "悟空网盘",
+  "platform_onedrive": "OneDrive 个人版",
   "popup_language_label": "语言 / Language",
   "toast_language_changed": "语言已更改为$1",
   "toast_language_change_failed": "语言切换失败,请重试",

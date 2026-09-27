@@ -13,6 +13,7 @@ import { XunleiAdapter } from '../adapters/xunlei/adapter';
 import { WoozoooAdapter } from '../adapters/woozooo/adapter';
 import { GuangyaPanAdapter } from '../adapters/guangyapan/adapter';
 import { WKBrowserAdapter } from '../adapters/wkbrowser/adapter';
+import { OneDriveAdapter } from '../adapters/onedrive/adapter';
 import { storage } from '../utils/storage';
 import { STORAGE_KEYS } from '../types/stats';
 import { I18nService } from '../utils/i18n';
@@ -282,6 +283,8 @@ function createPlatformAdapter(platform: PlatformName): PlatformAdapter {
       return new GuangyaPanAdapter();
     case 'wkbrowser':
       return new WKBrowserAdapter();
+    case 'onedrive':
+      return new OneDriveAdapter();
   }
 }
 

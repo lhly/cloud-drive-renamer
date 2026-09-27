@@ -21,6 +21,7 @@ export default defineConfig({
         'page-script-woozooo': 'src/adapters/woozooo/page-script.ts',
         'page-script-guangyapan': 'src/adapters/guangyapan/page-script.ts',
         'page-script-wkbrowser': 'src/adapters/wkbrowser/page-script.ts',
+        'page-script-onedrive': 'src/adapters/onedrive/page-script.ts',
       },
       output: {
         entryFileNames: (chunkInfo) => {

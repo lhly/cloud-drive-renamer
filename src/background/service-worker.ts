@@ -17,6 +17,7 @@ const SUPPORTED_CLOUD_DRIVE_URL_PARTS = [
   'pc.woozooo.com',
   'www.guangyapan.com',
   'pan.wkbrowser.com',
+  'onedrive.live.com',
 ];
 
 function isSupportedCloudDriveUrl(url: string): boolean {

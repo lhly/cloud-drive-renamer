@@ -7,8 +7,8 @@
 - **英文**: CloudDrive Renamer
 
 ### 简短描述 (不超过150字符)
-- **中文**: 支持百度、阿里、夸克等 12 个网盘平台的文件批量重命名工具
-- **英文**: Batch rename files on 12 cloud drive platforms, including Baidu, Aliyun, Quark, and more.
+- **中文**: 支持 OneDrive 个人版、百度、阿里、夸克等 13 个网盘平台，批量重命名文件，支持预览、冲突检查和撤销。
+- **英文**: Batch rename files on 13 cloud drives, including OneDrive Personal, with previews, conflict checks, and undo.
 
 ### 完整描述
 
@@ -19,6 +19,7 @@
 ✨ 核心特性
 
 🎯 多平台支持
+• OneDrive 个人版 - 支持“我的文件”普通目录中的文件批量重命名
 • 115 网盘 - 支持文件批量重命名
 • 123 云盘 - 支持文件批量重命名
 • 阿里云盘 - 支持文件批量重命名
@@ -32,18 +33,21 @@
 • 夸克网盘 - 支持文件批量重命名
 • UC 网盘 - 支持文件批量重命名
 
-🔧 六大重命名规则
+🔧 七类重命名规则
 1. 替换规则 - 批量替换文件名中的特定文本，支持大小写敏感和全局替换
 2. 正则替换规则 - 使用正则表达式批量替换文件名
 3. 前缀规则 - 为所有文件添加统一前缀，可自定义分隔符
 4. 后缀规则 - 为文件名（扩展名之前）添加后缀标记
 5. 编号规则 - 自动为文件添加序号，支持自定义格式和起始编号
 6. 清理规则 - 清除文件名中的非法字符或特定字符集
+7. 剧集提取规则 - 提取剧集编号并统一命名，支持样本辅助配置
 
 🚀 智能执行引擎
-• 批量处理系统 - 800ms间隔执行，防止API限流
+• 批量处理系统 - 按平台控制请求间隔，应对接口限流
 • 重试机制 - 指数退避算法，自动重试失败操作
 • 崩溃恢复 - 异常中断后可继续未完成的任务
+• 撤销操作 - 撤销上一次批量重命名
+• 命名模板 - 保存常用规则，快速复用最近使用的配置
 • 幂等性保证 - 避免重复执行相同操作
 
 📋 实用功能
@@ -53,10 +57,13 @@
 • 所见即所得 - 即时调整规则参数，立即查看效果
 
 🔒 隐私保护承诺
-• 100% 本地处理 - 所有重命名操作在浏览器本地完成
-• 无数据上传 - 不收集、不传输任何用户数据
+• 本地生成预览 - 命名规则在浏览器中处理，确认执行后向对应网盘发送重命名请求
+• 无开发者数据收集 - 不向开发者服务器上传文件名或文件内容
 • 透明操作 - 开源代码，完全可审计
 • 安全可靠 - 不会访问您的文件内容，仅修改文件名
+
+📌 OneDrive 支持范围
+仅支持个人版“我的文件”普通目录中的文件，不支持文件夹改名、企业/学校账户及共享、搜索、最近、照片、个人保管库、远程快捷方式等特殊视图。重命名后扩展内列表会更新，OneDrive 原网页列表需手动刷新。
 
 📝 典型使用场景
 
@@ -76,12 +83,6 @@
    统一修改文件命名规范
    file-v1.txt → file-v2.txt
 
-🛠️ 技术架构
-• TypeScript 5.3+ - 类型安全的开发体验
-• Lit 3.1+ - 轻量级Web Components框架
-• Vite 5.0+ - 极速构建工具
-• 适配器模式 - 易于扩展新平台支持
-
 📖 开源项目
 本项目基于MIT协议开源，源代码托管在GitHub。
 欢迎贡献代码、提出建议或报告问题。
@@ -96,6 +97,7 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
 ✨ Core Features
 
 🎯 Multi-Platform Support
+• OneDrive Personal - Batch rename files in regular folders under My files
 • 115 Drive - Batch rename support
 • 123Pan - Batch rename support
 • Aliyun Drive - Batch rename support
@@ -109,18 +111,21 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
 • Quark Drive - Batch rename support
 • UC Drive - Batch rename support
 
-🔧 Six Powerful Renaming Rules
+🔧 Seven Renaming Rules
 1. Replace - Batch replace specific text with case-sensitive and global options
 2. Regex Replace - Use regular expressions to batch replace filenames
 3. Prefix - Add uniform prefix to all files with customizable separator
 4. Suffix - Add suffix markers before file extension
 5. Numbering - Auto-add sequence numbers with custom format and start number
 6. Sanitize - Remove illegal or specific character sets from filenames
+7. Episode Extraction - Extract episode numbers and standardize names with sample-assisted configuration
 
 🚀 Smart Execution Engine
-• Batch Processing - 800ms interval execution to prevent API throttling
+• Batch Processing - Platform-specific request pacing to handle API rate limits
 • Retry Mechanism - Exponential backoff algorithm for failed operations
 • Crash Recovery - Resume unfinished tasks after interruption
+• Undo - Undo the last batch rename
+• Rule Templates - Save reusable rules and access recently used configurations
 • Idempotency - Prevent duplicate operations
 
 📋 Practical Features
@@ -130,10 +135,13 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
 • WYSIWYG - Instant parameter adjustment with immediate preview
 
 🔒 Privacy Protection Promise
-• 100% Local Processing - All operations completed locally in browser
-• No Data Upload - No collection or transmission of user data
+• Local Previews - Rules run in your browser; confirmed renames are sent to the corresponding cloud drive
+• No Developer Data Collection - File names and contents are not uploaded to developer servers
 • Transparent Operation - Open-source code, fully auditable
 • Safe and Reliable - Never access file content, only modify names
+
+📌 OneDrive Scope
+Supports files in regular My files folders on personal accounts. Folder renaming, work/school accounts, shared/search/recent/photo views, Personal Vault, and remote shortcuts are not supported. Names update in the extension after renaming; refresh the OneDrive webpage to update its own file list.
 
 📝 Typical Use Cases
 
@@ -153,12 +161,6 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
    Uniformly modify file naming conventions
    file-v1.txt → file-v2.txt
 
-🛠️ Technical Architecture
-• TypeScript 5.3+ - Type-safe development experience
-• Lit 3.1+ - Lightweight Web Components framework
-• Vite 5.0+ - Lightning-fast build tool
-• Adapter Pattern - Easy to extend for new platforms
-
 📖 Open Source Project
 This project is open-sourced under MIT License, hosted on GitHub.
 Contributions, suggestions, and issue reports are welcome.
@@ -177,17 +179,17 @@ Edge Add-ons允许添加搜索关键词以提高扩展的可发现性。
 
 **推荐关键词（英文）**：
 ```
-rename, batch rename, file rename, cloud drive, file management, productivity, rename rules, local preview
+rename, batch rename, onedrive, cloud drive, file management, productivity, rename rules, local preview
 ```
 
 **推荐关键词（中文）**：
 ```
-重命名, 批量重命名, 文件重命名, 云盘, 网盘, 文件管理, 批量操作, 重命名规则, 本地预览, 效率工具
+重命名, 批量重命名, OneDrive, 云盘, 网盘, 文件管理, 批量操作, 重命名规则, 本地预览, 效率工具
 ```
 
 **关键词策略说明**：
 - 核心功能词：rename, batch rename, file rename（重命名、批量重命名）
-- 平台相关：cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, quark drive（云盘及主流网盘平台）
+- 平台相关：onedrive, cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, quark drive（云盘及主流网盘平台）
 - 使用场景：file management, productivity（文件管理、效率）
 - 操作类型：batch operations, bulk operations（批量操作）
 
@@ -242,6 +244,7 @@ rename, batch rename, file rename, cloud drive, file management, productivity, r
 |------|------|---------|
 | storage | 存储配置 | 在浏览器本地保存用户的重命名规则配置和任务状态，不会上传到任何服务器 |
 | tabs | 平台识别 | 识别当前访问的云盘平台，加载对应的功能模块，不读取其他网站数据 |
+| https://onedrive.live.com/* | OneDrive 个人版 | 在“我的文件”页面注入界面，读取文件列表并调用同源 API 执行重命名 |
 | https://115.com/* | 115 网盘 | 在 115 网盘页面注入重命名工具界面 |
 | https://webapi.115.com/* | 115 网盘 API | 调用 115 网盘 API 执行文件列表读取和重命名 |
 | https://yun.123pan.cn/* | 123 云盘 | 在 123 云盘页面注入界面并调用 API |
@@ -280,7 +283,7 @@ rename, batch rename, file rename, cloud drive, file management, productivity, r
 • 访问您的其他网站数据
 • 使用第三方分析服务
 
-所有操作均在您的浏览器本地完成，数据完全由您掌控。
+规则配置和预览在浏览器本地处理；执行重命名时，与您正在使用的网盘通信。
 ```
 
 ## 隐私政策
@@ -303,7 +306,7 @@ rename, batch rename, file rename, cloud drive, file management, productivity, r
 - **功能建议**: https://github.com/lhly/cloud-drive-renamer/discussions
 
 ### 版本历史
-- **当前版本**: 1.5.0
+- **待发布版本**: 2.0.1（以打包时 package.json 为准）
 - **更新日期**: 2026年
 
 ## 定价和分发

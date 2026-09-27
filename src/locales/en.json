@@ -1,6 +1,6 @@
 {
   "extName": "CloudDrive Renamer",
-  "extDescription": "Powerful batch renaming tool for 115 Drive, 123Pan, Aliyun Drive, Baidu Cloud Drive, GuangyaPan, Lanzou Cloud, CMCC Drive, Esurfing Cloud, Xunlei Drive, WKBrowser Cloud, Quark Drive, and UC Drive",
+  "extDescription": "Batch rename files on 13 cloud drives, including OneDrive Personal, with previews, conflict checks, and undo.",
   "rename_dialog_title": "Batch Rename",
   "file_selector_title": "Batch Rename",
   "config_panel_title": "Configuration",
@@ -118,6 +118,7 @@
   "syncing_list": "Syncing...",
   "sync_success": "List synced",
   "sync_failed": "Sync failed, please refresh the page",
+  "sync_manual_refresh": "File names have been updated. The website's file list cannot refresh automatically yet. Refresh the page to see the latest names.",
   "undo_last_rename": "Undo Last Rename",
   "undo_in_progress": "Undoing...",
   "undo_failed_prefix": "Failed to undo the following files:",
@@ -191,6 +192,7 @@
   "platform_woozooo": "Lanzou Cloud",
   "platform_guangyapan": "GuangyaPan",
   "platform_wkbrowser": "WKBrowser Cloud",
+  "platform_onedrive": "OneDrive Personal",
   "popup_language_label": "Language",
   "toast_language_changed": "Language changed to $1",
   "toast_language_change_failed": "Failed to change language, please try again",

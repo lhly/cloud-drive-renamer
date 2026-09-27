@@ -1,7 +1,7 @@
 {
   "name": "cloud-drive-renamer",
-  "version": "2.0.0",
-  "description": "云盘文件批量重命名工具，支持 115 网盘、123 云盘、阿里云盘、百度网盘、光鸭云盘、蓝奏云、移动云盘、天翼云盘、迅雷云盘、悟空网盘、夸克网盘、UC 网盘",
+  "version": "2.0.1",
+  "description": "云盘文件批量重命名工具，支持 OneDrive 个人版及多家主流网盘",
   "type": "module",
   "scripts": {
     "dev": "pnpm run sync:version && vite",
@@ -19,7 +19,8 @@
     "validate": "pnpm run lint && pnpm run typecheck && pnpm run test:ci",
     "ci": "pnpm run validate && pnpm run build",
     "resize": "node scripts/resize-screenshots.js",
-    "verify:release": "node scripts/verify-release.js"
+    "verify:release": "node scripts/verify-release.js",
+    "verify:onedrive": "node scripts/verify-onedrive-extension.cjs"
   },
   "keywords": [
     "chrome-extension",
@@ -38,7 +39,8 @@
     "wkbrowser",
     "lanzou",
     "quark",
-    "uc"
+    "uc",
+    "onedrive"
   ],
   "author": "CloudDrive Renamer Team",
   "license": "MIT",

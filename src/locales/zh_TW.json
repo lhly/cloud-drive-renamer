@@ -1,6 +1,6 @@
 {
   "extName": "雲端硬碟批次重新命名工具",
-  "extDescription": "強大的批次重新命名工具，支援115網盤、123雲盤、阿里雲盤、百度雲端硬碟、光鴨雲盤、藍奏雲、移動雲盤、天翼雲盤、迅雷雲盤、悟空網盤、夸克網盤、UC網盤檔案批次重新命名",
+  "extDescription": "支援 OneDrive 個人版、百度、阿里、夸克等 13 個雲端硬碟平台，批次重新命名檔案，支援預覽、衝突檢查和復原。",
   "rename_dialog_title": "批次重新命名",
   "file_selector_title": "批次重新命名",
   "config_panel_title": "設定",
@@ -118,6 +118,7 @@
   "syncing_list": "同步中...",
   "sync_success": "已同步列表",
   "sync_failed": "同步失敗，可能需要手動重新整理頁面",
+  "sync_manual_refresh": "檔案名稱已更新。原網頁清單暫不支援自動重新整理，請手動重新整理網頁查看最新名稱。",
   "undo_last_rename": "撤銷上一次批次重新命名",
   "undo_in_progress": "正在撤銷...",
   "undo_failed_prefix": "以下檔案撤銷失敗：",
@@ -191,6 +192,7 @@
   "platform_woozooo": "藍奏雲",
   "platform_guangyapan": "光鴨雲盤",
   "platform_wkbrowser": "悟空網盤",
+  "platform_onedrive": "OneDrive 個人版",
   "popup_language_label": "語言 / Language",
   "toast_language_changed": "語言已更改為$1",
   "toast_language_change_failed": "語言切換失敗,請重試",

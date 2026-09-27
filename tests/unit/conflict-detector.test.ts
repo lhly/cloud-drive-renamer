@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildConflictDetails,
+  checkBatchConflicts,
   ConflictResolution,
   ConflictType,
 } from '../../src/core/conflict-detector';
@@ -13,6 +14,16 @@ const files: FileItem[] = [
 ];
 
 describe('conflict-detector helpers', () => {
+  it('supports platform-scoped filename normalization for case-insensitive drives', () => {
+    const normalized = checkBatchConflicts(files.slice(0, 2), ['Same.txt', 'same.TXT'], (name) => name.toLowerCase());
+    expect(normalized.get('1')?.type).toBe(ConflictType.DUPLICATE_IN_BATCH);
+    expect(normalized.get('2')?.type).toBe(ConflictType.DUPLICATE_IN_BATCH);
+
+    const unchangedDefault = checkBatchConflicts(files.slice(0, 2), ['Same.txt', 'same.TXT']);
+    expect(unchangedDefault.get('1')?.hasConflict).toBe(false);
+    expect(unchangedDefault.get('2')?.hasConflict).toBe(false);
+  });
+
   it('builds conflict detail rows for duplicate and existing-name conflicts', () => {
     const newNames = ['same.txt', 'same.txt', 'taken.txt'];
     const conflicts = new Map([

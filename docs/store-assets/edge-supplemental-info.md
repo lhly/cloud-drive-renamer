@@ -35,7 +35,7 @@ rename, batch rename, file rename, cloud drive, file management, productivity, r
 
 虽然Edge主要使用英文关键词，但如果支持中文商店，可以考虑：
 ```
-重命名, 批量重命名, 文件重命名, 云盘, 网盘, 115网盘, 123云盘, 阿里云盘, 百度网盘, 光鸭云盘, 蓝奏云, 移动云盘, 天翼云盘, 迅雷云盘, 悟空网盘, 夸克网盘, UC网盘, 文件管理, 批量操作, 效率工具
+重命名, 批量重命名, 文件重命名, 云盘, 网盘, OneDrive, 115网盘, 123云盘, 阿里云盘, 百度网盘, 光鸭云盘, 蓝奏云, 移动云盘, 天翼云盘, 迅雷云盘, 悟空网盘, 夸克网盘, UC网盘, 文件管理, 批量操作, 效率工具
 ```
 
 ### 关键词策略
@@ -207,7 +207,7 @@ batch rename, cloud drive, rename rules, local preview, conflict checks, bulk op
 ```
 一款强大的云盘文件批量重命名工具，专为提升文件管理效率而设计。
 
-支持 115 网盘、123 云盘、阿里云盘、百度网盘、光鸭云盘、蓝奏云、移动云盘、天翼云盘、迅雷云盘、悟空网盘、夸克网盘、UC 网盘，提供 6 种智能重命名规则：替换、正则替换、前缀、后缀、编号、清理。所有操作在本地完成，不收集任何数据。
+支持 OneDrive 个人版、115 网盘、123 云盘、阿里云盘、百度网盘、光鸭云盘、蓝奏云、移动云盘、天翼云盘、迅雷云盘、悟空网盘、夸克网盘、UC 网盘，提供 7 类重命名规则：替换、正则替换、前缀、后缀、编号、清理、剧集提取。预览在本地生成，执行时向对应网盘发送重命名请求。
 ```
 
 **为什么好**：
@@ -224,6 +224,7 @@ batch rename, cloud drive, rename rules, local preview, conflict checks, bulk op
 ✨ 核心特性
 
 🎯 多平台支持
+• OneDrive 个人版 - 支持“我的文件”普通目录中的文件批量重命名，原网页列表需手动刷新
 • 115 网盘 - 支持文件批量重命名
 • 123 云盘 - 支持文件批量重命名
 • 阿里云盘 - 支持文件批量重命名
@@ -237,7 +238,7 @@ batch rename, cloud drive, rename rules, local preview, conflict checks, bulk op
 • 夸克网盘 - 支持文件批量重命名
 • UC 网盘 - 支持文件批量重命名
 
-🔧 六大重命名规则
+🔧 七类重命名规则
 1. 替换规则 - 批量替换特定文本
 2. 正则替换规则 - 使用正则表达式批量替换文件名
 3. 前缀规则 - 添加统一前缀
@@ -386,7 +387,7 @@ Productivity
 
 #### Search Terms（搜索关键词）
 ```
-rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, wkbrowser, quark drive, file management, productivity
+rename, batch rename, file rename, cloud drive, onedrive, 115 drive, 123pan, aliyun drive, baidu cloud, guangyapan, wkbrowser, quark drive, file management, productivity
 ```
 
 #### Logo（图标）
@@ -403,7 +404,7 @@ rename, batch rename, file rename, cloud drive, 115 drive, 123pan, aliyun drive,
 
 #### Short Description（简短描述）
 ```
-支持 115、123、阿里、百度、光鸭、蓝奏、移动、天翼、迅雷、悟空、夸克、UC 网盘的批量重命名工具
+支持 OneDrive 个人版、百度、阿里、夸克等 13 个网盘平台，批量重命名文件，支持预览、冲突检查和撤销。
 ```
 
 #### Long Description（详细描述）

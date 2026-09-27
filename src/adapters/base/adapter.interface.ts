@@ -59,7 +59,7 @@ export abstract class BasePlatformAdapter implements PlatformAdapter {
    * 检查文件名冲突
    * 子类必须实现
    */
-  abstract checkNameConflict(fileName: string, parentId: string): Promise<boolean>;
+  abstract checkNameConflict(fileName: string, parentId: string, excludeFileId?: string): Promise<boolean>;
 
   /**
    * 获取文件信息

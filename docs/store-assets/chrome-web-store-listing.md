@@ -7,8 +7,8 @@
 - **英文**: CloudDrive Renamer
 
 ### 简短描述 (132字符以内)
-- **中文**: 支持百度、阿里、夸克等 12 个网盘平台的文件批量重命名工具
-- **英文**: Batch rename files on 12 cloud drive platforms, including Baidu, Aliyun, Quark, and more.
+- **中文**: 支持 OneDrive 个人版、百度、阿里、夸克等 13 个网盘平台，批量重命名文件，支持预览、冲突检查和撤销。
+- **英文**: Batch rename files on 13 cloud drives, including OneDrive Personal, with previews, conflict checks, and undo.
 
 ### 详细描述
 
@@ -19,6 +19,7 @@
 ✨ 核心特性
 
 🎯 多平台支持
+• OneDrive 个人版 - 支持“我的文件”普通目录中的文件批量重命名
 • 115 网盘 - 支持文件批量重命名
 • 123 云盘 - 支持文件批量重命名
 • 阿里云盘 - 支持文件批量重命名
@@ -32,35 +33,36 @@
 • 夸克网盘 - 支持文件批量重命名
 • UC 网盘 - 支持文件批量重命名
 
-🔧 六大重命名规则
+🔧 七类重命名规则
 1. 替换规则 - 批量替换文件名中的特定文本
 2. 正则替换规则 - 使用正则表达式批量替换文件名
 3. 前缀规则 - 为所有文件添加统一前缀
 4. 后缀规则 - 为文件名添加后缀标记
 5. 编号规则 - 自动添加序号，支持自定义格式
 6. 清理规则 - 清除非法字符或特定字符集
+7. 剧集提取规则 - 提取剧集编号并统一命名，支持样本辅助配置
 
 🚀 智能功能
 • 实时预览 - 应用规则前预览所有变更
-• 批量处理 - 智能速率控制，防止API限流
+• 批量处理 - 按平台控制请求间隔，应对接口限流
 • 冲突检测 - 自动检测重名冲突
 • 崩溃恢复 - 异常中断后可继续未完成的任务
+• 撤销操作 - 撤销上一次批量重命名
+• 命名模板 - 保存常用规则，快速复用最近使用的配置
 
 🔒 隐私保护
-• 100% 本地处理 - 所有操作在浏览器本地完成
-• 无数据上传 - 不收集、不传输任何用户数据
+• 本地生成预览 - 命名规则在浏览器中处理，确认执行后向对应网盘发送重命名请求
+• 无开发者数据收集 - 不向开发者服务器上传文件名或文件内容
 • 完全开源 - 代码完全可审计
+
+📌 OneDrive 支持范围
+仅支持个人版“我的文件”普通目录中的文件，不支持文件夹改名、企业/学校账户及共享、搜索、最近、照片、个人保管库、远程快捷方式等特殊视图。重命名后扩展内列表会更新，OneDrive 原网页列表需手动刷新。
 
 📝 使用场景
 • 整理照片集 - 为旅行照片添加统一前缀和编号
 • 清理文档命名 - 移除特殊字符并统一格式
 • 版本管理 - 为项目文件添加版本后缀
 • 批量规范化 - 统一修改文件命名规范
-
-🛠️ 技术栈
-• TypeScript 5.3+ - 类型安全开发
-• Lit 3.1+ - 轻量级Web Components
-• Vite 5.0+ - 快速构建工具
 
 📖 开源项目
 本项目基于MIT协议开源，欢迎贡献代码和提出建议。
@@ -73,6 +75,7 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
 ✨ Core Features
 
 🎯 Multi-Platform Support
+• OneDrive Personal - Batch rename files in regular folders under My files
 • 115 Drive - Batch rename support
 • 123Pan - Batch rename support
 • Aliyun Drive - Batch rename support
@@ -86,35 +89,36 @@ A powerful batch renaming tool for cloud drives, designed to enhance file manage
 • Quark Drive - Batch rename support
 • UC Drive - Batch rename support
 
-🔧 Six Renaming Rules
+🔧 Seven Renaming Rules
 1. Replace - Batch replace specific text in file names
 2. Regex Replace - Use regular expressions to batch replace filenames
 3. Prefix - Add uniform prefix to all files
 4. Suffix - Add suffix markers to file names
 5. Numbering - Auto-add sequence numbers with custom format
 6. Sanitize - Remove illegal or specific characters
+7. Episode Extraction - Extract episode numbers and standardize names with sample-assisted configuration
 
 🚀 Smart Features
 • Real-time Preview - Preview all changes before applying
-• Batch Processing - Intelligent rate control to prevent API throttling
+• Batch Processing - Platform-specific request pacing to handle API rate limits
 • Conflict Detection - Auto-detect naming conflicts
 • Crash Recovery - Resume unfinished tasks after interruption
+• Undo - Undo the last batch rename
+• Rule Templates - Save reusable rules and access recently used configurations
 
 🔒 Privacy Protection
-• 100% Local Processing - All operations completed locally in browser
-• No Data Upload - No collection or transmission of user data
+• Local Previews - Rules run in your browser; confirmed renames are sent to the corresponding cloud drive
+• No Developer Data Collection - File names and contents are not uploaded to developer servers
 • Fully Open Source - Completely auditable code
+
+📌 OneDrive Scope
+Supports files in regular My files folders on personal accounts. Folder renaming, work/school accounts, shared/search/recent/photo views, Personal Vault, and remote shortcuts are not supported. Names update in the extension after renaming; refresh the OneDrive webpage to update its own file list.
 
 📝 Use Cases
 • Organize Photo Collections - Add uniform prefix and numbering to travel photos
 • Clean Document Naming - Remove special characters and standardize format
 • Version Management - Add version suffixes to project files
 • Batch Standardization - Uniformly modify file naming conventions
-
-🛠️ Tech Stack
-• TypeScript 5.3+ - Type-safe development
-• Lit 3.1+ - Lightweight Web Components
-• Vite 5.0+ - Fast build tool
 
 📖 Open Source Project
 This project is open-sourced under MIT License. Contributions and suggestions are welcome.
@@ -153,6 +157,7 @@ This project is open-sourced under MIT License. Contributions and suggestions ar
 1. **storage** - 保存用户的规则配置和崩溃恢复数据
 2. **tabs** - 检测当前标签页URL以确定使用的云盘平台
 3. **host_permissions** - 访问以下网站：
+   - https://onedrive.live.com/* - OneDrive 个人版页面与同源 API
    - https://115.com/* - 115 网盘页面
    - https://webapi.115.com/* - 115 网盘 API
    - https://yun.123pan.cn/* - 123 云盘页面与 API

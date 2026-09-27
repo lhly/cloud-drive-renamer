@@ -10,19 +10,19 @@
  * 1. Edit version in package.json
  * 2. Run: pnpm run sync:version (or automatically via prebuild/predev)
  *
- * Generated at: 2026-08-15T13:00:30.829Z
+ * Generated at: 2026-09-27T09:31:00.679Z
  */
 
 /**
  * Application version number (e.g., "0.1.0")
  */
-export const APP_VERSION = '2.0.0' as const;
+export const APP_VERSION = '2.0.1' as const;
 
 /**
  * Application version with 'v' prefix (e.g., "v0.1.0")
  * Commonly used for display purposes
  */
-export const APP_VERSION_WITH_PREFIX = 'v2.0.0' as const;
+export const APP_VERSION_WITH_PREFIX = 'v2.0.1' as const;
 
 /**
  * Parse version into components
@@ -30,5 +30,5 @@ export const APP_VERSION_WITH_PREFIX = 'v2.0.0' as const;
 export const VERSION_PARTS = {
   major: 2,
   minor: 0,
-  patch: 0,
+  patch: 1,
 } as const;

@@ -42,6 +42,7 @@ const PLATFORM_LABELS: Record<PlatformName, string> = {
   woozooo: '蓝奏云',
   guangyapan: '光鸭云盘',
   wkbrowser: '悟空网盘',
+  onedrive: 'OneDrive 个人版',
 };
 
 function buildSummary(input: BuildLastFailureDiagnosticSnapshotInput): DiagnosticSummary {

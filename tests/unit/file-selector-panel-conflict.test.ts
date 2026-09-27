@@ -11,7 +11,7 @@ type FileSelectorPanelConflictHarness = FileSelectorPanel & {
   uncheckList: Set<string>;
   extractErrorMap: Map<string, string>;
   handleExecute(): Promise<void>;
-  syncStatus: 'idle' | 'syncing' | 'success' | 'failed';
+  syncStatus: 'idle' | 'syncing' | 'success' | 'failed' | 'refresh-required';
   executionItems: Array<{ file: FileItem; newName: string }>;
   open: boolean;
   updateComplete: Promise<void>;
@@ -145,7 +145,7 @@ describe('FileSelectorPanel conflict execution flow', () => {
     await panel.handleExecute();
 
     expect(adapter.checkNameConflict).toHaveBeenCalledTimes(1);
-    expect(adapter.checkNameConflict).toHaveBeenCalledWith('TTTtile-board.png', 'root');
+    expect(adapter.checkNameConflict).toHaveBeenCalledWith('TTTtile-board.png', 'root', '1');
   });
 
   it('keeps sync status neutral when adapter reports no visible rows to sync', async () => {
@@ -169,6 +169,23 @@ describe('FileSelectorPanel conflict execution flow', () => {
       expect(adapter.syncAfterRename).toHaveBeenCalledTimes(1);
       expect(panel.syncStatus).toBe('idle');
     });
+  });
+
+  it.each([
+    ['manual-refresh', 'refresh-required'],
+    ['none', 'failed'],
+  ] as const)('maps unsuccessful %s sync to %s', async (method, status) => {
+    const adapter: PlatformAdapter = new ConflictTestAdapter();
+    adapter.syncAfterRename = vi.fn(async () => ({ success: false, method }));
+    const panel = new FileSelectorPanel() as FileSelectorPanelConflictHarness;
+    panel.adapter = adapter;
+    panel.allFiles = [files[0]];
+    panel.uncheckList = new Set();
+    panel.extractErrorMap = new Map();
+    panel.newNameMap = new Map([['1', 'TTTtile-board.png']]);
+
+    await panel.handleExecute();
+    await vi.waitFor(() => expect(panel.syncStatus).toBe(status));
   });
 
   it('prevents a second execute while conflict detection is still pending', async () => {

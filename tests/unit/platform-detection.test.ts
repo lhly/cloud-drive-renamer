@@ -354,6 +354,14 @@ describe('Platform Detection - Unified Utils', () => {
         expect(result).toBeNull();
       });
 
+      it('detects OneDrive Personal only on the supported My files route and exact host', () => {
+        expect(detectPlatformFromUrl('https://onedrive.live.com/my?viewid=abc', '/my')).toBe('onedrive');
+        expect(detectPlatformFromUrl('https://onedrive.live.com/my/', '/my/')).toBe('onedrive');
+        expect(detectPlatformFromUrl('https://onedrive.live.com/photos', '/photos')).toBeNull();
+        expect(detectPlatformFromUrl('https://login.onedrive.live.com/my', '/my')).toBeNull();
+        expect(detectPlatformFromUrl('http://onedrive.live.com/my', '/my')).toBeNull();
+      });
+
       it('should return null for unsupported platform', () => {
         const result = detectPlatformFromUrl(
           'https://example.com/',
