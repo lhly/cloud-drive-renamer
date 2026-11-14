@@ -4,15 +4,20 @@ import { FileItem, PlatformAdapter, RenameResult } from '../../src/types/platfor
 import { BatchResults } from '../../src/types/core';
 import { crashRecovery } from '../../src/core/crash-recovery';
 import { LastRenameOperation } from '../../src/types/undo';
+import { ExecutorState } from '../../src/core/executor';
+import type { PreviewItem } from '../../src/types/file-selector';
 
 type FileSelectorPanelTestHarness = FileSelectorPanel & {
   lastRenameOperation: LastRenameOperation | null;
   allFiles: FileItem[];
   executionResults: BatchResults | null;
+  executionItems: PreviewItem[];
+  executorState: ExecutorState;
   clearLastRenameOperationIfOutOfScope(): void;
   updateLastRenameOperationFromExecute(results: BatchResults): void;
   mergeLastRenameOperationFromRetry(results: BatchResults): void;
   handleUndoLastRename(): Promise<void>;
+  handleRetryFailed(): Promise<void>;
 };
 
 class PanelMockAdapter implements PlatformAdapter {
@@ -127,6 +132,27 @@ describe('FileSelectorPanel undo helpers', () => {
     panel.mergeLastRenameOperationFromRetry(retryResults);
 
     expect(panel.lastRenameOperation?.items.map((item) => item.fileId)).toEqual(['1', '2']);
+  });
+
+  it('creates an undo record when the first success is confirmed by retry', async () => {
+    const panel = new FileSelectorPanel() as FileSelectorPanelTestHarness;
+    const adapter = new PanelMockAdapter();
+    panel.adapter = adapter;
+    const file = await adapter.getFileInfo('1');
+    panel.allFiles = [file];
+    panel.executionItems = [{ file, newName: 'confirmed.txt', conflict: false, done: false, error: '结果未知' }];
+    panel.executorState = ExecutorState.COMPLETED;
+    const write = vi.spyOn(adapter, 'renameFile');
+
+    await panel.handleRetryFailed();
+    expect(panel.executionResults?.success).toHaveLength(1);
+    expect(panel.lastRenameOperation?.items).toEqual([
+      { fileId: '1', original: file.name, renamed: 'confirmed.txt', index: 0 },
+    ]);
+
+    await panel.handleUndoLastRename();
+    expect(write).toHaveBeenLastCalledWith('1', file.name);
+    expect(panel.lastRenameOperation).toBeNull();
   });
 
   it('undoes the last rename operation and clears the record after full success', async () => {

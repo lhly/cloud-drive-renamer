@@ -3,7 +3,8 @@ import { FileSelectorPanel } from '../../src/content/components/file-selector-pa
 import { BatchExecutor, ExecutorState } from '../../src/core/executor';
 import { ConflictResolution, ConflictType } from '../../src/core/conflict-detector';
 import { crashRecovery } from '../../src/core/crash-recovery';
-import { FileItem, PlatformAdapter, RenameResult } from '../../src/types/platform';
+import { ConflictCheckError, FileItem, PlatformAdapter, RenameResult } from '../../src/types/platform';
+import { I18nService } from '../../src/utils/i18n';
 
 type FileSelectorPanelConflictHarness = FileSelectorPanel & {
   allFiles: FileItem[];
@@ -146,6 +147,26 @@ describe('FileSelectorPanel conflict execution flow', () => {
 
     expect(adapter.checkNameConflict).toHaveBeenCalledTimes(1);
     expect(adapter.checkNameConflict).toHaveBeenCalledWith('TTTtile-board.png', 'root', '1');
+  });
+
+  it('reports a failed required preflight and keeps the rename plan without executing it', async () => {
+    const adapter = new ConflictTestAdapter();
+    adapter.checkNameConflict.mockRejectedValueOnce(new ConflictCheckError());
+    const panel = new FileSelectorPanel() as FileSelectorPanelConflictHarness;
+    panel.adapter = adapter;
+    panel.allFiles = [files[0]];
+    panel.uncheckList = new Set();
+    panel.newNameMap = new Map([['1', 'TTTtile-board.png']]);
+
+    await panel.handleExecute();
+
+    expect(alert).toHaveBeenCalledWith(I18nService.t('conflict_check_failed_blocked'));
+    expect(BatchExecutor.prototype.execute).not.toHaveBeenCalled();
+    expect(crashRecovery.saveOperationState).not.toHaveBeenCalled();
+    expect(panel.newNameMap.get('1')).toBe('TTTtile-board.png');
+
+    await panel.handleExecute();
+    expect(BatchExecutor.prototype.execute).toHaveBeenCalledTimes(1);
   });
 
   it('keeps sync status neutral when adapter reports no visible rows to sync', async () => {

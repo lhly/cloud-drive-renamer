@@ -128,6 +128,7 @@
   "conflicts_detected": "检测到 $1 个冲突",
   "conflicts_detected_confirm": "检测到 $1 个冲突，是否继续？",
   "conflict_check_failed_confirm": "冲突检测失败，是否继续执行？",
+  "conflict_check_failed_blocked": "无法检查同名文件，未执行改名。请稍后重试。",
   "preview_empty": "暂无文件可预览",
   "preview_empty_hint": "选择文件并配置规则以查看预览",
   "preview_loading": "生成预览中...",

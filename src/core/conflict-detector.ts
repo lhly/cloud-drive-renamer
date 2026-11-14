@@ -1,4 +1,4 @@
-import { FileItem, PlatformAdapter } from '../types/platform';
+import { ConflictCheckError, FileItem, PlatformAdapter } from '../types/platform';
 import { logger } from '../utils/logger';
 
 /**
@@ -79,8 +79,9 @@ export async function checkSingleConflict(
       hasConflict: false,
     };
   } catch (error) {
+    if (error instanceof ConflictCheckError) throw error;
     logger.error('Failed to check name conflict:', error as Error);
-    // 检测失败时保守处理,假设无冲突
+    // Preserve the legacy fallback for adapters that don't require a successful preflight.
     return {
       type: ConflictType.NONE,
       hasConflict: false,

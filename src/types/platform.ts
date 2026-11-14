@@ -49,6 +49,14 @@ export interface PageSyncResult {
   message?: string;
 }
 
+/** The directory could not be checked; starting writes would skip the preflight. */
+export class ConflictCheckError extends Error {
+  constructor() {
+    super('Could not verify name conflicts');
+    this.name = 'ConflictCheckError';
+  }
+}
+
 /**
  * 平台适配器接口
  * 所有云盘平台必须实现此接口
@@ -101,6 +109,7 @@ export interface PlatformAdapter {
    * @param fileName 文件名
    * @param parentId 父目录ID
    * @returns 是否存在同名文件
+   * @throws {ConflictCheckError} 预检未完成且不能继续写入
    */
   checkNameConflict(fileName: string, parentId: string, excludeFileId?: string): Promise<boolean>;
 

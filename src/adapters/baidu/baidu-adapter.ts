@@ -1,5 +1,5 @@
 import { BasePlatformAdapter } from '../base/adapter.interface';
-import { PlatformName, FileItem, RenameResult, PlatformConfig, PageSyncResult } from '../../types/platform';
+import { ConflictCheckError, PlatformName, FileItem, RenameResult, PlatformConfig, PageSyncResult } from '../../types/platform';
 import { parseFileName } from '../../utils/helpers';
 import { BaiduAPIError, getErrorMessage, isRetryableError } from './errors';
 import { getPageScriptInjector } from './page-script-injector';
@@ -31,9 +31,20 @@ type TaskPollResult =
 interface DirectoryListing {
   paths: Map<string, string>;
   pending?: {
-    files: Promise<FileItem[]>;
+    contents: Promise<DirectoryContents>;
     invalidatedIds: Set<string>;
   };
+}
+
+interface DirectoryContents {
+  files: FileItem[];
+  idsByName: Map<string, Set<string>>;
+}
+
+interface UnconfirmedRename {
+  directory: string;
+  newName: string;
+  operationId: string;
 }
 
 // Never log server text, item identifiers, or raw response objects.
@@ -79,6 +90,7 @@ export class BaiduAdapter extends BasePlatformAdapter {
   private maxTaskPollAttempts = 30;      // Max 30 attempts
   private taskPollInterval = 1000;        // 1 second polling interval
   private readonly listingsByDirectory = new Map<string, DirectoryListing>();
+  private readonly unconfirmedRenames = new Map<string, UnconfirmedRename>();
 
   constructor(config?: Partial<PlatformConfig>) {
     super({
@@ -181,21 +193,25 @@ export class BaiduAdapter extends BasePlatformAdapter {
    * @returns Complete file list
    */
   async getAllFiles(parentPath?: string): Promise<FileItem[]> {
-    const directory = parentPath || this.getCurrentPath();
+    const { files } = await this.readDirectory(parentPath || this.getCurrentPath());
+    return files;
+  }
+
+  private async readDirectory(directory: string): Promise<DirectoryContents> {
     let listing = this.listingsByDirectory.get(directory);
     if (!listing) {
       listing = { paths: new Map() };
       this.listingsByDirectory.set(directory, listing);
     }
-    if (listing.pending) return listing.pending.files;
+    if (listing.pending) return listing.pending.contents;
 
     const paths = new Map<string, string>();
     const invalidatedIds = new Set<string>();
     // Share a read for fresh adapters and concurrent renames missing from the index.
-    const files = this.fetchDirectoryFiles(directory, paths);
-    listing.pending = { files, invalidatedIds };
+    const contents = this.fetchDirectoryContents(directory, paths);
+    listing.pending = { contents, invalidatedIds };
     try {
-      const result = await files;
+      const result = await contents;
       for (const fileId of invalidatedIds) paths.delete(fileId);
       listing.paths = paths;
       return result;
@@ -207,7 +223,7 @@ export class BaiduAdapter extends BasePlatformAdapter {
     }
   }
 
-  private async fetchDirectoryFiles(targetPath: string, paths: Map<string, string>): Promise<FileItem[]> {
+  private async fetchDirectoryContents(targetPath: string, paths: Map<string, string>): Promise<DirectoryContents> {
     try {
       logger.info('[BaiduAdapter] Fetching all files from API');
 
@@ -218,6 +234,7 @@ export class BaiduAdapter extends BasePlatformAdapter {
       }
 
       const allFiles: FileItem[] = [];
+      const idsByName = new Map<string, Set<string>>();
       const directoryPrefix = targetPath.replace(/\/$/, '');
       let page = 1;
       const pageSize = 100;
@@ -240,6 +257,7 @@ export class BaiduAdapter extends BasePlatformAdapter {
           const response = await this.fetchWithTimeout(url.toString(), {
             method: 'GET',
             credentials: 'include',
+            cache: 'no-store',
           });
           if (!response.ok) throw new Error();
           result = await response.json();
@@ -257,39 +275,42 @@ export class BaiduAdapter extends BasePlatformAdapter {
           throw new Error('无法解析文件列表响应');
         }
 
-        // Filter out folders (only return files, isdir === 0)
-        const files = pageFiles
-          .filter(f => f.isdir === 0)
-          .map((file): FileItem => {
-            const { ext } = parseFileName(file.server_filename);
-            const id = String(file.fs_id);
-            const path = file.path;
-            // Check that this is a complete path to an item in the listed directory.
-            if (typeof path === 'string' && path.startsWith('/') && !path.endsWith('/')
-              && path.slice(0, path.lastIndexOf('/')) === directoryPrefix) {
-              paths.set(id, path);
-            }
-            return {
-              id,
-              name: file.server_filename,
-              ext: ext,
-              parentId: targetPath,
-              size: file.size,
-              mtime: file.server_mtime ? file.server_mtime * 1000 : Date.now(),
-            };
-          });
+        for (const item of pageFiles) {
+          if (!item || typeof item.server_filename !== 'string') {
+            throw new Error('无法解析文件列表响应');
+          }
+          const id = String(item.fs_id);
+          const name = item.server_filename;
+          const ids = idsByName.get(name) ?? new Set<string>();
+          ids.add(id);
+          idsByName.set(name, ids);
+          // Folders occupy names too, but aren't offered as rename targets.
+          if (item.isdir !== 0) continue;
 
-        allFiles.push(...files);
+          const path = item.path;
+          if (typeof path === 'string' && path.startsWith('/') && !path.endsWith('/')
+            && path.slice(0, path.lastIndexOf('/')) === directoryPrefix) {
+            paths.set(id, path);
+          }
+          allFiles.push({
+            id,
+            name,
+            ext: parseFileName(name).ext,
+            parentId: targetPath,
+            size: item.size,
+            mtime: item.server_mtime ? item.server_mtime * 1000 : Date.now(),
+          });
+        }
 
         // Check if there are more pages
         hasMore = pageFiles.length === pageSize;
         page++;
 
-        logger.debug(`[BaiduAdapter] Fetched page ${page - 1} with ${files.length} files`);
+        logger.debug(`[BaiduAdapter] Fetched page ${page - 1} with ${pageFiles.length} entries`);
       }
 
       logger.info(`[BaiduAdapter] Successfully fetched ${allFiles.length} files`);
-      return allFiles;
+      return { files: allFiles, idsByName };
     } catch (error) {
       const errorObj = error instanceof Error ? error : new Error(String(error));
       logger.error('Failed to get all files:', errorObj);
@@ -306,6 +327,11 @@ export class BaiduAdapter extends BasePlatformAdapter {
    */
   async renameFile(fileId: string, newName: string): Promise<RenameResult> {
     const directory = this.getCurrentPath();
+    const unconfirmed = this.unconfirmedRenames.get(fileId);
+    if (unconfirmed) {
+      return this.confirmRename(fileId, newName, directory, unconfirmed);
+    }
+
     const id = Number(fileId);
     const operationId = crypto.randomUUID();
     if (!Number.isSafeInteger(id) || id <= 0 || String(id) !== fileId) {
@@ -350,11 +376,10 @@ export class BaiduAdapter extends BasePlatformAdapter {
       try {
         result = await injector.callAPI('POST', url, requestBody, this.config.timeout);
       } catch {
-        this.invalidateRenamePath(directory, fileId);
         logger.error('[BaiduAdapter] Rename submission outcome unknown', undefined, {
           ...diagnostic, reason: 'request-error',
         });
-        return { success: false, error: new Error('重命名提交结果未知，请刷新列表确认文件名后再试') };
+        return this.markRenameUnconfirmed(fileId, { directory, newName, operationId }, '重命名提交结果未知，请重试核对文件名');
       }
 
       // Check immediate response
@@ -369,19 +394,18 @@ export class BaiduAdapter extends BasePlatformAdapter {
       const taskid = result?.taskid;
       const taskKey = typeof taskid === 'number' || typeof taskid === 'string' ? String(taskid) : '';
       if (result?.errno !== 0 || !/^[1-9]\d*$/.test(taskKey)) {
-        this.invalidateRenamePath(directory, fileId);
         logger.error('[BaiduAdapter] Rename submission outcome unknown', undefined, {
           ...diagnostic, ...responseErrorCodes(result),
           reason: result?.errno === 0 ? 'missing-task-id' : 'invalid-response',
         });
-        return { success: false, error: new Error('无法确认重命名任务，请刷新列表确认文件名后再试') };
+        return this.markRenameUnconfirmed(fileId, { directory, newName, operationId }, '重命名提交结果未知，请重试核对文件名');
       }
 
       logger.info('[BaiduAdapter] Rename task accepted', diagnostic);
       const taskResult = await this.pollTaskStatus(taskKey);
-      this.invalidateRenamePath(directory, fileId);
 
       if (taskResult.status === 'success') {
+        this.invalidateRenamePath(directory, fileId);
         return { success: true, newName };
       }
       const taskDiagnostic = {
@@ -392,11 +416,47 @@ export class BaiduAdapter extends BasePlatformAdapter {
         logger.error('[BaiduAdapter] Rename task outcome unknown', undefined, {
           ...taskDiagnostic, reason: taskResult.reason,
         });
-        return { success: false, error: new Error('重命名任务结果未知，请刷新列表确认文件名后再试') };
+        return this.markRenameUnconfirmed(fileId, { directory, newName, operationId }, '重命名任务结果未知，请重试核对文件名');
       }
+      this.invalidateRenamePath(directory, fileId);
       logger.error('[BaiduAdapter] Rename task failed', undefined, taskDiagnostic);
       return { success: false, error: new Error('任务执行失败: failed') };
     }, operationId);
+  }
+
+  private markRenameUnconfirmed(fileId: string, operation: UnconfirmedRename, message: string): RenameResult {
+    this.unconfirmedRenames.set(fileId, operation);
+    this.invalidateRenamePath(operation.directory, fileId);
+    return { success: false, error: new Error(message) };
+  }
+
+  private async confirmRename(
+    fileId: string, newName: string, directory: string, operation: UnconfirmedRename
+  ): Promise<RenameResult> {
+    if (directory !== operation.directory || newName !== operation.newName) {
+      return { success: false, error: new Error('上次改名结果未知，请回到原目录核对上次的目标文件名') };
+    }
+
+    try {
+      // A listing already in flight when the write ended may predate it.
+      const pending = this.listingsByDirectory.get(directory)?.pending;
+      if (pending?.invalidatedIds.has(fileId)) {
+        await pending.contents.catch(() => undefined);
+      }
+      if (this.getCurrentPath() === directory) {
+        const files = await this.getAllFiles(directory);
+        if (this.getCurrentPath() === directory && files.some(file => file.id === fileId && file.name === newName)) {
+          this.unconfirmedRenames.delete(fileId);
+          logger.info('[BaiduAdapter] Rename confirmed by listing', { operationId: operation.operationId });
+          return { success: true, newName };
+        }
+      }
+    } catch {
+      // A failed read is not evidence that the original write failed.
+    }
+
+    logger.warn('[BaiduAdapter] Rename still unconfirmed after listing', { operationId: operation.operationId });
+    return { success: false, error: new Error('重命名结果仍未知，未重新提交；稍后可重试核对') };
   }
 
   private async resolveRenamePath(directory: string, fileId: string): Promise<string | undefined> {
@@ -472,47 +532,17 @@ export class BaiduAdapter extends BasePlatformAdapter {
    *
    * @param fileName - Filename to check
    * @param parentPath - Parent directory path
-   * @returns True if conflict exists
+   * @param excludeFileId - Ignore the file being renamed
+   * @returns True if a file or folder with that name exists
    */
-  async checkNameConflict(fileName: string, parentPath: string): Promise<boolean> {
+  async checkNameConflict(fileName: string, parentPath: string, excludeFileId?: string): Promise<boolean> {
     try {
-      await this.rateLimit();
-
-      const bdstoken = await this.extractBdstoken();
-      if (!bdstoken) {
-        logger.warn('Cannot check conflict: bdstoken not found');
-        return true; // Conservative approach
-      }
-
-      // Query file list in parent directory
-      const url = new URL(`${this.baseURL}/list`);
-      url.searchParams.set('order', 'name');
-      url.searchParams.set('desc', '0');
-      url.searchParams.set('page', '1');
-      url.searchParams.set('num', '100');
-      url.searchParams.set('dir', parentPath || '/');
-      url.searchParams.set('bdstoken', bdstoken);
-
-      const response = await this.fetchWithTimeout(url.toString(), {
-        method: 'GET',
-        credentials: 'include',
-      });
-
-      const result: BaiduAPIResponse<{ list: BaiduFileListItem[] }> = await response.json();
-
-      if (result.errno !== 0) {
-        return false;
-      }
-
-      const list = result.data?.list ?? result.list;
-      if (!Array.isArray(list)) {
-        return false;
-      }
-
-      return list.some(file => file.server_filename === fileName);
-    } catch (error) {
-      logger.error('Failed to check name conflict:', error instanceof Error ? error : new Error(String(error)));
-      return true; // Conservative on error
+      const { idsByName } = await this.readDirectory(parentPath || '/');
+      const ids = idsByName.get(fileName);
+      return ids !== undefined && (ids.size > 1 || excludeFileId === undefined || !ids.has(excludeFileId));
+    } catch {
+      // The shared listing already logs the underlying error.
+      throw new ConflictCheckError();
     }
   }
 

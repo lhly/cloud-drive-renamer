@@ -1,6 +1,6 @@
 import { LitElement, html, css, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { FileItem, PlatformAdapter } from '../../types/platform';
+import { ConflictCheckError, FileItem, PlatformAdapter } from '../../types/platform';
 import { FileType, PreviewItem } from '../../types/file-selector';
 import { RuleConfig } from '../../types/rule';
 import { RuleFactory } from '../../rules/rule-factory';
@@ -846,11 +846,15 @@ export class FileSelectorPanel extends LitElement {
   }
 
   private mergeLastRenameOperationFromRetry(results: BatchResults): void {
-    if (!this.lastRenameOperation || results.success.length === 0) {
+    if (results.success.length === 0) {
       return;
     }
 
     const scope = this.getCurrentUndoScope();
+    if (!this.lastRenameOperation) {
+      this.lastRenameOperation = createLastRenameOperation(scope.platform, scope.directoryKey, results.success);
+      return;
+    }
     if (!isLastRenameOperationInScope(this.lastRenameOperation, scope.platform, scope.directoryKey)) {
       this.lastRenameOperation = null;
       return;
@@ -1175,6 +1179,10 @@ export class FileSelectorPanel extends LitElement {
       } catch (error) {
         const errorObj = error instanceof Error ? error : new Error(String(error));
         logger.error('[FileSelectorPanel] Conflict detection failed:', errorObj);
+        if (error instanceof ConflictCheckError) {
+          alert(I18nService.t('conflict_check_failed_blocked'));
+          return;
+        }
         const confirmed = confirm(I18nService.t('conflict_check_failed_confirm'));
         if (!confirmed) {
           return;
@@ -1489,6 +1497,7 @@ export class FileSelectorPanel extends LitElement {
       return;
     }
 
+    const retryScope = this.getCurrentUndoScope();
     try {
       this.executing = true;
       this.executorState = ExecutorState.RUNNING;
@@ -1544,7 +1553,10 @@ export class FileSelectorPanel extends LitElement {
       });
 
       this.applyExecutionResults(results);
-      this.mergeLastRenameOperationFromRetry(results);
+      const currentScope = this.getCurrentUndoScope();
+      if (currentScope.platform === retryScope.platform && currentScope.directoryKey === retryScope.directoryKey) {
+        this.mergeLastRenameOperationFromRetry(results);
+      }
       this.updateSummaryProgress();
       await this.syncDiagnosticSnapshotFromExecution();
       void this.syncAfterRename();

@@ -3,6 +3,7 @@ import { BaiduAdapter } from '../../../src/adapters/baidu/baidu-adapter';
 import { getPageScriptInjector } from '../../../src/adapters/baidu/page-script-injector';
 import { configureLoggerDiagnostics } from '../../../src/utils/logger';
 import type { DiagnosticLogEntry } from '../../../src/types/diagnostic';
+import { ConflictDetector } from '../../../src/core/conflict-detector';
 
 vi.mock('../../../src/adapters/baidu/page-script-injector', () => ({
   getPageScriptInjector: vi.fn(),
@@ -230,6 +231,142 @@ describe('BaiduAdapter', () => {
     expect(submittedFiles()).toHaveLength(1);
     expect(entries.find((entry) => entry.message === 'Rename submission outcome unknown')?.context?.args)
       .toEqual([expect.objectContaining({ reason: 'request-error' })]);
+    expect(JSON.stringify(entries)).not.toContain(TOKEN);
+  });
+
+  it.each(['提交响应丢失', '缺少任务 ID', '轮询结果未知'])('%s 后重试按同一 fs_id 回读，确认成功但不重发', async (failure) => {
+    listResponse(listItem('/a.txt'));
+    await adapter.getAllFiles();
+    if (failure === '提交响应丢失') {
+      callAPI.mockRejectedValueOnce(new Error('lost response'));
+    } else if (failure === '缺少任务 ID') {
+      callAPI.mockResolvedValueOnce({ errno: 0 });
+    } else {
+      callAPI.mockImplementation(async (_method, url) => new URL(url).pathname === '/api/filemanager'
+        ? { errno: 0, taskid: TASK_ID }
+        : { errno: 0, status: 'pending' });
+    }
+
+    expect(await rename()).toMatchObject({ success: false });
+    listResponse(listItem('/b.txt', 'b.txt'));
+    expect(await rename()).toEqual({ success: true, newName: 'b.txt' });
+    expect(submittedFiles()).toHaveLength(1);
+    expect(fetchList).toHaveBeenCalledTimes(2);
+
+    // A confirmed rename can subsequently be undone normally.
+    callAPI.mockResolvedValueOnce({ errno: 0, taskid: TASK_ID })
+      .mockResolvedValueOnce({ errno: 0, status: 'success' });
+    expect(await rename(FILE_ID, 'a.txt')).toMatchObject({ success: true });
+    expect(submittedFiles()[1]).toEqual([{ id: FILE_ID, path: '/b.txt', newname: 'a.txt' }]);
+  });
+
+  it('回读仍是原名、同名条目 ID 不同或接口失败时保持未知，允许之后再次回读', async () => {
+    listResponse(listItem('/a.txt'));
+    await adapter.getAllFiles();
+    callAPI.mockRejectedValueOnce(new Error('lost response'));
+    expect(await rename()).toMatchObject({ success: false });
+
+    for (const files of [[listItem('/a.txt')], [listItem('/b.txt', 'b.txt', 2)], []]) {
+      listResponse(...files);
+      expect(await rename()).toMatchObject({ success: false, error: { message: expect.stringContaining('未重新提交') } });
+    }
+    fetchList.mockRejectedValueOnce(new Error('offline'));
+    expect(await rename()).toMatchObject({ success: false, error: { message: expect.stringContaining('未重新提交') } });
+    expect(submittedFiles()).toHaveLength(1);
+
+    listResponse(listItem('/b.txt', 'b.txt'));
+    expect(await rename()).toMatchObject({ success: true });
+    expect(submittedFiles()).toHaveLength(1);
+  });
+
+  it('已知被拒绝的改名仍可重试并发送新请求', async () => {
+    listResponse(listItem('/a.txt'));
+    await adapter.getAllFiles();
+    callAPI.mockResolvedValueOnce({ errno: -8 });
+    expect(await rename()).toMatchObject({ success: false });
+    expect(await rename()).toMatchObject({ success: true });
+    expect(submittedFiles()).toHaveLength(2);
+  });
+
+  it('切换目录或改用另一个目标名不会绕过未知结果的保护', async () => {
+    listResponse(listItem('/a.txt'));
+    await adapter.getAllFiles();
+    callAPI.mockRejectedValueOnce(new Error('lost response'));
+    expect(await rename()).toMatchObject({ success: false });
+
+    expect(await rename(FILE_ID, 'c.txt')).toMatchObject({ success: false });
+    window.history.replaceState({}, '', '/disk/main?path=%2Fother');
+    expect(await rename()).toMatchObject({ success: false });
+    expect(fetchList).toHaveBeenCalledTimes(1);
+    expect(submittedFiles()).toHaveLength(1);
+  });
+
+  it('不使用首次请求尚未结束时发出的列表来确认改名', async () => {
+    listResponse(listItem('/a.txt'));
+    await adapter.getAllFiles();
+    let loseResponse!: (error: Error) => void;
+    callAPI.mockImplementationOnce(() => new Promise((_resolve, reject) => { loseResponse = reject; }));
+    const initial = adapter.renameFile(String(FILE_ID), 'b.txt');
+    await vi.runAllTimersAsync();
+
+    let completeOldList!: (response: Response) => void;
+    fetchList.mockImplementationOnce(() => new Promise(resolve => { completeOldList = resolve; }));
+    const oldListing = adapter.getAllFiles();
+    await vi.advanceTimersByTimeAsync(0);
+    loseResponse(new Error('lost response'));
+    expect(await initial).toMatchObject({ success: false });
+    listResponse(listItem('/b.txt', 'b.txt'));
+
+    const confirmation = adapter.renameFile(String(FILE_ID), 'b.txt');
+    completeOldList(new Response(JSON.stringify({ errno: 0, list: [listItem('/a.txt')] })));
+    await oldListing;
+    expect(await confirmation).toEqual({ success: true, newName: 'b.txt' });
+    expect(fetchList).toHaveBeenCalledTimes(3);
+    expect(submittedFiles()).toHaveLength(1);
+  });
+
+  const fullPage = () => Array.from({ length: 100 }, (_, i) => listItem(`/file-${i}.txt`, `file-${i}.txt`, i + 1));
+  const requestedPages = () => fetchList.mock.calls.map(([url]) => new URL(String(url)).searchParams.get('page'));
+
+  it('同名预检查到第二页的目录，并为同目录并发预检共享分页读取', async () => {
+    listResponse(...fullPage());
+    fetchList.mockResolvedValueOnce(new Response(JSON.stringify({
+      errno: 0, data: { list: [{ ...listItem('/taken', 'taken', 101), isdir: 1 }] },
+    })));
+
+    await expect(Promise.all([
+      adapter.checkNameConflict('taken', '/'),
+      adapter.checkNameConflict('not-taken', '/'),
+    ])).resolves.toEqual([true, false]);
+    expect(requestedPages()).toEqual(['1', '2']);
+  });
+
+  it('同名预检排除当前文件 ID，而不是排除所有同名条目', async () => {
+    listResponse(listItem('/a.txt'));
+    await expect(adapter.checkNameConflict('a.txt', '/', String(FILE_ID))).resolves.toBe(false);
+
+    listResponse(listItem('/a.txt'), listItem('/a.txt', 'a.txt', 2));
+    await expect(adapter.checkNameConflict('a.txt', '/', String(FILE_ID))).resolves.toBe(true);
+  });
+
+  it.each([
+    { errno: 110 },
+    { errno: 0, list: {} },
+  ])('后续分页错误 %j 传到批量预检而不是返回无冲突', async (failure) => {
+    listResponse(...fullPage());
+    fetchList.mockResolvedValueOnce(new Response(JSON.stringify(failure)));
+    const detector = new ConflictDetector(adapter);
+    const source = { id: String(FILE_ID), name: 'a.txt', ext: '.txt', parentId: '/', size: 10, mtime: 1 };
+
+    await expect(detector.detectConflicts([source], ['b.txt'])).rejects.toThrow();
+    expect(requestedPages()).toEqual(['1', '2']);
+    expect(callAPI).not.toHaveBeenCalled();
+  });
+
+  it('网络异常时明确预检失败且不导出请求凭据', async () => {
+    fetchList.mockRejectedValueOnce(new Error(`https://pan.baidu.com/api/list?bdstoken=${TOKEN}`));
+
+    await expect(adapter.checkNameConflict('taken', '/')).rejects.toThrow();
     expect(JSON.stringify(entries)).not.toContain(TOKEN);
   });
 });

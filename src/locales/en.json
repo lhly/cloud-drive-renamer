@@ -128,6 +128,7 @@
   "conflicts_detected": "Conflicts detected: $1",
   "conflicts_detected_confirm": "Conflicts detected: $1. Continue?",
   "conflict_check_failed_confirm": "Conflict check failed. Continue?",
+  "conflict_check_failed_blocked": "Could not check for name conflicts. No files were renamed. Try again shortly.",
   "preview_empty": "No files to preview",
   "preview_empty_hint": "Select files and configure rules to see the preview",
   "preview_loading": "Generating preview...",

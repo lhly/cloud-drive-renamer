@@ -1,6 +1,6 @@
 {
   "name": "cloud-drive-renamer",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "云盘文件批量重命名工具，支持 OneDrive 个人版及多家主流网盘",
   "type": "module",
   "scripts": {

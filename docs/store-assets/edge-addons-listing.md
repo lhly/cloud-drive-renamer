@@ -306,7 +306,7 @@ rename, batch rename, onedrive, cloud drive, file management, productivity, rena
 - **功能建议**: https://github.com/lhly/cloud-drive-renamer/discussions
 
 ### 版本历史
-- **待发布版本**: 2.0.1（以打包时 package.json 为准）
+- **待发布版本**: 2.0.2（以打包时 package.json 为准）
 - **更新日期**: 2026年
 
 ## 定价和分发
