@@ -124,9 +124,7 @@ export class PageScriptInjector {
       if (message.success) {
         pending.resolve(message.data);
       } else {
-        const errorObj = new Error(message.error || 'Unknown error');
-        logger.error(`API response failed - requestId: ${message.requestId}`, errorObj);
-        pending.reject(errorObj);
+        pending.reject(new Error('Baidu API request failed'));
       }
     });
   }
@@ -160,9 +158,7 @@ export class PageScriptInjector {
     return new Promise((resolve, reject) => {
       const timeoutHandle = window.setTimeout(() => {
         this.pendingRequests.delete(requestId);
-        const timeoutError = new Error(`API request timeout: ${url}`);
-        logger.error(`API request timeout - requestId: ${requestId}`, timeoutError);
-        reject(timeoutError);
+        reject(new Error('Baidu API request timeout'));
       }, timeout);
 
       this.pendingRequests.set(requestId, {

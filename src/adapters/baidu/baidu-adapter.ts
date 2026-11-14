@@ -8,23 +8,44 @@ import { logger } from '../../utils/logger';
 /**
  * Baidu API Response Format
  */
-interface BaiduAPIResponse<T = any> {
+interface BaiduAPIResponse<T = unknown> {
   errno: number;
-  info?: any[];
-  request_id?: number;
-  taskid?: number;
+  info?: unknown;
+  taskid?: number | string;
   data?: T;
   // Some endpoints (e.g. /api/list) return `list` at top-level instead of inside `data`.
-  list?: any[];
+  list?: BaiduFileListItem[];
 }
 
 /**
  * Baidu Task Query Response
  */
-interface BaiduTaskResponse {
-  errno: number;
+interface BaiduTaskResponse extends BaiduAPIResponse {
   status: 'running' | 'pending' | 'success' | 'failed';
-  taskid: number;
+}
+
+type TaskPollResult =
+  | { status: 'success' | 'failed'; attempts: number; response: BaiduTaskResponse }
+  | { status: 'unknown'; attempts: number; reason: 'poll-limit' | 'query-rejected' | 'query-error' | 'invalid-response'; response?: BaiduTaskResponse };
+
+interface DirectoryListing {
+  paths: Map<string, string>;
+  pending?: {
+    files: Promise<FileItem[]>;
+    invalidatedIds: Set<string>;
+  };
+}
+
+// Never log server text, item identifiers, or raw response objects.
+function responseErrorCodes(response?: BaiduAPIResponse): { errno?: number; itemErrnos?: number[] } {
+  const codes = Array.isArray(response?.info) ? response.info.flatMap((item: unknown) => {
+    const code = item && typeof item === 'object' && 'errno' in item ? item.errno : undefined;
+    return typeof code === 'number' && Number.isSafeInteger(code) ? [code] : [];
+  }) : [];
+  return {
+    ...(Number.isSafeInteger(response?.errno) ? { errno: response?.errno } : {}),
+    ...(codes.length ? { itemErrnos: [...new Set(codes)] } : {}),
+  };
 }
 
 /**
@@ -57,6 +78,7 @@ export class BaiduAdapter extends BasePlatformAdapter {
   private lastRequestTime = 0;
   private maxTaskPollAttempts = 30;      // Max 30 attempts
   private taskPollInterval = 1000;        // 1 second polling interval
+  private readonly listingsByDirectory = new Map<string, DirectoryListing>();
 
   constructor(config?: Partial<PlatformConfig>) {
     super({
@@ -159,10 +181,36 @@ export class BaiduAdapter extends BasePlatformAdapter {
    * @returns Complete file list
    */
   async getAllFiles(parentPath?: string): Promise<FileItem[]> {
+    const directory = parentPath || this.getCurrentPath();
+    let listing = this.listingsByDirectory.get(directory);
+    if (!listing) {
+      listing = { paths: new Map() };
+      this.listingsByDirectory.set(directory, listing);
+    }
+    if (listing.pending) return listing.pending.files;
+
+    const paths = new Map<string, string>();
+    const invalidatedIds = new Set<string>();
+    // Share a read for fresh adapters and concurrent renames missing from the index.
+    const files = this.fetchDirectoryFiles(directory, paths);
+    listing.pending = { files, invalidatedIds };
+    try {
+      const result = await files;
+      for (const fileId of invalidatedIds) paths.delete(fileId);
+      listing.paths = paths;
+      return result;
+    } catch (error) {
+      listing.paths.clear();
+      throw error;
+    } finally {
+      listing.pending = undefined;
+    }
+  }
+
+  private async fetchDirectoryFiles(targetPath: string, paths: Map<string, string>): Promise<FileItem[]> {
     try {
       logger.info('[BaiduAdapter] Fetching all files from API');
 
-      const targetPath = parentPath || this.getCurrentPath();
       const bdstoken = await this.extractBdstoken();
 
       if (!bdstoken) {
@@ -170,6 +218,7 @@ export class BaiduAdapter extends BasePlatformAdapter {
       }
 
       const allFiles: FileItem[] = [];
+      const directoryPrefix = targetPath.replace(/\/$/, '');
       let page = 1;
       const pageSize = 100;
       let hasMore = true;
@@ -186,19 +235,24 @@ export class BaiduAdapter extends BasePlatformAdapter {
         url.searchParams.set('dir', targetPath);
         url.searchParams.set('bdstoken', bdstoken);
 
-        const response = await this.fetchWithTimeout(url.toString(), {
-          method: 'GET',
-          credentials: 'include',
-        });
-
-        const result: BaiduAPIResponse<{ list: BaiduFileListItem[] }> = await response.json();
-
-        if (result.errno !== 0) {
-          const errorMsg = getErrorMessage(result.errno);
-          throw new BaiduAPIError(result.errno, errorMsg, result);
+        let result: BaiduAPIResponse<{ list: BaiduFileListItem[] }>;
+        try {
+          const response = await this.fetchWithTimeout(url.toString(), {
+            method: 'GET',
+            credentials: 'include',
+          });
+          if (!response.ok) throw new Error();
+          result = await response.json();
+        } catch {
+          throw new Error('无法读取百度网盘目录列表');
         }
 
-        const pageFiles = (result.data?.list ?? result.list) as BaiduFileListItem[] | undefined;
+        if (!Number.isSafeInteger(result?.errno)) throw new Error('无法解析文件列表响应');
+        if (result.errno !== 0) {
+          throw new BaiduAPIError(result.errno, getErrorMessage(result.errno));
+        }
+
+        const pageFiles = result.data?.list ?? result.list;
         if (!Array.isArray(pageFiles)) {
           throw new Error('无法解析文件列表响应');
         }
@@ -208,8 +262,15 @@ export class BaiduAdapter extends BasePlatformAdapter {
           .filter(f => f.isdir === 0)
           .map((file): FileItem => {
             const { ext } = parseFileName(file.server_filename);
+            const id = String(file.fs_id);
+            const path = file.path;
+            // Check that this is a complete path to an item in the listed directory.
+            if (typeof path === 'string' && path.startsWith('/') && !path.endsWith('/')
+              && path.slice(0, path.lastIndexOf('/')) === directoryPrefix) {
+              paths.set(id, path);
+            }
             return {
-              id: String(file.fs_id),
+              id,
               name: file.server_filename,
               ext: ext,
               parentId: targetPath,
@@ -244,68 +305,118 @@ export class BaiduAdapter extends BasePlatformAdapter {
    * @returns Rename result
    */
   async renameFile(fileId: string, newName: string): Promise<RenameResult> {
+    const directory = this.getCurrentPath();
+    const id = Number(fileId);
+    const operationId = crypto.randomUUID();
+    if (!Number.isSafeInteger(id) || id <= 0 || String(id) !== fileId) {
+      return { success: false, error: new Error('无法识别文件，请重新加载列表后再试') };
+    }
+
     return this.retryableRequest(async () => {
+      const filePath = await this.resolveRenamePath(directory, fileId);
+      if (!filePath) {
+        logger.warn('[BaiduAdapter] Rename source path unavailable', { operationId, pathSource: 'unavailable' });
+        return { success: false, error: new Error('无法确认文件路径，请重新加载当前目录后再试') };
+      }
+      const diagnostic = { operationId, pathSource: 'api/list' };
+
       // Apply rate limiting
       await this.rateLimit();
 
       // Get bdstoken from page (async via MAIN world)
       const bdstoken = await this.extractBdstoken();
       if (!bdstoken) {
-        logger.error('bdstoken extraction failed');
-        throw new Error('无法获取 bdstoken，请确保已登录百度网盘');
+        return { success: false, error: new Error('无法获取 bdstoken，请确保已登录百度网盘') };
       }
 
-      // Get file info to construct full path
-      const fileInfo = await this.getFileInfoFromDOM(fileId);
-      const filePath = fileInfo.parentId ? `${fileInfo.parentId}/${fileInfo.name}` : `/${fileInfo.name}`;
+      if (directory !== this.getCurrentPath()) {
+        return { success: false, error: new Error('目录已切换，请重新加载当前目录后再试') };
+      }
 
       // Construct rename request
       const url = `${this.baseURL}/filemanager?async=2&onnest=fail&opera=rename&bdstoken=${bdstoken}&clienttype=0&app_id=250528&web=1`;
 
       const requestBody = {
         filelist: JSON.stringify([{
-          id: parseInt(fileId, 10),    // fs_id as number
-          path: filePath,               // Full path
+          id,                          // fs_id as number
+          path: filePath,              // Full path from /api/list
           newname: newName              // Name only
         }])
       };
 
       // Use page script injector for cookie authentication
       const injector = getPageScriptInjector();
-      const result: BaiduAPIResponse = await injector.callAPI(
-        'POST',
-        url,
-        requestBody,
-        this.config.timeout
-      );
+      let result: BaiduAPIResponse;
+      try {
+        result = await injector.callAPI('POST', url, requestBody, this.config.timeout);
+      } catch {
+        this.invalidateRenamePath(directory, fileId);
+        logger.error('[BaiduAdapter] Rename submission outcome unknown', undefined, {
+          ...diagnostic, reason: 'request-error',
+        });
+        return { success: false, error: new Error('重命名提交结果未知，请刷新列表确认文件名后再试') };
+      }
 
       // Check immediate response
-      if (result.errno !== 0) {
-        const errorMsg = getErrorMessage(result.errno);
-        logger.error(`API returned error - errno: ${result.errno}`, new Error(errorMsg));
-        throw new BaiduAPIError(result.errno, errorMsg, result);
+      if (Number.isSafeInteger(result?.errno) && result.errno !== 0) {
+        logger.error('[BaiduAdapter] Rename submission rejected', undefined, {
+          ...diagnostic, ...responseErrorCodes(result),
+        });
+        throw new BaiduAPIError(result.errno, getErrorMessage(result.errno));
       }
 
       // Extract taskid for async tracking
-      const taskid = result.taskid;
-      if (!taskid) {
-        logger.error('No taskid returned', new Error('重命名请求成功但未返回 taskid'));
-        throw new Error('重命名请求成功但未返回 taskid');
+      const taskid = result?.taskid;
+      const taskKey = typeof taskid === 'number' || typeof taskid === 'string' ? String(taskid) : '';
+      if (result?.errno !== 0 || !/^[1-9]\d*$/.test(taskKey)) {
+        this.invalidateRenamePath(directory, fileId);
+        logger.error('[BaiduAdapter] Rename submission outcome unknown', undefined, {
+          ...diagnostic, ...responseErrorCodes(result),
+          reason: result?.errno === 0 ? 'missing-task-id' : 'invalid-response',
+        });
+        return { success: false, error: new Error('无法确认重命名任务，请刷新列表确认文件名后再试') };
       }
 
-      // Poll task status until completion
-      const taskResult = await this.pollTaskStatus(taskid);
+      logger.info('[BaiduAdapter] Rename task accepted', diagnostic);
+      const taskResult = await this.pollTaskStatus(taskKey);
+      this.invalidateRenamePath(directory, fileId);
 
       if (taskResult.status === 'success') {
-        return {
-          success: true,
-          newName: newName,
-        };
-      } else {
-        logger.error(`Task execution failed - taskid: ${taskid}, status: ${taskResult.status}`, new Error(`任务执行失败: ${taskResult.status}`));
-        throw new Error(`任务执行失败: ${taskResult.status}`);
+        return { success: true, newName };
       }
-    }, `重命名文件 ${fileId}`);
+      const taskDiagnostic = {
+        ...diagnostic, ...responseErrorCodes(taskResult.response),
+        status: taskResult.status, pollAttempts: taskResult.attempts,
+      };
+      if (taskResult.status === 'unknown') {
+        logger.error('[BaiduAdapter] Rename task outcome unknown', undefined, {
+          ...taskDiagnostic, reason: taskResult.reason,
+        });
+        return { success: false, error: new Error('重命名任务结果未知，请刷新列表确认文件名后再试') };
+      }
+      logger.error('[BaiduAdapter] Rename task failed', undefined, taskDiagnostic);
+      return { success: false, error: new Error('任务执行失败: failed') };
+    }, operationId);
+  }
+
+  private async resolveRenamePath(directory: string, fileId: string): Promise<string | undefined> {
+    const listing = this.listingsByDirectory.get(directory);
+    const path = listing?.paths.get(fileId);
+    if (path && !listing?.pending) return path;
+    try {
+      await this.getAllFiles(directory);
+      return this.listingsByDirectory.get(directory)?.paths.get(fileId);
+    } catch {
+      // getAllFiles already records the list failure; don't construct a path from the page.
+      return undefined;
+    }
+  }
+
+  private invalidateRenamePath(directory: string, fileId: string): void {
+    const listing = this.listingsByDirectory.get(directory);
+    listing?.paths.delete(fileId);
+    // A list read started before completion may still contain the previous path.
+    listing?.pending?.invalidatedIds.add(fileId);
   }
 
   /**
@@ -393,7 +504,7 @@ export class BaiduAdapter extends BasePlatformAdapter {
         return false;
       }
 
-      const list = (result.data?.list ?? result.list) as BaiduFileListItem[] | undefined;
+      const list = result.data?.list ?? result.list;
       if (!Array.isArray(list)) {
         return false;
       }
@@ -406,79 +517,19 @@ export class BaiduAdapter extends BasePlatformAdapter {
   }
 
   /**
-   * Get file information (fallback to DOM extraction)
+   * Read current file info for recovery and idempotency checks.
    *
    * @param fileId - fs_id
    * @returns File information
    */
   async getFileInfo(fileId: string): Promise<FileItem> {
-    try {
-      // Try DOM extraction first (more reliable)
-      return await this.getFileInfoFromDOM(fileId);
-    } catch (error) {
-      logger.error(`Failed to get file info for ${fileId}:`, error instanceof Error ? error : new Error(String(error)));
-      throw new Error(`获取文件信息失败: ${error instanceof Error ? error.message : String(error)}`);
+    const directory = this.getCurrentPath();
+    const files = await this.getAllFiles(directory);
+    const file = files.find(item => item.id === fileId);
+    if (!file || directory !== this.getCurrentPath()) {
+      throw new Error('无法确认文件信息，请重新加载当前目录后再试');
     }
-  }
-
-  /**
-   * Extract file info from DOM by fs_id
-   * @private
-   */
-  private async getFileInfoFromDOM(fileId: string): Promise<FileItem> {
-    const row = document.querySelector(
-      `[data-fs-id="${fileId}"], [data-id="${fileId}"]`
-    );
-
-    if (!row) {
-      logger.error(`Row not found for fileId: ${fileId}`, new Error(`Row not found for fileId: ${fileId}`));
-      // Return fallback instead of throwing to prevent content script crash
-      return {
-        id: fileId,
-        name: `unknown_${fileId}`,
-        ext: '',
-        size: 0,
-        mtime: Date.now(),
-        parentId: this.getCurrentPath(),
-      };
-    }
-
-    // FIX: Synchronize selector with getSelectedFiles() method (line 102-103)
-    // Use same selector and extraction logic to ensure consistency
-    const filenameEl = row.querySelector('.wp-s-pan-list__file-name-title-text, .list-name-text, a[title]');
-    const fileName = filenameEl?.getAttribute('title')?.trim() || filenameEl?.textContent?.trim() || '';
-
-    // Safety check: log error and return fallback if filename is empty
-    if (!fileName) {
-      logger.error(`Empty fileName after extraction for fileId: ${fileId}`, new Error(`Empty fileName after extraction`));
-      // Return fallback instead of throwing to prevent content script crash
-      const parentPath = this.getCurrentPath();
-      return {
-        id: fileId,
-        name: `unknown_${fileId}`,
-        ext: '',
-        size: 0,
-        mtime: Date.now(),
-        parentId: parentPath,
-      };
-    }
-
-    // Use getCurrentPath() to get current directory path
-    // Current directory IS the parent directory for selected files
-    const parentPath = this.getCurrentPath();
-
-    const sizeAttr = row.getAttribute('data-size');
-    const mtimeAttr = row.getAttribute('data-mtime');
-    const { ext } = parseFileName(fileName);
-
-    return {
-      id: fileId,
-      name: fileName,
-      ext: ext,
-      parentId: parentPath,
-      size: sizeAttr ? parseInt(sizeAttr, 10) : 0,
-      mtime: mtimeAttr ? parseInt(mtimeAttr, 10) : Date.now(),
-    };
+    return file;
   }
 
   /**
@@ -515,43 +566,13 @@ export class BaiduAdapter extends BasePlatformAdapter {
    * @private
    */
   private getCurrentPath(): string {
-    // Priority 1: URL query parameter ?path=/xxx
-    const urlParams = new URLSearchParams(window.location.search);
-    const pathFromQuery = urlParams.get('path');
+    const pathFromQuery = new URLSearchParams(window.location.search).get('path');
+    if (pathFromQuery) return pathFromQuery;
 
-    if (pathFromQuery) {
-      try {
-        const decoded = decodeURIComponent(pathFromQuery);
-        return decoded;
-      } catch (error) {
-        logger.warn('[CDR] [WARN] Path decode failed, using raw value', {
-          rawPath: pathFromQuery,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        return pathFromQuery;
-      }
-    }
-
-    // Priority 2: URL hash #/all?path=/xxx
+    // Use the same query codec as the route refresh, which encodes spaces as "+".
     const hash = window.location.hash;
-    if (hash) {
-      const hashMatch = hash.match(/[?&]path=([^&]*)/);
-      if (hashMatch && hashMatch[1]) {
-        try {
-          const decoded = decodeURIComponent(hashMatch[1]);
-          return decoded;
-        } catch (error) {
-          logger.warn('[CDR] [WARN] Hash path decode failed, using raw value', {
-            rawPath: hashMatch[1],
-            error: error instanceof Error ? error.message : String(error),
-          });
-          return hashMatch[1];
-        }
-      }
-    }
-
-    // Priority 3: Default root directory
-    return '/';
+    const queryStart = hash.indexOf('?');
+    return (queryStart >= 0 && new URLSearchParams(hash.slice(queryStart)).get('path')) || '/';
   }
 
   private async tryTriggerNativeFileListRerender(): Promise<{ triggered: boolean; message: string }> {
@@ -988,9 +1009,11 @@ export class BaiduAdapter extends BasePlatformAdapter {
    * @private
    */
   private async pollTaskStatus(
-    taskid: number
-  ): Promise<BaiduTaskResponse> {
+    taskid: string
+  ): Promise<TaskPollResult> {
+    let outcome: TaskPollResult = { status: 'unknown', reason: 'poll-limit', attempts: 0 };
     for (let attempt = 0; attempt < this.maxTaskPollAttempts; attempt++) {
+      const attempts = attempt + 1;
       // Wait before polling
       await this.sleep(this.taskPollInterval);
       await this.rateLimit();
@@ -1007,31 +1030,22 @@ export class BaiduAdapter extends BasePlatformAdapter {
           this.config.timeout
         );
 
-        // Check task status
-        if (result.errno !== 0) {
-          throw new BaiduAPIError(result.errno, getErrorMessage(result.errno), result);
+        if (!Number.isSafeInteger(result?.errno)) {
+          outcome = { status: 'unknown', reason: 'invalid-response', attempts };
+        } else if (result.errno !== 0) {
+          outcome = { status: 'unknown', reason: 'query-rejected', attempts, response: result };
+        } else if (result.status === 'success' || result.status === 'failed') {
+          return { status: result.status, attempts, response: result };
+        } else {
+          const reason = result.status === 'running' || result.status === 'pending' ? 'poll-limit' : 'invalid-response';
+          outcome = { status: 'unknown', reason, attempts, response: result };
         }
-
-        // Terminal states
-        if (result.status === 'success' || result.status === 'failed') {
-          return result;
-        }
-
-        // Continue polling for 'running' or 'pending'
-        logger.info(`Task ${taskid} status: ${result.status}, polling attempt ${attempt + 1}/${this.maxTaskPollAttempts}`);
-
-      } catch (error) {
-        logger.error(`Task polling error (attempt ${attempt + 1}):`, error instanceof Error ? error : new Error(String(error)));
-
-        // Last attempt failed
-        if (attempt === this.maxTaskPollAttempts - 1) {
-          throw error;
-        }
+      } catch {
+        outcome = { status: 'unknown', reason: 'query-error', attempts };
       }
     }
 
-    // Timeout after max attempts
-    throw new Error(`任务 ${taskid} 超时: 超过最大轮询次数 ${this.maxTaskPollAttempts}`);
+    return outcome;
   }
 
   /**
@@ -1054,46 +1068,43 @@ export class BaiduAdapter extends BasePlatformAdapter {
    * Retryable request wrapper with exponential backoff
    * @private
    */
-  private async retryableRequest<T extends RenameResult>(
-    requestFn: () => Promise<T>,
-    operation: string
-  ): Promise<T> {
-    let lastError: any;
+  private async retryableRequest(
+    requestFn: () => Promise<RenameResult>,
+    operationId: string
+  ): Promise<RenameResult> {
+    let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
       try {
         const result = await requestFn();
         return result;
       } catch (error) {
-        lastError = error;
+        lastError = error instanceof BaiduAPIError ? error : new Error('无法提交百度网盘重命名请求');
+        const diagnostic = {
+          operationId, attempt,
+          ...(error instanceof BaiduAPIError ? { errno: error.errno } : {}),
+        };
 
         // Check if retryable
         if (!isRetryableError(error)) {
-          logger.error(`${operation} 失败（不可重试）:`, error instanceof Error ? error : new Error(String(error)));
+          logger.error('[BaiduAdapter] Rename request stopped', undefined, diagnostic);
           break;
         }
 
         // Last attempt
         if (attempt === this.config.maxRetries) {
-          logger.error(`${operation} 失败（已达最大重试次数 ${this.config.maxRetries}）:`, error instanceof Error ? error : new Error(String(error)));
+          logger.error('[BaiduAdapter] Rename request retry limit reached', undefined, diagnostic);
           break;
         }
 
         // Exponential backoff
         const backoffDelay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-        logger.warn(
-          `${operation} 失败（第 ${attempt}/${this.config.maxRetries} 次尝试），` +
-          `${backoffDelay}ms 后重试:`,
-          error instanceof Error ? error : new Error(String(error))
-        );
+        logger.warn('[BaiduAdapter] Retrying rejected rename request', { ...diagnostic, backoffDelay });
         await this.sleep(backoffDelay);
       }
     }
 
     // All retries failed
-    return {
-      success: false,
-      error: lastError instanceof Error ? lastError : new Error(String(lastError)),
-    } as T;
+    return { success: false, error: lastError ?? new Error('无法提交百度网盘重命名请求') };
   }
 }
