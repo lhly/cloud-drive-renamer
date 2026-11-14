@@ -55,6 +55,12 @@ git push origin v0.2.0
 
 ---
 
+## 商店送审
+
+现有 GitHub Release 仍只负责构建并发布 ZIP。等 Release 生成后，在 **Actions → Extension Stores** 手动选择版本与目标商店。两家共用同一个 ZIP，运行摘要分别报告提交结果。后台授权、首次试跑和状态含义见[扩展商店送审指南](docs/store-submission.md)。
+
+---
+
 ## 📋 发布前检查清单
 
 在创建新版本前，请确认：

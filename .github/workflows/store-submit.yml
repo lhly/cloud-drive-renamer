@@ -1,0 +1,155 @@
+name: Extension Stores
+run-name: Stores · ${{ inputs.mode }} · ${{ inputs.version }} · ${{ inputs.store }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: GitHub Release tag (e.g. v2.0.3)
+        required: true
+        type: string
+      store:
+        description: Target store
+        type: choice
+        options: [both, chrome, edge]
+        default: chrome
+      mode:
+        description: Submit for review or read status only
+        type: choice
+        options: [submit, status]
+        default: status
+      edge_clear:
+        description: Edge submit only — I checked that Partner Center has no pending review or unfinished draft
+        type: boolean
+        default: false
+      edge_operation_id:
+        description: Edge status only — operation ID from the previous submission summary
+        type: string
+      edge_notes:
+        description: Optional Edge certification notes (no credentials)
+        type: string
+
+permissions: {}
+
+jobs:
+  prepare:
+    name: Validate request and select Release ZIP
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      RELEASE_TAG: ${{ inputs.version }}
+      STORE_MODE: ${{ inputs.mode }}
+    steps:
+      - name: Require main
+        env:
+          TRUSTED_REPO: lhly/cloud-drive-renamer
+        run: |
+          if [[ "$GITHUB_REF" != refs/heads/main || "$GITHUB_REPOSITORY" != "$TRUSTED_REPO" ]]; then
+            echo 'Run from main in lhly/cloud-drive-renamer.' >&2
+            exit 1
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Validate inputs
+        run: node scripts/store-release.js validate "$RELEASE_TAG" "$STORE_MODE"
+      - name: Download and verify the published asset once
+        if: inputs.mode == 'submit'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName,isDraft,isPrerelease)"
+          jq -e --arg tag "$RELEASE_TAG" '.tagName == $tag and .isDraft == false and .isPrerelease == false' <<< "$release" >/dev/null
+          asset="cloud-drive-renamer-${RELEASE_TAG#v}.zip"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$asset" --output store-release.zip
+          node scripts/store-release.js validate "$RELEASE_TAG" "$STORE_MODE" store-release.zip
+          printf 'Release asset: `%s`\n' "$asset" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: inputs.mode == 'submit'
+        with:
+          name: store-release
+          path: store-release.zip
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+
+  chrome:
+    name: Chrome Web Store
+    if: inputs.store == 'both' || inputs.store == 'chrome'
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: chrome-store
+    concurrency:
+      group: chrome-store
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: inputs.mode == 'submit'
+        with:
+          name: store-release
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        id: chrome_auth
+        with:
+          workload_identity_provider: ${{ vars.CHROME_WIF_PROVIDER }}
+          service_account: ${{ vars.CHROME_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: ${{ inputs.mode == 'submit' && 'https://www.googleapis.com/auth/chromewebstore' || 'https://www.googleapis.com/auth/chromewebstore.readonly' }}
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Run Chrome operation
+        env:
+          RELEASE_TAG: ${{ inputs.version }}
+          STORE_MODE: ${{ inputs.mode }}
+          CHROME_PUBLISHER_ID: ${{ vars.CHROME_PUBLISHER_ID }}
+          CHROME_ACCESS_TOKEN: ${{ steps.chrome_auth.outputs.access_token }}
+        run: node scripts/store-release.js chrome "$RELEASE_TAG" "$STORE_MODE" store-release.zip
+
+  edge:
+    name: Microsoft Edge Add-ons
+    if: inputs.store == 'both' || inputs.store == 'edge'
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: edge-store
+    concurrency:
+      group: edge-store
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: inputs.mode == 'submit'
+        with:
+          name: store-release
+      - name: Run Edge operation
+        env:
+          RELEASE_TAG: ${{ inputs.version }}
+          STORE_MODE: ${{ inputs.mode }}
+          EDGE_CLIENT_ID: ${{ vars.EDGE_CLIENT_ID }}
+          EDGE_PRODUCT_ID: ${{ vars.EDGE_PRODUCT_ID }}
+          EDGE_API_KEY: ${{ secrets.EDGE_API_KEY }}
+          EDGE_CLEAR: ${{ inputs.edge_clear }}
+          EDGE_OPERATION_ID: ${{ inputs.edge_operation_id }}
+          EDGE_NOTES: ${{ inputs.edge_notes }}
+        run: node scripts/store-release.js edge "$RELEASE_TAG" "$STORE_MODE" store-release.zip

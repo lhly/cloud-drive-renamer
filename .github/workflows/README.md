@@ -34,6 +34,10 @@
 
 **用途**：自动化发布流程，生成可安装的扩展包。
 
+### 3. `store-submit.yml` - 扩展商店送审与查状态
+
+仅手动触发。选择 GitHub Release 标签和目标商店，从现有 Release 复用同一份 ZIP；Chrome 和 Edge 各自报告状态。一次性授权及操作见[扩展商店送审指南](../../docs/store-submission.md)。
+
 ---
 
 ## 🚀 使用方式
@@ -89,7 +93,7 @@ git push origin v$(node -p "require('./package.json').version")
 
 ### Node.js 版本
 
-所有工作流使用 **Node.js 20**（LTS 版本）
+现有 CI 和 Release 使用 **Node.js 20**；商店送审工作流使用 **Node.js 22**。
 
 如需更改，修改各工作流文件中的：
 ```yaml
@@ -153,5 +157,5 @@ concurrency:
 ## 🔗 相关资源
 
 - [GitHub Actions 文档](https://docs.github.com/en/actions)
-- [发布流程指南](../RELEASE.md)
-- [项目 README](../README.md)
+- [发布流程指南](../../RELEASE.md)
+- [项目 README](../../README.md)
